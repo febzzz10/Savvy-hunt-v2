@@ -28,7 +28,7 @@ try{
   await assert.rejects(client.action(api.gallery.approve,{itemId:photo,consentConfirmed:false}));
   await assert.rejects(client.action(api.gallery.approve,{itemId:photo,consentConfirmed:true}));
   assert.ok(!(await anonymous.query(api.gallery.listApproved,{editionId})).some(item=>item._id===photo));
-  await client.mutation(api.gallery.hide,{itemId:photo});record("Live gallery refused approval without consent and without Drive configuration; no image published");
+  await client.mutation(api.gallery.hide,{itemId:photo});record("Live gallery refused approval without consent and for an inaccessible Drive file; no image published");
   const response=await fetch(`http://localhost:3000/api/gallery/${photo}/image`);assert.notEqual(response.status,200);record(`Unapproved image endpoint returned ${response.status}, with no image bytes`);
   await page.goto("http://localhost:3000/schedule");await page.getByRole("combobox").first().selectOption("completed");await page.getByText("No events match these filters.").waitFor();record("Public schedule status filter works");
 }catch(error){evidence.failure=error.message;console.error(error.message);process.exitCode=1}finally{if(settings&&editionId)await client.mutation(api.siteSettings.update,{editionId,eventTitle:settings.eventTitle,tagline:settings.tagline,contactInfo:settings.contactInfo}).catch(()=>{});if(session)await clerk.sessions.revokeSession(session.id).catch(()=>{});if(browser)await browser.close();await mkdir("verification-evidence",{recursive:true});await writeFile("verification-evidence/content.json",JSON.stringify(evidence,null,2))}

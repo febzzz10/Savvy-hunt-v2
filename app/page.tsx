@@ -1,3 +1,3 @@
 import { Nav } from "@/components/public";
 import { HomeContent } from "@/components/home";
-export default function Home() { return <><Nav /><main className="shell"><HomeContent /></main></>; }
+export default function Home() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><HomeContent /></main></>; }

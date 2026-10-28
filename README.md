@@ -1,6 +1,6 @@
 # Savvy Hunt
 
-School event management website built with Next.js App Router, TypeScript, Tailwind CSS, Convex, Clerk, and Google Drive. **Do not use for official results until the checks in `FINAL_IMPLEMENTATION_REPORT.md` pass against a configured development deployment.**
+School event management website built with Next.js App Router, TypeScript, Tailwind CSS, Convex, Clerk, and Google Drive. **See [the Phase 4 release report](PHASE4_RELEASE_REPORT.md) for current evidence and blockers, and [production deployment instructions](PRODUCTION_DEPLOYMENT.md) for the release procedure. The configured Drive folder is now readable; see the [Drive-only gallery report](docs/gallery-drive-only-report.md) for current gallery verification. No production deployment has been performed.**
 
 ## Development setup
 
@@ -13,11 +13,23 @@ School event management website built with Next.js App Router, TypeScript, Tailw
 
 ## Drive gallery setup
 
-Organizers upload approved images into one controlled Google Drive folder. Create a service account with read access to that folder. Set `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` in **both** the Convex deployment and Vercel server environment. Set the same long random `GALLERY_PROXY_SECRET` in both places; it is never a browser variable. The admin registers a Drive file ID, confirms organizer approval and photo consent, then the Convex action verifies folder membership, MIME type, size, and content checksum before publication. The public image route checks approval and Drive metadata and checksum again on every request and uses `no-store` so hiding or replacing a photo takes effect quickly. Supported types: JPEG, PNG, WebP, GIF, AVIF; maximum 15 MB.
+Organizers upload photos **directly to Google Drive**. The website has no upload form or Google OAuth requirement. A read-only service account scans the gallery every 2 minutes using the existing Convex cron; active admins can also use **Sync Now**. New photos remain **Pending** until an administrator reviews the private preview and explicitly verifies publication consent. Pending, Approved and Rejected views, metadata editing, hiding, ordering and audit history remain available.
+
+Set `GOOGLE_DRIVE_FOLDER_ID` to the gallery folder ID in **both** Convex deployment env and the Next.js/Vercel server env. Leave `GOOGLE_DRIVE_INCOMING_FOLDER_ID` unset to use that same folder for incoming photos. If a separate Incoming folder is set, an organizer must move photos manually into the gallery folder before approval; the application never writes to Google Drive.
+
+Share the folder directly with `GOOGLE_SERVICE_ACCOUNT_EMAIL` as **Viewer**, and set `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` and the same `GALLERY_PROXY_SECRET` in both server environments. A shared personal My Drive folder is supported for this read-only workflow; a Workspace Shared Drive is optional. Supported images are JPEG, PNG, WebP, GIF and AVIF up to **15 MB**. Credentials remain server-side. See [the gallery setup guide](docs/gallery-drive-setup.md) for permissions, configuration and 404 diagnosis.
 
 ## Verification
 
 Run `npm run lint`, `npm test`, `npm run build`, and `npm audit`. Unit tests do not replace the required Convex integration and browser tests. In a **development** edition only, rehearse the full school → event → draft → publish → correction → revoke flow with a separate anonymous browser. Never seed demonstration scores in production.
+
+Repeat the live verification with `node scripts/verify-development.mjs`, `node scripts/verify-content.mjs`, and `node scripts/verify-browser.mjs`. These scripts are intentionally pinned to the current development deployment and Clerk test keys. They create labeled development fixtures, use real short-lived Clerk sessions, and save sanitized evidence under ignored `verification-evidence/`. The content script restores About settings and hides its announcement; scoring fixtures and audit history remain for review. Configure Drive separately for positive image scenarios. `node scripts/check-repository-secrets.mjs` checks configured private values against the Git index and current commit.
+
+Phase 4 adds `scripts/phase4-drive.mjs`, `phase4-auth.mjs`, `phase4-ui.mjs`, `phase4-interactions.mjs`, `phase4-capacity.mjs`, `phase4-http.mjs`, and `phase4-security.mjs`. They pin development Convex and Clerk test credentials and save separate sanitized evidence. Drive preflight exits nonzero while access or fixture blockers remain. The capacity script opens at most 500 real development clients, writes labeled scoring fixtures, revokes its results and archives its school afterward; it does not certify production capacity. The authentication script creates and deletes a temporary Clerk test user and revokes its allowlist entry. It uses the documented test OTP, never real staff credentials.
+
+For testing the optimized frontend, run `npm run build`, then `npx next start -p 3100` in a separate terminal. In PowerShell, set `$env:VERIFY_BASE_URL='http://localhost:3100'` before running the Phase 4 browser, authentication, interaction, Drive or HTML-traffic scripts. Clear it afterward with `Remove-Item Env:VERIFY_BASE_URL`. The earlier `verify-*.mjs` scripts still use port 3000. Run the scoring/capacity scripts sequentially so their fixtures do not affect one another's assertions.
+
+`phase4-security.mjs` checks the working source, index and reachable Git history for configured secrets and selected key patterns. It is not a comprehensive forensic scan. The Clerk secret previously present in `.env.example` must still be rotated by the account owner; a clean source scan does not revoke it.
 
 ## Production deployment
 

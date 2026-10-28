@@ -11,9 +11,12 @@
 import type * as admins from "../admins.js";
 import type * as announcements from "../announcements.js";
 import type * as categories from "../categories.js";
+import type * as crons from "../crons.js";
 import type * as editions from "../editions.js";
 import type * as events from "../events.js";
 import type * as gallery from "../gallery.js";
+import type * as gallerySync from "../gallerySync.js";
+import type * as gallerySyncData from "../gallerySyncData.js";
 import type * as lib_scoring from "../lib/scoring.js";
 import type * as lib_security from "../lib/security.js";
 import type * as results from "../results.js";
@@ -31,9 +34,12 @@ declare const fullApi: ApiFromModules<{
   admins: typeof admins;
   announcements: typeof announcements;
   categories: typeof categories;
+  crons: typeof crons;
   editions: typeof editions;
   events: typeof events;
   gallery: typeof gallery;
+  gallerySync: typeof gallerySync;
+  gallerySyncData: typeof gallerySyncData;
   "lib/scoring": typeof lib_scoring;
   "lib/security": typeof lib_security;
   results: typeof results;

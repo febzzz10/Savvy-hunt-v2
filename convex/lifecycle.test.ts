@@ -25,6 +25,10 @@ async function setup() {
 }
 
 describe("Convex scoring and management integration", () => {
+  it("changes event status deliberately without implicitly publishing results", async()=>{
+    const s=await setup();
+    for(const status of ["live","completed"] as const){await s.editor.mutation(api.events.save,{editionId:s.editionId,id:s.eventId,title:"Verification quiz",categoryId:s.categories[1]._id,startsAt:1_800_000_000_000,status});const events=await s.t.query(api.events.listPublic,{editionId:s.editionId});expect(events.find(event=>event._id===s.eventId)?.status).toBe(status);expect(events.find(event=>event._id===s.eventId)?.hasPublishedResults).toBe(false)}
+  });
   it("preserves draft isolation, publishes once, corrects by delta, revokes once, and preserves audit", async () => {
     const s = await setup();
     const draft = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 10 }, { schoolId: s.b, points: 6 }] });
@@ -83,6 +87,7 @@ describe("Convex scoring and management integration", () => {
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "  " })).rejects.toThrow();
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "verification a" })).rejects.toThrow();
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Other", code: "a" })).rejects.toThrow();
+    await expect(s.editor.mutation(api.events.save,{editionId:s.editionId,title:"Invalid end",categoryId:s.categories[0]._id,startsAt:1,endsAt:Number.POSITIVE_INFINITY})).rejects.toThrow("Invalid schedule");
     for (const points of [-1, 1.5]) await expect(s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points }] })).rejects.toThrow();
     const foreign = await s.t.run(async ctx => {
       const editionId = await ctx.db.insert("editions", { name: "Other edition", slug: "other", year: 2027, timezone: "Asia/Kolkata", status: "draft", isCurrent: false, createdAt: 1, updatedAt: 1 });
@@ -135,6 +140,12 @@ describe("Convex scoring and management integration", () => {
     await expect(s.regular.query(api.gallery.pageAdmin, { editionId: s.editionId, paginationOpts: { numItems: 1, cursor: null } })).rejects.toThrow();
     await expect(s.regular.mutation(api.gallery.hide, { itemId: first })).rejects.toThrow();
     await expect(s.editor.action(api.gallery.approve, { itemId: first, consentConfirmed: false })).rejects.toThrow();
+    await expect(s.t.query(api.gallery.getApprovedItem,{itemId:first,proxySecret:"not-the-server-secret"})).rejects.toThrow();
+    await s.t.run(async ctx=>{await ctx.db.patch(first,{approvalStatus:"approved",consentConfirmed:true,verifiedMd5Checksum:"isolated-fixture-checksum"})});
+    const publicPhotos=await s.t.query(api.gallery.listApproved,{editionId:s.editionId});
+    expect(publicPhotos).toHaveLength(1);
+    expect(JSON.stringify(publicPhotos)).not.toContain("driveFileId");
+    expect(JSON.stringify(publicPhotos)).not.toContain("addedBy");
     await s.editor.mutation(api.gallery.hide, { itemId: first });
     expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([]);
   });

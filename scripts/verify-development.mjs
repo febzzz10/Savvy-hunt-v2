@@ -2,6 +2,7 @@ import { createClerkClient } from "@clerk/backend";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
 import { chromium } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -175,6 +176,7 @@ try {
   const outcomes = await Promise.all([client.mutation(api.results.publish, raceArgs), client.mutation(api.results.publish, raceArgs)]);
   assert.deepEqual(outcomes.map(outcome => outcome.status).sort(), ["already_published", "published"]);
   assert.equal((await anonymous.query(api.scoreboard.getOverall, { editionId })).find(row => row.id === a).points, 4);
+  await assert.rejects(client.mutation(api.results.revoke, { eventId: raceEvent, reason: "Stale withdrawal must fail", expectedActiveRevisionId: null }));
   const revisedDraft = await client.mutation(api.results.saveDraft, { eventId: raceEvent, reason: "Concurrency verification", entries: [{ schoolId: a, points: 5 }] });
   const stalePreview = await client.query(api.results.preview, { eventId: raceEvent, draftRevisionId: revisedDraft });
   await client.mutation(api.results.saveDraft, { eventId: raceEvent, expectedDraftVersion: stalePreview.expectedDraftVersion, reason: "Concurrency verification revised", entries: [{ schoolId: a, points: 6 }] });
@@ -183,6 +185,19 @@ try {
   await client.mutation(api.results.revoke, { eventId: raceEvent, reason: "Verification cleanup", expectedActiveRevisionId: raceDraft });
   for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).waitFor();
   record("Live simultaneous publication counted once; stale publication and omitted draft version rejected");
+  evidence.adminUi = [];
+  for (const width of [1440, 390]) {
+    await admin.setViewportSize({ width, height: 1000 });
+    for (const route of ["/admin/schools", "/admin/events", "/admin/gallery"]) {
+      await admin.goto(`http://localhost:3000${route}`);
+      await admin.getByRole("heading", { level: 1 }).waitFor();
+      const violations = (await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations.map(item => ({ id: item.id, impact: item.impact, nodes: item.nodes.map(node => node.target) }));
+      const overflow = await admin.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+      evidence.adminUi.push({ width, route, violations, overflow });
+    }
+  }
+  assert.ok(evidence.adminUi.every(item => !item.overflow && !item.violations.length), "Admin accessibility or overflow issue");
+  record("Desktop and mobile school, event, and gallery admin screens passed axe WCAG scan and overflow checks");
   await mkdir("verification-evidence", { recursive: true });
   await viewers[0].screenshot({ path: "verification-evidence/scoreboard-desktop.png", fullPage: true });
   await viewers[1].screenshot({ path: "verification-evidence/scoreboard-mobile.png", fullPage: true });

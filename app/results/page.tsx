@@ -7,7 +7,7 @@ import { Load, ref } from "@/components/data";
 type Result = { eventId: string; eventTitle: string; eventSlug: string; categoryId: string; publishedAt: number; entries: Array<{ schoolId: string; schoolName: string; points: number; placement?: number; entryLabel?: string }> };
 type Category = { _id: string; name: string };
 type School = { _id: string; name: string };
-export default function Page() { return <><Nav /><main className="shell"><h1>Official results</h1><Load>{edition => <Results editionId={edition._id} />}</Load></main></>; }
+export default function Page() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><h1>Official results</h1><Load>{edition => <Results editionId={edition._id} />}</Load></main></>; }
 function Results({ editionId }: { editionId: string }) {
   const results = useQuery(ref<{ editionId: string; limit: number }, Result[]>("results:listRecentPublished"), { editionId, limit: 50 });
   const categories = useQuery(ref<{ editionId: string }, Category[]>("categories:listCurrent"), { editionId });

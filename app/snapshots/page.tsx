@@ -9,4 +9,4 @@ function Gallery({ editionId }: { editionId: Id<"editions"> }) {
   const { results, status, loadMore } = usePaginatedQuery(api.gallery.pageApproved, { editionId }, { initialNumItems: 12 });
   return <>{status === "LoadingFirstPage" ? <p>Loading gallery…</p> : !results.length ? <p>Approved snapshots will appear here.</p> : <div className="grid">{results.map(item => <figure className="card" key={item._id}><GalleryPhoto id={item._id} alt={item.altText} /><figcaption>{item.caption ?? item.altText}</figcaption></figure>)}</div>}{status === "CanLoadMore" && <button className="button secondary" onClick={() => loadMore(12)}>Load more photos</button>}{status === "LoadingMore" && <p>Loading more photos…</p>}</>;
 }
-export default function Page() { return <><Nav /><main className="shell"><h1>Snapshots</h1><Load>{edition => <Gallery editionId={edition._id} />}</Load></main></>; }
+export default function Page() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><h1>Snapshots</h1><Load>{edition => <Gallery editionId={edition._id} />}</Load></main></>; }

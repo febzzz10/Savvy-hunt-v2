@@ -10,3 +10,7 @@ coverage
 verification-evidence/
 test-results/
 playwright-report/
+*.pem
+*.key
+service-account*.json
+credentials*.json

@@ -10,7 +10,7 @@ export const save=mutation({args:{editionId:v.id("editions"),id:v.optional(v.id(
   const admin=await requireAdmin(ctx),title=requiredText(args.title,"Event title"),slug=slugify(title),now=Date.now();
   if(title.length>160||args.venue&&args.venue.length>200||args.description&&args.description.length>4000)throw new Error("Event information is too long");
   const category=await ctx.db.get(args.categoryId);if(!category||category.editionId!==args.editionId||!category.isActive)throw new Error("Invalid category");
-  if(!Number.isFinite(args.startsAt)||args.endsAt!==undefined&&args.endsAt<args.startsAt)throw new Error("Invalid schedule");
+  if(!Number.isFinite(args.startsAt)||args.endsAt!==undefined&&(!Number.isFinite(args.endsAt)||args.endsAt<args.startsAt))throw new Error("Invalid schedule");
   if(args.participatingSchoolIds){if(new Set(args.participatingSchoolIds).size!==args.participatingSchoolIds.length)throw new Error("Duplicate participating school");for(const schoolId of args.participatingSchoolIds){const school=await ctx.db.get(schoolId);if(!school||school.editionId!==args.editionId||school.status!=="active")throw new Error("Invalid participating school")}}
   const duplicate=await ctx.db.query("events").withIndex("by_edition_slug",q=>q.eq("editionId",args.editionId).eq("slug",slug)).unique();
   if(duplicate&&duplicate._id!==args.id)throw new Error("Event title already exists");

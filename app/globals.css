@@ -4,3 +4,10 @@
 .checkbox{display:inline-flex;align-items:center;gap:6px;margin:8px 14px 8px 0}.checkbox input{width:auto}fieldset{border:1px solid #9eb2a3;border-radius:8px;margin:16px 0}fieldset legend{font-weight:700}
 .photo-fallback{display:grid;place-items:center;min-height:180px;background:#e7ede8;color:#476a56;border-radius:8px;text-align:center}
 .photo-frame{position:relative;width:100%;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:#e7ede8}
+.shell{overflow-wrap:anywhere}.grid>*{min-width:0}.shell>.card+.card{margin-top:16px}.card figure,figure.card{margin-inline:0}figcaption{margin-top:12px}
+.nav a:not(.brand){padding-block:8px}.nav [aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}.actions [aria-current="page"]{background:#12382c;color:#fff}
+.skip-link{position:fixed;top:8px;left:8px;z-index:100;background:#fff;color:#12382c;padding:12px 18px;border:2px solid #12382c;transform:translateY(-180%)}.skip-link:focus{transform:translateY(0)}
+.connection-status{padding:10px 24px;background:#e7ede8;color:#18352d;font-size:14px}.connection-status.disconnected{background:#fff0c2;color:#573b10}
+button:focus-visible{outline:3px solid #d08b22;outline-offset:3px}button,input,select{min-height:44px}input[type="checkbox"]{min-height:auto}.auth-panel{max-width:660px}
+/* Keep the Clerk development attribution visible with readable contrast. */
+.auth-panel [data-variant="buttonSmall"][data-color="inherit"]{color:#271708}

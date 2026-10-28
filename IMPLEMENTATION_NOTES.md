@@ -15,15 +15,20 @@
 
 - [x] Read six specifications and inspect local workspace.
 - [x] Install dependencies and resolve npm audit findings.
-- [ ] Generate Convex bindings (requires development project login).
-- [ ] Configure Clerk, Convex deployment, and first admin.
-- [ ] Implement and verify schema, management, scoring, and audit.
-- [ ] Connect public and admin pages through reactive queries.
+- [x] Generate Convex bindings against development `quiet-chickadee-449`.
+- [x] Configure Clerk JWT template/issuer and verify real development authentication.
+- [x] Verify core management, scoring, audit, roles, and concurrency with integration and live tests.
+- [x] Demonstrate public subscriptions across separate anonymous browsers, including reconnection.
 - [ ] Configure approved Drive media delivery.
-- [ ] Run unit, integration, browser, security, and deployment checks.
+- [x] Run local unit, integration, browser, security, and production-build checks.
+- [ ] Complete real approved-Drive delivery and production infrastructure rehearsal.
 
 ## Current blockers
 
-Package installation now works. Convex deployment credentials, Clerk keys, and school-owned Google Drive credentials are unavailable in this workspace. The Convex CLI cannot generate bindings without a configured project. No live sign-in, mutation, image delivery, or cross-browser update may be claimed verified without them.
+Phase 3 connected development Convex and Clerk, generated bindings, fixed the JWT issuer/template, and passed full lint, tests, build, and live browser scoring checks. Gallery editing/reordering and gallery/audit pagination are implemented. `FINAL_VERIFICATION_REPORT.md` records evidence and exact limits.
 
-The current source is still an unverified MVP. The new gallery action checks Drive metadata before approval, but no real Drive service account has exercised it. School/event editing, announcements, content settings, filters, and previews exist in source. Backend integration, role security, real-time, browser, accessibility, and load tests remain. Do not deploy as production ready.
+Phase 4 found the service-account/folder/proxy configuration present and matching locally and in development Convex. Google token exchange returns 200, but the configured folder returns 404 and lists no accessible files. Positive image approval/delivery and real changed/unavailable-photo scenarios remain blocked by folder access and missing consent-cleared fixtures. See `PHASE4_RELEASE_REPORT.md` for current evidence and `PRODUCTION_DEPLOYMENT.md` for deployment instructions.
+
+Normal password sign-in, new-device test email verification, sign-out and password recovery now pass with a temporary real Clerk development user. A short rehearsal passed with 500 live Convex clients and 2,000 subscriptions, including 50 forced reconnects; this is not production hosting/media capacity evidence. Frontend fixes add current-page navigation, keyboard skip links, readable sign-in attribution, wrapped identity keys, role messages, sign-out and hydration-safe offline/reconnect status. Scoring transactions and backend authorization remain authoritative.
+
+Concurrent gallery upload/sync work appeared in this workspace during verification. It includes additional optional gallery metadata/tables and must be reviewed as part of the complete release diff; the Phase 4 frontend changes did not require a scoring or database redesign. Existing-draft saves still require the matching version; revocations require the expected active revision; category edits remain blocked after official result history. Real staff MFA/OAuth and mailbox recovery, manual assistive-technology checks, credential rotation and organizer policy approval remain launch work. Do not treat development verification as production approval.
