@@ -1,0 +1,12 @@
+node_modules
+.next
+.env*.local
+.env
+.env.*
+!.env.example
+coverage
+.npm-cache
+*.tsbuildinfo
+verification-evidence/
+test-results/
+playwright-report/

@@ -1,0 +1,1 @@
+import {Nav,EventDetail} from "@/components/public";export default async function Page({params}:{params:Promise<{slug:string}>}){const {slug}=await params;return <><Nav/><main className="shell"><EventDetail slug={slug}/></main></>}
