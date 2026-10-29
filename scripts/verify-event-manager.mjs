@@ -2,7 +2,7 @@ import { chromium, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-import { baseURL, clerk, verificationAdmin } from "./phase4-support.mjs";
+import { baseURL, clerk, verificationAdmin, api } from "./phase4-support.mjs";
 
 // Uses the existing development-only verification identity. No event/result writes.
 const output = "verification-evidence/event-manager";
@@ -25,6 +25,38 @@ try {
   }, ticket.token);
   await page.goto(baseURL + "/admin/events");
   await page.getByRole("heading", { name: "Event feed", exact: true }).waitFor({ timeout: 45000 });
+  const edition = await admin.client.query(api.editions.getCurrent, {});
+  const events = await admin.client.query(api.events.listAdmin, { editionId: edition._id });
+  const categories = await admin.client.query(api.categories.listCurrent, { editionId: edition._id });
+  for (const item of [events.find(event => event.hasPublicationHistory), events.find(event => !event.hasPublicationHistory)].filter(Boolean)) {
+    await page.getByRole("searchbox", { name: "Search events" }).fill(item.title);
+    const article = page.locator(".event-feed-item").filter({ has: page.getByRole("heading", { name: item.title, exact: true }) });
+    const label = item.publicationState[0].toUpperCase() + item.publicationState.slice(1);
+    await expect(article.getByText(label, { exact: true })).toBeVisible();
+    await article.getByRole("button", { name: "Edit event", exact: true }).click();
+    const form = page.locator(".event-form");
+    const select = form.locator("select").first();
+    await expect(select).toHaveValue(item.categoryId);
+    if (item.hasPublicationHistory) {
+      await expect(select).toBeDisabled();
+      await expect(form.getByText("Category cannot be changed because this event has publication history.", { exact: true })).toBeVisible();
+      await expect(form.getByRole("button", { name: "Save event", exact: true })).toBeEnabled();
+      await page.screenshot({ path: `${output}/category-history-locked.png`, fullPage: true });
+      report.checks.push("Historical event retains its original locked category while other editing remains enabled");
+    } else {
+      await expect(select).toBeEnabled();
+      const alternate = categories.find(category => category.isActive && category._id !== item.categoryId);
+      if (alternate) {
+        await select.selectOption(alternate._id);
+        await expect(select).toHaveValue(alternate._id);
+        page.once("dialog", prompt => prompt.accept());
+      }
+      report.checks.push("Never-published event initializes its exact category and allows another selection");
+    }
+    await form.getByRole("button", { name: "Cancel", exact: true }).click();
+  }
+  report.publicationStatesObserved = [...new Set(events.map(event => event.publicationState))];
+  await page.getByRole("searchbox", { name: "Search events" }).fill("");
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     const violations = (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations;

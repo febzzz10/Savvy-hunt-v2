@@ -1,4 +1,5 @@
-﻿// @vitest-environment node
+// @vitest-environment node
+vi.mock("next/font/google", () => ({ Cormorant_Garamond: () => ({ variable: "hero-test-font" }) }));
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactNode } from "react";

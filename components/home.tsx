@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { HeroSection } from "./home/hero-section";
 import "./home-sections.css";
 import { useQuery } from "convex/react";
 import { Load, ref } from "./data";
@@ -9,15 +10,8 @@ import { EmptyState, Icon, Skeleton } from "./ui";
 type Announcement = { _id: string; title: string; body: string; publishedAt?: number };
 type Photo = { _id: string; altText: string; caption?: string };
 type Result = { eventId: string; eventTitle: string; eventSlug: string; publishedAt: number };
-function HomeHero({ title, tagline, photo }: { title?: string; tagline?: string; photo?: Photo }) {
-  return <section className="masthead" aria-label="Savvy Hunt event overview">
-    <div className="masthead-copy"><span className="eyebrow">Savvy Hunt Â· Official event hub</span><h1>{title || "Savvy Hunt"}</h1><p>{tagline || "Events, school standings and official results â€” all in one place."}</p><div className="hero-actions"><Link className="button" href="/scoreboard">View scoreboard <Icon name="arrow" /></Link><Link className="text-link" href="/schedule">Explore the schedule <Icon name="arrow" /></Link></div></div>
-    <div className="hero-visual">{photo ? <><GalleryPhoto key={photo._id} id={photo._id} alt={photo.altText} eager />{photo.caption && <div className="hero-caption">{photo.caption}</div>}</> : <div className="hero-type"><p>A place for talent.<br /><em>A moment to shine.</em></p><span className="small">The school event, together.<br />Follow the programme. Celebrate every achievement.</span></div>}</div>
-  </section>;
-}
-export function HomeContent() { return <Load fallback={<><HomeHero /><Skeleton label="Connecting to live event dataâ€¦" /></>}>{edition => <HomeData editionId={edition._id} />}</Load>; }
+export function HomeContent() { return <Load fallback={<><HeroSection /><Skeleton label="Connecting to live event dataâ€¦" /></>}>{edition => <HomeData editionId={edition._id} />}</Load>; }
 function HomeData({ editionId }: { editionId: string }) {
-  const settings = useQuery(ref<{ editionId: string }, { eventTitle: string; tagline?: string } | null>("siteSettings:getPublic"), { editionId });
   const standings = useQuery(ref<{ editionId: string }, Standing[]>("scoreboard:getOverall"), { editionId });
   const events = useQuery(ref<{ editionId: string }, ProgrammeEvent[]>("events:listPublic"), { editionId });
   const categories = useQuery(ref<{ editionId: string }, { _id: string; name: string }[]>("categories:listCurrent"), { editionId });
@@ -28,12 +22,12 @@ function HomeData({ editionId }: { editionId: string }) {
   const next = events?.find(event => event.status === "upcoming");
   const leaders = standings?.filter(row => row.points > 0);
   const hasPublished = events?.some(event => event.hasPublishedResults);
-  const hero = photos?.[0];
+
   const updates = events?.filter(event => event.status === "live" || event.status === "upcoming" || event.hasPublishedResults)
     .map((event, index) => ({ event, index, priority: event.status === "live" ? 0 : event.status === "upcoming" ? 1 : 2 }))
     .sort((a, b) => a.priority - b.priority || a.index - b.index).slice(0, 3).map(item => item.event);
   return <>
-    <HomeHero title={settings?.eventTitle} tagline={settings?.tagline} photo={hero} />
+    <HeroSection />
     <nav className="quick-access" aria-label="Event at a glance">
       <Link href="/schedule"><Icon name="clock" /><strong>Live now</strong><span>{live === undefined ? "Checking event statusâ€¦" : live.length ? live.map(event => event.title).join(" Â· ") : "No event is live right now"}</span></Link>
       <Link href={next ? `/events/${next.slug}` : "/schedule"}><Icon name="calendar" /><strong>Next up</strong><span>{events === undefined ? "Loading the programmeâ€¦" : next ? `${dateLabel(next.startsAt)} Â· ${timeLabel(next.startsAt)} IST` : "Schedule to be announced"}</span></Link>

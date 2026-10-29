@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@/convex/_generated/api";
 
-export type EventRecord = Doc<"events">;
+export type EventRecord = FunctionReturnType<typeof api.events.listAdmin>[number];
 export const statuses = ["upcoming", "live", "completed", "postponed", "cancelled"] as const;
 export type EventStatus = typeof statuses[number];
 export const statusLabel = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
 export const localDate = (value: number) => new Date(value + 330 * 60_000).toISOString().slice(0, 16);
 export const eventDate = (value: number) => new Date(value).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
+
+export function EventPublicationStatus({ event }: { event: Pick<EventRecord, "publicationState" | "hasDraftResults"> }) {
+  const labels = { unpublished: "Unpublished", draft: "Draft", published: "Published", revoked: "Revoked" };
+  const colors = { unpublished: "completed", draft: "draft", published: "published", revoked: "cancelled" };
+  return <><span className="pill" data-status={colors[event.publicationState]}>{labels[event.publicationState]}</span>{event.hasDraftResults && event.publicationState !== "draft" && <span className="pill" data-status="draft">Private draft</span>}</>;
+}
 
 export function useUnsavedChanges(dirty: boolean) {
   useEffect(() => {

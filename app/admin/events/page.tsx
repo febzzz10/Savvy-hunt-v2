@@ -11,7 +11,7 @@ import { Load } from "@/components/data";
 import { EmptyState, Icon, Skeleton } from "@/components/ui";
 import { EventForm } from "@/components/admin/events/event-form";
 import { WinnersDialog } from "@/components/admin/events/winners-dialog";
-import { EventDialog, eventDate, localDate, statuses, statusLabel, type EventRecord, type EventStatus } from "@/components/admin/events/shared";
+import { EventDialog, EventPublicationStatus, eventDate, localDate, statuses, statusLabel, type EventRecord, type EventStatus } from "@/components/admin/events/shared";
 import { friendlyResultsError } from "@/lib/results-editor";
 
 export default function Page() { return <Load>{edition => <Manager editionId={edition._id} />}</Load>; }
@@ -41,7 +41,7 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
     if (!current || current.updatedAt !== transition.event.updatedAt) { setError("This event changed in another session. Close this dialog and select the status again."); return; }
     lock.current = true; setBusy(true); setError("");
     try {
-      await save({ editionId, id: current._id, title: current.title, categoryId: current.categoryId, participatingSchoolIds: current.participatingSchoolIds, startsAt: current.startsAt, endsAt: current.endsAt, venue: current.venue, description: current.description, status: transition.status as EventStatus });
+      await save({ editionId, id: current._id, title: current.title, categoryId: current.categoryId, expectedCategoryId: current.categoryId, expectedUpdatedAt: current.updatedAt, participatingSchoolIds: current.participatingSchoolIds, startsAt: current.startsAt, endsAt: current.endsAt, venue: current.venue, description: current.description, status: transition.status as EventStatus });
       setNotice(`${current.title} is now ${statusLabel(transition.status)}.`); setTransition(undefined);
     } catch (cause) { setError(friendlyResultsError(cause)); }
     finally { lock.current = false; setBusy(false); }
@@ -67,10 +67,10 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
         {!filtered.length && <EmptyState title={events.length ? "No matching events" : "The programme starts here"}>{events.length ? "Adjust your filters or clear them to see the full programme." : "Create your first event using the panel alongside this feed."}</EmptyState>}
         {filtered.map(event => <article className="event-feed-item" key={event._id}>
           <div className="event-item-title"><h3>{event.title}</h3><span className="pill" data-status={event.status}>{statusLabel(event.status)}</span></div>
-          <p className="event-category">{categories.find(c => c._id === event.categoryId)?.name ?? "Archived category"} <span className="pill" data-status={event.activePublishedRevisionId ? "published" : event.resultStatus === "draft" ? "draft" : "completed"}>{event.activePublishedRevisionId ? "Results published" : event.resultStatus === "draft" ? "Private draft" : "Unpublished"}</span></p>
+          <p className="event-category">{event.categoryName} <EventPublicationStatus event={event} /></p>
           <div className="event-metadata"><span><Icon name="calendar" /> {eventDate(event.startsAt)} IST</span><span><Icon name="pin" /> {event.venue || "Venue to be announced"}</span></div>
           <p className="small event-participants">{event.participatingSchoolIds?.length ? `${event.participatingSchoolIds.length} participating schools · ${event.participatingSchoolIds.map(id => schools.find(s => s._id === id)?.name ?? "Archived school").join(", ")}` : "Open to all active schools"}</p>
-          {event.activePublishedRevisionId ? <PublishedPreview eventId={event._id} /> : <p className="small">Results not published</p>}
+          {event.activePublishedRevisionId ? <PublishedPreview eventId={event._id} /> : <p className="small">{event.publicationState === "revoked" ? "Official results withdrawn. Publication history is retained." : event.publicationState === "draft" ? "Draft results are private." : "Results have never been published."}</p>}
           <div className="event-item-actions"><button className="button" onClick={() => setResultEvent(event._id)}><Icon name="trophy" /> {event.activePublishedRevisionId ? "Manage winners" : "Enter winners"}</button><button className="button secondary" disabled={formBusy} onClick={() => edit(event)}>Edit event</button><label className="event-status-control"><span className="sr-only">Status for {event.title}</span><select value={event.status} disabled={busy} onChange={e => { setError(""); setTransition({ event, status: e.target.value as EventRecord["status"] }); }}>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>{event.activePublishedRevisionId && <Link className="text-link" href={`/events/${event.slug}`}>View results <Icon name="arrow" /></Link>}</div>
         </article>)}
       </section>

@@ -93,4 +93,16 @@ describe("results editor publish gate", () => {
     expect(friendlyResultsError(new Error("[CONVEX M(results:publish)] Something unexpected")))
       .toBe("Something unexpected");
   });
+
+  it("explains historical category restrictions without exposing a Convex stack", () => {
+    const result = friendlyResultsError(new Error("[CONVEX M(events:save)] [Request ID: example] Server Error\nUncaught Error: Cannot change category after publication\n    at handler (convex/events.ts:17:429)"));
+    expect(result).toBe("Cannot change this event's category because official results were previously published. Keep the original category or create a new event.");
+    expect(result).not.toContain("convex/events.ts");
+  });
+
+  it("reads safe Convex error data and hides unrecognized server stack traces", () => {
+    expect(friendlyResultsError({ data: "STALE_EVENT", message: "Server Error" })).toMatch(/event changed in another session/i);
+    expect(friendlyResultsError(new Error("[CONVEX M(events:save)] Server Error\nUncaught Error: Private implementation failure\n    at handler (convex/events.ts:42)"))).toBe("Something went wrong. Please try again.");
+    expect(friendlyResultsError(new Error("[CONVEX M(events:save)] Server Error\nUncaught Error: Event title already exists\n    at handler"))).toBe("Event title already exists.");
+  });
 });

@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { friendlyResultsError, publishGate, sameResultRows } from "@/lib/results-editor";
 import { Skeleton } from "@/components/ui";
-import { EventDialog, useUnsavedChanges } from "./shared";
+import { EventDialog, EventPublicationStatus, useUnsavedChanges } from "./shared";
 
 type Data = FunctionReturnType<typeof api.results.getAdminByEvent>;
 type Row = { key: string; schoolId: Id<"schools"> | ""; points: string; placement: string; entryLabel: string };
@@ -33,6 +33,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
   const lock = useRef(false), nextKey = useRef(rows.length);
   const stale = revisionKey(base) !== revisionKey(live);
   const isCorrection = Boolean(base.event.activePublishedRevisionId);
+  const hasPublicationHistory = base.revisions.some(revision => ["published", "superseded", "revoked"].includes(revision.status));
   const initial = toRows(base);
   const dirty = !sameResultRows(entries(rows), entries(initial)) || reason !== (base.draft?.changeReason ?? "");
   useUnsavedChanges(dirty);
@@ -90,7 +91,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
   }
   return <EventDialog title="Publish winners" onClose={onClose} busy={Boolean(busy)} dirty={dirty}>
     <div className="event-dialog-body">
-      <div className="winner-context"><h3>{live.event.title}</h3><span className="pill" data-status={isCorrection ? "published" : base.draft ? "draft" : "upcoming"}>{isCorrection ? "Results published" : base.draft ? "Private draft" : "Unpublished"}</span></div>
+      <div className="winner-context"><h3>{live.event.title}</h3><div><EventPublicationStatus event={{ publicationState: isCorrection ? "published" : hasPublicationHistory ? "revoked" : base.draft ? "draft" : "unpublished", hasDraftResults: Boolean(base.draft) }} /></div></div>
       <p className="small">{categories?.find(category => category._id === live.event.categoryId)?.name ?? "Loading category…"}</p>
       <p className="small">Enter the approved manual points for each school. Ties share a placement; points are never assigned automatically.</p>
       {stale && <div className="event-alert" role="alert"><p>This event or its results changed in another session. Your edits are still here. Load the latest version before saving or publishing.</p><button className="button secondary" disabled={Boolean(busy)} onClick={() => { if (!dirty || confirm("Discard your unsaved changes and load the latest results?")) { load(live); setError(""); } }}>Load latest results</button></div>}
