@@ -126,7 +126,7 @@ try {
     }
     await score(pages.overall, school.name, school.points);
     await score(pages.category, school.name, (await anonymous.query(api.scoreboard.getCategory, { editionId: edition._id, categoryId: category._id })).find(row => row.id === school.id).points);
-    await pages.home.getByRole("heading", { name: "Live now", exact: true }).waitFor();
+    await pages.home.getByRole("heading", { name: "Happening now", exact: true }).waitFor();
     await pages.event.getByRole("heading", { name: event.title, exact: true }).waitFor();
     await pages.schedule.getByRole("heading", { name: event.title, exact: true }).waitFor();
     groups.push(pages);
@@ -152,7 +152,7 @@ try {
     await score(pages.overall, school.name, school.points + 17);
     await score(pages.category, school.name, 17);
     await score(pages.event, school.name, 17);
-    await pages.home.getByText(`${school.points + 17} points`, { exact: true }).first().waitFor();
+    await score(pages.home, school.name, school.points + 17);
   }
   check("Published scores reach both sessions' overall, category, event and home views without reload");
 
@@ -183,7 +183,7 @@ try {
     await score(pages.event, school.name, 23);
     await pages.schedule.getByText(venue, { exact: true }).waitFor();
     await pages.event.getByText(new RegExp(venue)).waitFor();
-    await pages.home.getByText(`${school.points + 23} points`, { exact: true }).first().waitFor();
+    await score(pages.home, school.name, school.points + 23);
   }
   result.statusHistory = await groups[1].overall.evaluate(() => window.__connectionTest.states);
   check("After network recovery, all five views receive data changed during the outage without reload");

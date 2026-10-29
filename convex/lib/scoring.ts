@@ -1,4 +1,11 @@
 export type ScoreRow<K> = { schoolId: K; points: number };
+export type EntryRow<K> = ScoreRow<K> & { placement?: number; entryLabel?: string };
+const entryKey = <K>(row: EntryRow<K>) => `${String(row.schoolId)}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.entryLabel ?? "").trim()}`;
+export function sameEntries<K>(left: EntryRow<K>[], right: EntryRow<K>[]) {
+  if (left.length !== right.length) return false;
+  const a = left.map(entryKey).sort(), b = right.map(entryKey).sort();
+  return a.every((value, index) => value === b[index]);
+}
 export function contributions<K>(rows: ScoreRow<K>[]) {
   const sums = new Map<K,number>();
   for (const row of rows) {

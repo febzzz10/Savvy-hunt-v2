@@ -1,0 +1,31 @@
+﻿.admin-shell:has(.school-manager) { max-width:1440px; }
+.school-heading { margin:12px 0 28px; }
+.school-heading h1 { margin:8px 0 12px; }
+.school-heading p { margin:0; }
+.school-form-panel { position:sticky; top:24px; }
+.school-form-panel[data-mode="edit"] { border-color:var(--accent); box-shadow:inset 0 3px var(--accent); }
+.school-form-panel .eyebrow { display:block; margin-bottom:10px; }
+.school-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.school-search { grid-column:1 / -1; }
+.school-item { padding-block:20px; }
+.school-item[data-editing="true"] { background:var(--wash); }
+.school-item-top { display:flex; justify-content:space-between; gap:20px; align-items:start; }
+.school-item-top>div:first-child { min-width:0; }
+.school-item h3 { margin:0; font-size:18px; overflow-wrap:anywhere; }
+.school-code { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:8px 0 0; }
+.school-points { flex-shrink:0; text-align:right; display:flex; flex-direction:column; font-variant-numeric:tabular-nums; }
+.school-points strong { font-size:24px; line-height:1.2; color:var(--ink); }
+.school-points span { font-size:11px; color:var(--muted); }
+.school-edit-label { font-size:11px; font-weight:600; color:var(--accent); }
+.school-item .event-item-actions { margin-top:12px; }
+.school-item .text-link { border:0; background:transparent; padding:8px 0; }
+.school-empty { margin:0 24px 24px; padding:20px; border-radius:10px; background:var(--wash); }
+.school-empty h3 { font-size:17px; margin:0; }.school-empty p { font-size:13px; margin-bottom:0; }
+.school-details { margin-top:16px; padding:16px; border-radius:10px; background:var(--wash); font-size:13px; }
+.school-details h4 { margin:0 0 10px; font-size:13px; }.school-details ul { list-style:none; margin:0; padding:0; }
+.school-details li { display:flex; justify-content:space-between; gap:16px; padding:8px 0; border-bottom:1px solid var(--edge); }.school-details li strong { white-space:nowrap; }
+.school-manager :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+@media(min-width:1024px) { .school-form-panel { max-height:calc(100dvh - 48px); overflow-y:auto; } }
+@media(max-width:1023px) { .school-form-panel { position:static; }.school-manager .event-form>.event-fields { display:block; } }
+@media(max-width:600px) { .school-item-top { gap:12px; }.school-points strong { font-size:22px; }.school-item h3 { font-size:16px; }.school-empty { margin-inline:18px; }.school-feed .event-feed-heading h2 { font-size:20px; } }
+.admin-shell:has(.school-manager) > .eyebrow { display:none; }

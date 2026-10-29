@@ -1,22 +1,88 @@
 "use client";
-import { useState } from "react";
+
+import "./events.css";
+
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
-import { Load, ref, mut } from "@/components/data";
-type Category = { _id: string; name: string };
-type School = { _id: string; name: string };
-type Event = { _id: string; title: string; slug: string; status: "upcoming" | "live" | "completed" | "postponed" | "cancelled"; startsAt: number; endsAt?: number; categoryId: string; participatingSchoolIds?: string[]; venue?: string; description?: string };
-type Input = { editionId: string; id?: string; categoryId: string; participatingSchoolIds?: string[]; title: string; startsAt: number; endsAt?: number; venue?: string; description?: string; status?: Event["status"] };
-const displayDate = (value: number) => new Date(value + 330 * 60_000).toISOString().slice(0, 16);
-export default function Page() { return <><h1>Events</h1><Load>{edition => <Manager editionId={edition._id} />}</Load></>; }
-function Manager({ editionId }: { editionId: string }) {
-  const categories = useQuery(ref<{ editionId: string }, Category[]>("categories:listCurrent"), { editionId });
-  const schools = useQuery(ref<{ editionId: string }, School[]>("schools:listActive"), { editionId });
-  const events = useQuery(ref<{ editionId: string }, Event[]>("events:listAdmin"), { editionId });
-  const save = useMutation(mut<Input, string>("events:save"));
-  const [editing, setEditing] = useState<Event | null>(null), [title, setTitle] = useState(""), [categoryId, setCategory] = useState(""), [date, setDate] = useState(""), [endDate, setEndDate] = useState(""), [venue, setVenue] = useState(""), [description, setDescription] = useState(""), [participants, setParticipants] = useState<string[]>([]), [notice, setNotice] = useState("");
-  function reset() { setEditing(null); setTitle(""); setCategory(""); setDate(""); setEndDate(""); setVenue(""); setDescription(""); setParticipants([]); }
-  function startEdit(event: Event) { setEditing(event); setTitle(event.title); setCategory(event.categoryId); setDate(displayDate(event.startsAt)); setEndDate(event.endsAt ? displayDate(event.endsAt) : ""); setVenue(event.venue ?? ""); setDescription(event.description ?? ""); setParticipants(event.participatingSchoolIds ?? []); }
-  async function submit(event: React.FormEvent) { event.preventDefault(); try { await save({ editionId, id: editing?._id, title, categoryId, startsAt: Date.parse(`${date}:00+05:30`), endsAt: endDate ? Date.parse(`${endDate}:00+05:30`) : undefined, venue, description, participatingSchoolIds: participants, status: editing?.status }); reset(); setNotice("Event saved"); } catch (error) { setNotice(String(error)); } }
-  return <><form className="card" onSubmit={submit}><h2>{editing ? "Edit event" : "Create event"}</h2><label className="field"><span>Title</span><input required value={title} onChange={event => setTitle(event.target.value)} /></label><label className="field"><span>Category</span><select aria-label="Category" required value={categoryId} onChange={event => setCategory(event.target.value)}><option value="">Select category</option>{categories?.map(category => <option key={category._id} value={category._id}>{category.name}</option>)}</select></label><label className="field"><span>Start date and time (Asia/Kolkata)</span><input required type="datetime-local" value={date} onChange={event => setDate(event.target.value)} /></label><label className="field"><span>End date and time (optional, Asia/Kolkata)</span><input type="datetime-local" value={endDate} onChange={event => setEndDate(event.target.value)} /></label><label className="field"><span>Venue</span><input value={venue} onChange={event => setVenue(event.target.value)} /></label><label className="field"><span>Description</span><textarea value={description} onChange={event => setDescription(event.target.value)} /></label><fieldset><legend>Participating schools</legend><p className="muted">Leave all unchecked when every active school may participate.</p>{schools?.map(school => <label className="checkbox" key={school._id}><input type="checkbox" checked={participants.includes(school._id)} onChange={event => setParticipants(event.target.checked ? [...participants, school._id] : participants.filter(id => id !== school._id))} /> {school.name}</label>)}</fieldset><div className="actions"><button className="button">{editing ? "Save event" : "Create event"}</button>{editing && <button className="button secondary" type="button" onClick={reset}>Cancel</button>}</div></form><p role="status">{notice}</p><h2>Schedule</h2>{events?.map(event => <div className="card" key={event._id}><span className="pill">{event.status}</span><h3>{event.title}</h3><p>{new Date(event.startsAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })} · {event.venue || "Venue TBA"}</p><div className="actions"><button className="button secondary" onClick={() => startEdit(event)}>Edit details</button><select aria-label={`Status for ${event.title}`} value={event.status} onChange={async change => { try { await save({ editionId, id: event._id, title: event.title, categoryId: event.categoryId, participatingSchoolIds: event.participatingSchoolIds, startsAt: event.startsAt, endsAt: event.endsAt, venue: event.venue, description: event.description, status: change.target.value as Event["status"] }); setNotice("Event status updated"); } catch (error) { setNotice(String(error)); } }}>{["upcoming", "live", "completed", "postponed", "cancelled"].map(status => <option key={status} value={status}>{status}</option>)}</select><Link className="button" href={`/admin/events/${event._id}/results`}>Manage results</Link></div></div>)}</>;
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { Load } from "@/components/data";
+import { EmptyState, Icon, Skeleton } from "@/components/ui";
+import { EventForm } from "@/components/admin/events/event-form";
+import { WinnersDialog } from "@/components/admin/events/winners-dialog";
+import { EventDialog, eventDate, localDate, statuses, statusLabel, type EventRecord, type EventStatus } from "@/components/admin/events/shared";
+import { friendlyResultsError } from "@/lib/results-editor";
+
+export default function Page() { return <Load>{edition => <Manager editionId={edition._id} />}</Load>; }
+
+function Manager({ editionId }: { editionId: Id<"editions"> }) {
+  const categories = useQuery(api.categories.listCurrent, { editionId });
+  const schools = useQuery(api.schools.listAdmin, { editionId });
+  const events = useQuery(api.events.listAdmin, { editionId });
+  const self = useQuery(api.admins.getSelf, {});
+  const save = useMutation(api.events.save);
+  const [editing, setEditing] = useState<EventRecord>();
+  const [formVersion, setFormVersion] = useState(0), [dirty, setDirty] = useState(false), [formBusy, setFormBusy] = useState(false);
+  const [resultEvent, setResultEvent] = useState<Id<"events">>();
+  const [search, setSearch] = useState(""), [status, setStatus] = useState(""), [category, setCategory] = useState(""), [date, setDate] = useState(""), [sort, setSort] = useState("programme");
+  const [notice, setNotice] = useState(""), [error, setError] = useState(""), [busy, setBusy] = useState(false);
+  const [transition, setTransition] = useState<{ event: EventRecord; status: EventRecord["status"] }>();
+  const formPanel = useRef<HTMLDivElement>(null), lock = useRef(false);
+  function reset() { setEditing(undefined); setDirty(false); setFormVersion(v => v + 1); }
+  function edit(event?: EventRecord) {
+    if (formBusy || (dirty && !confirm("Discard your unsaved event changes?"))) return;
+    setEditing(event); setFormVersion(v => v + 1);
+    requestAnimationFrame(() => { formPanel.current?.scrollIntoView({ behavior: "instant", block: "start" }); formPanel.current?.querySelector("input")?.focus(); });
+  }
+  async function updateStatus() {
+    if (!transition || lock.current) return;
+    const current = events?.find(event => event._id === transition.event._id);
+    if (!current || current.updatedAt !== transition.event.updatedAt) { setError("This event changed in another session. Close this dialog and select the status again."); return; }
+    lock.current = true; setBusy(true); setError("");
+    try {
+      await save({ editionId, id: current._id, title: current.title, categoryId: current.categoryId, participatingSchoolIds: current.participatingSchoolIds, startsAt: current.startsAt, endsAt: current.endsAt, venue: current.venue, description: current.description, status: transition.status as EventStatus });
+      setNotice(`${current.title} is now ${statusLabel(transition.status)}.`); setTransition(undefined);
+    } catch (cause) { setError(friendlyResultsError(cause)); }
+    finally { lock.current = false; setBusy(false); }
+  }
+  function clear() { setSearch(""); setStatus(""); setCategory(""); setDate(""); setSort("programme"); }
+  if (!categories || !schools || !events || !self) return <><h1>Event manager</h1><Skeleton label="Loading events and schools…" /></>;
+  const filtered = events.filter(event => (!search.trim() || `${event.title} ${event.venue ?? ""}`.toLowerCase().includes(search.trim().toLowerCase())) && (!status || event.status === status) && (!category || event.categoryId === category) && (!date || localDate(event.startsAt).startsWith(date))).sort((a, b) => sort === "updated" ? b.updatedAt - a.updatedAt : sort === "latest" ? b.startsAt - a.startsAt : sort === "programme" ? Number(b.status === "live") - Number(a.status === "live") || Number(b.status === "upcoming") - Number(a.status === "upcoming") || a.startsAt - b.startsAt : a.startsAt - b.startsAt);
+  return <div className="event-manager">
+    <header className="event-manager-heading"><div><Link className="text-link" href="/admin">← Back to dashboard</Link><h1>Event manager</h1><p className="muted">Manage the programme and publish official event results.</p></div><button className="button secondary" disabled={formBusy} onClick={() => edit()}>+ Create event</button></header>
+    {notice && <p className="event-notice" role="status">{notice}</p>}
+    <div className="event-manager-grid">
+      <div className="event-create-panel" ref={formPanel}><EventForm key={`${editing?._id ?? "new"}:${formVersion}`} editionId={editionId} categories={categories} schools={schools} event={editing} latest={events.find(event => event._id === editing?._id)} onSaved={() => { setNotice(editing ? "Event updated." : "Event created. It is now in the event feed."); reset(); }} onCancel={editing ? reset : undefined} onDirtyChange={setDirty} onBusyChange={setFormBusy} /></div>
+      <section className="event-feed" aria-labelledby="event-feed-title">
+        <header className="event-feed-heading"><h2 id="event-feed-title">Event feed</h2><span className="small">{events.length} {events.length === 1 ? "event" : "events"}</span></header>
+        <div className="event-feed-filters">
+          <label className="field event-search"><span>Search events</span><input type="search" placeholder="Event title or venue" value={search} onChange={e => setSearch(e.target.value)} /></label>
+          <label className="field"><span>Status</span><select value={status} onChange={e => setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>
+          <label className="field"><span>Category</span><select value={category} onChange={e => setCategory(e.target.value)}><option value="">All categories</option>{categories.map(value => <option key={value._id} value={value._id}>{value.name}</option>)}</select></label>
+          <label className="field"><span>Date · IST</span><input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
+          <label className="field"><span>Sort by</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="programme">Live & upcoming first</option><option value="soonest">Start date: earliest</option><option value="latest">Start date: latest</option><option value="updated">Recently updated</option></select></label>
+        </div>
+        <div className="event-feed-summary"><span role="status">Showing {filtered.length} of {events.length} events</span>{(search || status || category || date || sort !== "programme") && <button className="text-link" onClick={clear}>Clear filters</button>}</div>
+        {!filtered.length && <EmptyState title={events.length ? "No matching events" : "The programme starts here"}>{events.length ? "Adjust your filters or clear them to see the full programme." : "Create your first event using the panel alongside this feed."}</EmptyState>}
+        {filtered.map(event => <article className="event-feed-item" key={event._id}>
+          <div className="event-item-title"><h3>{event.title}</h3><span className="pill" data-status={event.status}>{statusLabel(event.status)}</span></div>
+          <p className="event-category">{categories.find(c => c._id === event.categoryId)?.name ?? "Archived category"} <span className="pill" data-status={event.activePublishedRevisionId ? "published" : event.resultStatus === "draft" ? "draft" : "completed"}>{event.activePublishedRevisionId ? "Results published" : event.resultStatus === "draft" ? "Private draft" : "Unpublished"}</span></p>
+          <div className="event-metadata"><span><Icon name="calendar" /> {eventDate(event.startsAt)} IST</span><span><Icon name="pin" /> {event.venue || "Venue to be announced"}</span></div>
+          <p className="small event-participants">{event.participatingSchoolIds?.length ? `${event.participatingSchoolIds.length} participating schools · ${event.participatingSchoolIds.map(id => schools.find(s => s._id === id)?.name ?? "Archived school").join(", ")}` : "Open to all active schools"}</p>
+          {event.activePublishedRevisionId ? <PublishedPreview eventId={event._id} /> : <p className="small">Results not published</p>}
+          <div className="event-item-actions"><button className="button" onClick={() => setResultEvent(event._id)}><Icon name="trophy" /> {event.activePublishedRevisionId ? "Manage winners" : "Enter winners"}</button><button className="button secondary" disabled={formBusy} onClick={() => edit(event)}>Edit event</button><label className="event-status-control"><span className="sr-only">Status for {event.title}</span><select value={event.status} disabled={busy} onChange={e => { setError(""); setTransition({ event, status: e.target.value as EventRecord["status"] }); }}>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>{event.activePublishedRevisionId && <Link className="text-link" href={`/events/${event.slug}`}>View results <Icon name="arrow" /></Link>}</div>
+        </article>)}
+      </section>
+    </div>
+    {resultEvent && <WinnersDialog eventId={resultEvent} schools={schools} canPublish={self.role === "super_admin"} onClose={() => setResultEvent(undefined)} />}
+    {transition && <EventDialog title="Update event status" busy={busy} onClose={() => setTransition(undefined)}><div className="event-dialog-body"><p>Change <strong>{transition.event.title}</strong> from {statusLabel(transition.event.status)} to <strong>{statusLabel(transition.status)}</strong>?</p><p className="small">The public schedule updates immediately. Published results and points remain as they are.</p>{error && <p className="error" role="alert">{error}</p>}</div><footer className="event-dialog-footer actions"><button className="button secondary" disabled={busy} onClick={() => setTransition(undefined)}>Cancel</button><button className="button" disabled={busy} onClick={updateStatus}>{busy ? "Updating…" : "Update status"}</button></footer></EventDialog>}
+  </div>;
+}
+
+function PublishedPreview({ eventId }: { eventId: Id<"events"> }) {
+  const results = useQuery(api.results.getPublishedByEvent, { eventId });
+  if (!results) return <p className="small" role="status">Loading published winners…</p>;
+  const winners = results.filter(row => row.placement && row.placement <= 3).sort((a, b) => a.placement! - b.placement!);
+  return winners.length ? <ul className="event-podium" aria-label="Published winners">{winners.map((row, index) => <li key={`${row.schoolId}:${index}`}><span className="podium-place">{row.placement === 1 ? "1st" : row.placement === 2 ? "2nd" : "3rd"}{winners.filter(winner => winner.placement === row.placement).length > 1 ? " · Tied" : ""}</span><strong>{row.schoolName}</strong><span>{row.points} pts</span></li>)}</ul> : <p className="small">{results.length} official result {results.length === 1 ? "entry" : "entries"} · No podium placements recorded</p>;
 }

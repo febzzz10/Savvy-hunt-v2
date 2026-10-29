@@ -45,7 +45,6 @@ Drive and the domain. Keep preview and production credentials and data separate.
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service-account email | Same value | Existing service-account architecture |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Private key | Same value | Secret; actual or escaped newlines supported |
 | `GALLERY_PROXY_SECRET` | Random secret | Identical secret | Never a browser variable |
-| `ADMIN_BOOTSTRAP_SECRET` | — | Temporary random secret | Remove immediately after first-admin setup |
 | `CONVEX_DEPLOY_KEY` | Scoped build secret, if CI deploys backend | — | Production key only in Production; preview key only in Preview |
 
 The independently added gallery supports optional OAuth credentials for personal
@@ -102,8 +101,12 @@ the reviewed backend and matching frontend together. Do not point production at
 
 1. Export/backup pre-existing production data and rehearse recovery into an isolated
    nonproduction target. Record backup location, access owner and reconciliation method.
-2. Bootstrap the intended first super admin, remove the secret, and configure the
-   official edition/roster through existing protected workflows. Do not import development fixtures.
+2. Provision the intended first super admin using the internal `admins:bootstrap`
+   function in the authenticated deployment-owner dashboard/CLI, with the complete
+   identity key and display name. This runs only on an empty installation; existing
+   super admins grant further access through `/admin/admins`. Follow
+   `docs/admin-setup.md`, remove any obsolete `ADMIN_BOOTSTRAP_SECRET`, and configure
+   the official edition/roster through protected workflows. Do not import development fixtures.
 3. On real staff devices, rehearse password/MFA/OAuth, sign-out, account recovery,
    lost-device handling and revocation with the chosen policy. Development test OTPs
    prove application integration, not delivery to real staff mailboxes.

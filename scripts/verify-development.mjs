@@ -4,7 +4,6 @@ import { api } from "../convex/_generated/api.js";
 import { chromium } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomBytes } from "node:crypto";
-import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 
@@ -18,11 +17,7 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const anonymous = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const stamp = Date.now();
 const temporaryUsers = [], temporarySessions = [];
-let browser, session, adminPage, bootstrapSet = false, stage = "create Clerk verification user";
-function convexEnv(command, ...args) {
-  const result = spawnSync("cmd.exe", ["/c", "npx.cmd", "convex", "env", command, ...args], { encoding: "utf8", windowsHide: true });
-  if (result.status !== 0) throw new Error(`Convex env ${command} failed`);
-}
+let browser, session, adminPage, stage = "create Clerk verification user";
 try {
   stage = "ensure development Clerk convex JWT template";
   const templates = await clerk.jwtTemplates.list({ limit: 100 });
@@ -49,10 +44,7 @@ try {
   assert.ok(identityKey);
   record("Real Clerk convex-template JWT accepted by development Convex");
   if (!await client.query(api.admins.getSelf, {})) {
-    const secret = randomBytes(32).toString("hex");
-    convexEnv("set", "ADMIN_BOOTSTRAP_SECRET", secret); bootstrapSet = true;
-    await client.mutation(api.admins.bootstrap, { secret, displayName: "Verification Super Admin" });
-    convexEnv("remove", "ADMIN_BOOTSTRAP_SECRET"); bootstrapSet = false;
+    throw new Error("An explicitly approved verification super admin is required; see docs/admin-setup.md. Verification never bootstraps admin access.");
   }
   const edition = await client.query(api.editions.getCurrent, {});
   const editionId = edition?._id ?? await client.mutation(api.editions.initialize, { name: `Verification ${stamp}`, year: 2026 });
@@ -209,7 +201,6 @@ try {
   if (adminPage) { await mkdir("verification-evidence", { recursive: true }); await adminPage.screenshot({ path: "verification-evidence/admin-failure.png", fullPage: true }).catch(() => {}); evidence.pageText = await adminPage.locator("body").innerText().catch(() => "Unavailable"); }
   process.exitCode = 1;
 } finally {
-  if (bootstrapSet) convexEnv("remove", "ADMIN_BOOTSTRAP_SECRET");
   if (session) await clerk.sessions.revokeSession(session.id).catch(() => {});
   for (const id of temporarySessions) await clerk.sessions.revokeSession(id).catch(() => {});
   for (const id of temporaryUsers) await clerk.users.deleteUser(id).catch(() => {});

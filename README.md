@@ -8,7 +8,7 @@ School event management website built with Next.js App Router, TypeScript, Tailw
 2. Create a **development** Clerk application and a separate **development** Convex project. In Clerk, configure a JWT template named `convex` with audience `convex`. Follow the [Convex Clerk setup](https://docs.convex.dev/auth/clerk) for the current issuer domain.
 3. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, and `CLERK_SECRET_KEY`. Do not put server secrets in a `NEXT_PUBLIC_` variable.
 4. Run `npx convex dev` and complete its interactive login/project selection. This generates `convex/_generated/`, synchronizes `convex/auth.config.ts`, and deploys backend functions. Commit the CLI-generated bindings; do not edit them manually. Set `CLERK_JWT_ISSUER_DOMAIN` in the **Convex development deployment**.
-5. Set a long random `ADMIN_BOOTSTRAP_SECRET` in the Convex development deployment. Sign in at `/admin/login` with the intended first super admin account, then visit `/admin/setup` and enter that one-time secret. Initialize the edition, which creates all six categories. Remove the bootstrap secret from Convex immediately afterward. No public signup grants admin access.
+5. Sign in at `/admin/login` and copy your complete identity key from `/admin/request-access`. Follow the [admin setup guide](docs/admin-setup.md): an existing super admin grants access through `/admin/admins`; on an empty installation only, the deployment owner runs the internal one-time bootstrap from the terminal. `/admin/setup` initializes the edition and six categories after approval. No public signup grants admin access, and there is no browser bootstrap secret.
 6. Run `npm run dev`. Use `/admin/admins` to add other allowlisted identities. A signed-in user may view their own provider-scoped identity key at `/admin/request-access` and give it to a super admin through an approved organization channel.
 
 ## Drive gallery setup
@@ -36,7 +36,7 @@ For testing the optimized frontend, run `npm run build`, then `npx next start -p
 1. Create separate production Clerk and Convex projects. Configure their issuer, JWT template, and Vercel environment variables. Never reuse development data or credentials.
 2. Generate bindings with the production-compatible schema and deploy Convex backend functions. Review schema changes and backup/export official data before any scoring migration.
 3. Deploy the Next.js site to Vercel only after build, integration, security, responsive, and real-time checks pass. Set production Drive service account secrets and folder ID only in server-side environments.
-4. Perform first-admin setup in production, remove the bootstrap secret, initialize the edition, then add authorized staff. Enter official schools and events through the admin UI.
+4. Perform owner-only first-admin setup in production using the internal bootstrap, initialize the edition, then add authorized staff. Follow [the admin setup guide](docs/admin-setup.md); remove any obsolete `ADMIN_BOOTSTRAP_SECRET`. Enter official schools and events through the admin UI.
 5. Keep a manual tally sheet and a named decision maker for corrections during the event.
 
 ## Rollback

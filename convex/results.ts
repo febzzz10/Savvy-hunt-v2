@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin } from "./lib/security";
-import { contributions, deltas } from "./lib/scoring";
+import { contributions, deltas, sameEntries } from "./lib/scoring";
 const entry=v.object({schoolId:v.id("schools"),points:v.number(),placement:v.optional(v.number()),entryLabel:v.optional(v.string())});
 async function rows(ctx: QueryCtx | MutationCtx,revisionId:Id<"resultRevisions">){return ctx.db.query("resultEntries").withIndex("by_revision",q=>q.eq("revisionId",revisionId)).collect()}
 export const getPublishedByEvent=query({args:{eventId:v.id("events")},handler:async(ctx,{eventId})=>{
@@ -39,9 +39,9 @@ export const preview=query({args:{eventId:v.id("events"),draftRevisionId:v.id("r
   const old=event.activePublishedRevisionId?await rows(ctx,event.activePublishedRevisionId):[],next=await rows(ctx,draft._id);
   return {expectedActiveRevisionId:event.activePublishedRevisionId??null,expectedDraftVersion:draft.draftVersion??0,changes:[...deltas(old,next)].map(([schoolId,delta])=>({schoolId,oldPoints:contributions(old).get(schoolId)??0,newPoints:contributions(next).get(schoolId)??0,delta}))};
 }});
-export const publish=mutation({args:{eventId:v.id("events"),draftRevisionId:v.id("resultRevisions"),expectedActiveRevisionId:v.union(v.id("resultRevisions"),v.null()),expectedDraftVersion:v.number()},handler:async(ctx,args)=>{
+export const publish=mutation({args:{eventId:v.id("events"),draftRevisionId:v.id("resultRevisions"),expectedActiveRevisionId:v.union(v.id("resultRevisions"),v.null()),expectedDraftVersion:v.number()},returns:v.object({status:v.union(v.literal("already_published"),v.literal("published"),v.literal("unchanged"))}),handler:async(ctx,args)=>{
   const admin=await requireAdmin(ctx,"super_admin"),event=await ctx.db.get(args.eventId),draft=await ctx.db.get(args.draftRevisionId);if(!event||!draft||draft.eventId!==event._id)throw new Error("Invalid result revision");
-  if(event.activePublishedRevisionId===draft._id)return {status:"already_published"};
+  if(event.activePublishedRevisionId===draft._id)return {status:"already_published" as const};
   if(draft.status!=="draft")throw new Error("Revision is not a draft");
   if((event.activePublishedRevisionId??null)!==args.expectedActiveRevisionId)throw new Error("STALE_REVISION");
   if((draft.draftVersion??0)!==args.expectedDraftVersion)throw new Error("STALE_DRAFT");
@@ -50,6 +50,7 @@ export const publish=mutation({args:{eventId:v.id("events"),draftRevisionId:v.id
   if(!next.length)throw new Error("Cannot publish empty results");
   contributions(next);
   for(const item of next){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId)throw new Error("Invalid school in draft")}
+  if(event.activePublishedRevisionId&&sameEntries(old,next))return {status:"unchanged" as const};
   const now=Date.now();
   for(const [schoolId,delta] of deltas(old,next)){
     const total=await ctx.db.query("schoolCategoryTotals").withIndex("by_school_category",q=>q.eq("editionId",event.editionId).eq("schoolId",schoolId).eq("categoryId",event.categoryId)).unique();
@@ -61,7 +62,7 @@ export const publish=mutation({args:{eventId:v.id("events"),draftRevisionId:v.id
   if(event.activePublishedRevisionId)await ctx.db.patch(event.activePublishedRevisionId,{status:"superseded"});
   await ctx.db.patch(draft._id,{status:"published",publishedBy:admin.authUserId,publishedAt:now});
   await ctx.db.patch(event._id,{activePublishedRevisionId:draft._id,resultStatus:"published",updatedAt:now});
-  await ctx.db.insert("auditLogs",{editionId:event.editionId,actorAuthUserId:admin.authUserId,action:"results.publish",entityType:"event",entityId:event._id,summary:`Published revision ${draft.revisionNumber}`,reason:draft.changeReason,createdAt:now});return {status:"published"};
+  await ctx.db.insert("auditLogs",{editionId:event.editionId,actorAuthUserId:admin.authUserId,action:"results.publish",entityType:"event",entityId:event._id,summary:`Published revision ${draft.revisionNumber}`,reason:draft.changeReason,createdAt:now});return {status:"published" as const};
 }});
 export const revoke=mutation({args:{eventId:v.id("events"),reason:v.string(),expectedActiveRevisionId:v.union(v.id("resultRevisions"),v.null())},returns:v.object({status:v.union(v.literal("already_revoked"),v.literal("revoked"))}),handler:async(ctx,args)=>{
   const admin=await requireAdmin(ctx,"super_admin"),event=await ctx.db.get(args.eventId);if(!event)throw new Error("Event missing");if(!args.reason.trim())throw new Error("Reason required");if(!event.activePublishedRevisionId)return {status:"already_revoked" as const};

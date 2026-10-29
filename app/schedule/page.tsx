@@ -1,1 +1,1 @@
-import {Nav,Schedule} from "@/components/public";export default function Page(){return <><Nav/><main id="main-content" tabIndex={-1} className="shell"><h1>Event schedule</h1><Schedule/></main></>}
+import {Nav,Schedule} from "@/components/public";export default function Page(){return <><Nav/><main id="main-content" tabIndex={-1} className="shell"><span className="eyebrow">The programme</span><h1>Event schedule</h1><p className="muted">Find an event by name, venue, date or category.</p><Schedule/></main></>}

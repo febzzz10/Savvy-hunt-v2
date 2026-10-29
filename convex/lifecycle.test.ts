@@ -119,6 +119,30 @@ describe("Convex scoring and management integration", () => {
     expect((await s.t.query(api.scoreboard.getCategory, { editionId: s.editionId, categoryId: s.categories[0]._id })).map(row => row.points)).toEqual([0, 0]);
   });
 
+  it("rejects a correction publication without a reason and keeps official results unchanged", async () => {
+    const s = await setup();
+    const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5 }] });
+    const firstPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: first });
+    await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: first, expectedActiveRevisionId: firstPreview.expectedActiveRevisionId, expectedDraftVersion: firstPreview.expectedDraftVersion });
+    const correction = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 8 }] });
+    const correctionPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: correction });
+    await expect(s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: correction, expectedActiveRevisionId: correctionPreview.expectedActiveRevisionId, expectedDraftVersion: correctionPreview.expectedDraftVersion })).rejects.toThrow("Correction reason required");
+    expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).find(row => row.id === s.a)?.points).toBe(5);
+  });
+
+  it("returns unchanged without creating a duplicate publication when a correction matches the published revision", async () => {
+    const s = await setup();
+    const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5, placement: 1, entryLabel: "Solo" }] });
+    const firstPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: first });
+    await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: first, expectedActiveRevisionId: firstPreview.expectedActiveRevisionId, expectedDraftVersion: firstPreview.expectedDraftVersion });
+    const duplicate = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, reason: "No actual change", entries: [{ schoolId: s.a, points: 5, placement: 1, entryLabel: "Solo" }] });
+    const duplicatePreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: duplicate });
+    const result = await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: duplicate, expectedActiveRevisionId: duplicatePreview.expectedActiveRevisionId, expectedDraftVersion: duplicatePreview.expectedDraftVersion });
+    expect(result).toEqual({ status: "unchanged" });
+    expect((await s.superAdmin.query(api.results.getAdminByEvent, { eventId: s.eventId })).event.activePublishedRevisionId).toBe(first);
+    expect((await s.superAdmin.query(api.admins.listAudit, {})).filter(row => row.action === "results.publish")).toHaveLength(1);
+  });
+
   it("does not allow a caller to bypass draft concurrency protection by omitting the version", async () => {
     const s = await setup();
     await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5 }] });
