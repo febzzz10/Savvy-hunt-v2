@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { MobileUpdates } from "./home/mobile-updates";
 import { HeroSection } from "./home/hero-section";
 import "./home-sections.css";
 import { useQuery } from "convex/react";
@@ -9,7 +10,7 @@ import { Programme, Rankings, SectionHeading, dateLabel, timeLabel, type Program
 import { EmptyState, Icon, Skeleton } from "./ui";
 type Announcement = { _id: string; title: string; body: string; publishedAt?: number };
 type Photo = { _id: string; altText: string; caption?: string };
-type Result = { eventId: string; eventTitle: string; eventSlug: string; publishedAt: number };
+type Result = { eventId: string; eventTitle: string; eventSlug: string; categoryId: string; publishedAt: number };
 export function HomeContent() { return <Load fallback={<><HeroSection /><Skeleton label="Connecting to live event dataâ€¦" /></>}>{edition => <HomeData editionId={edition._id} />}</Load>; }
 function HomeData({ editionId }: { editionId: string }) {
   const standings = useQuery(ref<{ editionId: string }, Standing[]>("scoreboard:getOverall"), { editionId });
@@ -33,6 +34,7 @@ function HomeData({ editionId }: { editionId: string }) {
       <Link href={next ? `/events/${next.slug}` : "/schedule"}><Icon name="calendar" /><strong>Next up</strong><span>{events === undefined ? "Loading the programmeâ€¦" : next ? `${dateLabel(next.startsAt)} Â· ${timeLabel(next.startsAt)} IST` : "Schedule to be announced"}</span></Link>
       <Link href="/results"><Icon name="trophy" /><strong>Latest results</strong><span>{results === undefined ? "Checking official resultsâ€¦" : results[0]?.eventTitle || "Official results pending"}</span></Link>
     </nav>
+    <MobileUpdates events={events} results={results} categories={categories} />
     <div className="home-sections">
       <section className="home-updates" aria-labelledby="home-updates-title">
         <h2 id="home-updates-title">Real-Time Updates</h2>

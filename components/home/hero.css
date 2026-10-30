@@ -1,4 +1,4 @@
-﻿/* Homepage artwork composition. All decorative layers are inert and clipped locally. */
+/* Homepage artwork composition. All decorative layers are inert and clipped locally. */
 .home-shell:has(.festival-hero) { padding-top:0; }
 .festival-hero { position:relative; isolation:isolate; overflow:hidden; margin:0 -40px; padding:64px 40px 68px; min-height:710px; background:var(--canvas); }
 .festival-copy { position:relative; z-index:2; max-width:560px; }
@@ -6,7 +6,6 @@
 .festival-title-wrap { position:relative; width:fit-content; }
 .festival-hero h1 { font-family:var(--font-hero),Georgia,serif; color:var(--ink); font-size:142px; font-weight:600; line-height:.83; letter-spacing:-.055em; margin:0; }
 .festival-hero h1 span { display:block; }
-.festival-crown { position:absolute; width:48px; height:38px; top:-22px; right:-10px; color:var(--gold); transform:rotate(8deg); }
 .festival-underline { width:310px; height:36px; display:block; color:var(--accent); margin:6px 0 8px; }
 .festival-tagline { font-size:27px; line-height:1.35; margin:0 0 20px; color:var(--ink); }
 .festival-description { max-width:400px; font-size:15px; line-height:1.65; color:var(--muted); margin:0; }
@@ -19,20 +18,17 @@
 .festival-trophy { width:430px; right:-12px; top:155px; }
 .festival-brush { width:410px; right:-48px; top:480px; opacity:.85; }
 .festival-botanical { width:280px; right:155px; top:390px; opacity:.4; }
-.festival-handwriting { width:150px; right:370px; top:500px; opacity:.55; transform:rotate(-7deg); }
-.home-header .nav .brand { gap:9px; }.home-header .brand-name { font-size:13px!important; line-height:1.1!important; }
+.home-header .brand-name { font-size:13px!important; line-height:1.1!important; }
 @media(min-width:768px) { .home-header .nav { padding-block:16px; }.home-header .header-meta { padding-bottom:10px; } }
 @media(min-width:768px) and (max-width:1023px) {
-  .festival-hero { margin-inline:-24px; padding:52px 24px; min-height:700px; }.festival-hero h1 { font-size:118px; }.festival-copy { max-width:420px; }.festival-description { max-width:340px; }.festival-actions { max-width:300px; }.festival-scene { right:-130px; width:610px; }.festival-trophy { right:-90px; width:350px; top:180px; }.festival-brush { width:300px; right:-90px; top:470px; }.festival-botanical { right:20px; top:400px; width:220px; }.festival-handwriting { right:95px; top:590px; width:115px; }
-}
+  .festival-hero { margin-inline:-24px; padding:52px 24px; min-height:700px; }.festival-hero h1 { font-size:118px; }.festival-copy { max-width:420px; }.festival-description { max-width:340px; }.festival-actions { max-width:300px; }.festival-scene { right:-130px; width:610px; }.festival-trophy { right:-90px; width:350px; top:180px; }.festival-brush { width:300px; right:-90px; top:470px; }.festival-botanical { right:20px; top:400px; width:220px; }}
 @media(max-width:767px) {
-  .home-header { position:relative; }.home-header .nav { padding:14px 22px; gap:12px; min-height:70px; }.home-header .nav .brand { margin-right:auto; }.home-header .wordmark { width:40px; height:42px; font-size:20px; }
+  .home-header { position:relative; }.home-header .nav { padding:14px 22px; gap:12px; min-height:70px; }.home-header .nav .brand { margin-right:auto; }
   .home-header .menu-toggle { border:0; background:transparent; padding:8px 0 8px 8px; min-height:40px; color:var(--ink); }.home-header .menu-toggle svg { width:24px; height:24px; }
   .home-header .header-meta { position:absolute; top:24px; left:43%; right:58px; padding:0; }.home-header .connection-status { font-size:10px; line-height:1.25; }.home-header .connection-status.disconnected { background:var(--canvas); padding:3px; }
   .festival-hero { margin-inline:-20px; padding:33px 22px 42px; min-height:594px; }
   .festival-copy { max-width:none; }.festival-eyebrow { font-size:10px; letter-spacing:.13em; margin-bottom:20px; }
   .festival-hero h1 { font-size:92px; line-height:.82; letter-spacing:-.055em; }
-  .festival-crown { width:34px; height:28px; top:-9px; right:-10px; }
   .festival-underline { width:208px; height:27px; margin-top:6px; margin-bottom:9px; }
   .festival-tagline { font-size:22px; margin-bottom:16px; line-height:1.4; max-width:250px; }
   .festival-description { max-width:252px; font-size:13px; line-height:1.6; }
@@ -41,10 +37,9 @@
   .festival-trophy { width:220px; right:-112px; top:166px; }
   .festival-brush { width:170px; right:-58px; top:300px; opacity:.65; }
   .festival-botanical { width:135px; right:-80px; top:300px; opacity:.18; }
-  .festival-handwriting { width:100px; right:8px; top:483px; opacity:.4; transform:rotate(-8deg); }
-}
+  }
 @media(max-width:359px) {
-  .festival-hero { margin-inline:-16px; padding-inline:18px; }.festival-hero h1 { font-size:82px; }.festival-description { max-width:223px; font-size:12px; }.festival-tagline { font-size:20px; }.festival-scene { right:-50px; }.festival-trophy { right:-109px; }.festival-handwriting { right:-5px; width:80px; top:475px; }.home-header .nav { padding-inline:16px; gap:8px; }.home-header .brand-name { font-size:11px!important; }.home-header .header-meta { left:43%; right:48px; top:24px; }.home-header .connection-status { font-size:9px; }
+  .festival-hero { margin-inline:-16px; padding-inline:18px; }.festival-hero h1 { font-size:82px; }.festival-description { max-width:223px; font-size:12px; }.festival-tagline { font-size:20px; }.festival-scene { right:-50px; }.festival-trophy { right:-109px; }.home-header .nav { padding-inline:16px; gap:8px; }.home-header .brand-name { font-size:11px!important; }.home-header .header-meta { left:43%; right:48px; top:24px; }.home-header .connection-status { font-size:9px; }
 }
 @media(min-width:360px) and (max-width:374px) { .festival-hero { margin-inline:-16px; } }
-@media(max-width:767px) { .festival-hero { min-height:620px; }.festival-hero + .quick-access { margin-top:0; } }
+@media(max-width:767px) { .festival-hero + .quick-access { margin-top:0; } }
