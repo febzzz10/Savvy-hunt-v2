@@ -1,6 +1,10 @@
 /* Scoped overrides keep the shared navigation consistent with the home header. */
 .responsive-navigation .nav { gap:24px; flex-wrap:nowrap; }
 .responsive-navigation .brand { flex-shrink:0; }
+.responsive-navigation .brand-name { white-space:nowrap; }
+.responsive-navigation.site-header:not(.admin-header) .brand-name { font-size:23px; font-weight:750; letter-spacing:-.015em; line-height:1.1; }
+@media(min-width:768px) { .responsive-navigation.site-header:not(.admin-header) .brand-name { font-size:27px; } }
+@media(min-width:1024px) { .responsive-navigation.site-header:not(.admin-header) .brand-name { font-size:32px; } }
 .responsive-navigation .nav-links { gap:20px; flex-wrap:nowrap; width:auto; }
 .responsive-navigation .nav-links > * { flex-shrink:0; }
 .responsive-navigation .nav-links a { white-space:nowrap; transition:color 180ms,background-color 180ms; }
