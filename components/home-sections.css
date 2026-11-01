@@ -7,6 +7,9 @@
 .home-section-heading h2 { margin-bottom:12px; }
 .home-section-heading p { max-width:58ch; margin:0 auto; }
 .home-section-action { display:flex; justify-content:center; margin-top:24px; }
+.school-scoreboard-action { margin-top:16px; }
+.home-results-action { margin-top:32px; }
+.home-section-action .home-editorial-cta { border-radius:16px; color:var(--accent); font-weight:500; padding:12px 24px; }
 .school-standings-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:880px; margin:0 auto 36px; }
 .school-standings-heading .eyebrow { display:block; margin-bottom:12px; letter-spacing:.16em; }
 .school-standings-heading h2 { margin:0; font-size:clamp(2rem,5vw,3.25rem); }

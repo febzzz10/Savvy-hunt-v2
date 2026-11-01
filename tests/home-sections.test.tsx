@@ -3,15 +3,24 @@ vi.mock("next/font/google", () => ({ Cormorant_Garamond: () => ({ variable: "her
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactNode } from "react";
-const data = vi.hoisted(() => ({ queries: {} as Record<string, unknown> }));
-vi.mock("convex/react", () => ({ useQuery: (name: string) => data.queries[name] }));
+const data = vi.hoisted(() => ({ queries: {} as Record<string, unknown>, calls: [] as { name: string; args: unknown }[] }));
+vi.mock("convex/react", () => ({ useQuery: (name: string, args: unknown) => { data.calls.push({ name, args }); return data.queries[name]; } }));
 vi.mock("../components/data", () => ({ ref: (name: string) => name, Load: ({ children }: { children: (edition: { _id: string }) => ReactNode }) => children({ _id: "test" }) }));
 import { HomeContent } from "../components/home";
 function setup() {
+  data.calls = [];
   data.queries = { "siteSettings:getPublic": null, "scoreboard:getOverall": [], "events:listPublic": [], "categories:listCurrent": [], "announcements:listPublic": [], "gallery:listApproved": [], "results:listRecentPublished": [] };
 }
 const event = (id: string, status: string, published = false) => ({ _id: id, slug: id, title: id, status, hasPublishedResults: published, startsAt: 0, categoryId: "category", venue: "Test venue" });
 describe("homepage stacked sections", () => {
+  it("requests six recent results and renders every returned event as a card", () => {
+    setup();
+    data.queries["results:listRecentPublished"] = Array.from({ length: 6 }, (_, index) => ({ eventId: `event-${index}`, eventSlug: `event-${index}`, eventTitle: `Published event ${index}`, categoryId: "arts", publishedAt: 1800000000000 - index, entries: [] }));
+    const html = renderToStaticMarkup(<HomeContent />);
+    expect(data.calls.find(call => call.name === "results:listRecentPublished")?.args).toEqual({ editionId: "test", limit: 6 });
+    expect(html.match(/class="achievement-card"/g)).toHaveLength(6);
+    expect(html.indexOf("Published event 0</h3>")).toBeLessThan(html.indexOf("Published event 5</h3>"));
+  });
   it("renders separate sections with honest empty states and working destinations", () => {
     setup(); const html = renderToStaticMarkup(<HomeContent />);
     expect(html).not.toContain('class="home-features"');

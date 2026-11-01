@@ -1,0 +1,36 @@
+/* Scoped to the results desk; reuse Savvy Hunt's existing editorial tokens. */
+.achievement-grid { display:grid; grid-template-columns:1fr; grid-auto-rows:1fr; gap:24px; container-type:inline-size; }
+.achievement-card { display:flex; flex-direction:column; min-width:0; }
+.achievement-perspective { position:relative; perspective:1100px; flex:1; display:grid; }
+.achievement-rotor { display:grid; transform-style:preserve-3d; min-width:0; border-radius:16px; box-shadow:0 4px 16px #1f2a2308; }
+.achievement-face { grid-area:1 / 1; min-width:0; min-height:350px; padding:26px; border:1px solid var(--edge); border-radius:16px; background:var(--panel); display:flex; flex-direction:column; backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow-wrap:anywhere; }
+.achievement-front { background:var(--wash); }
+.achievement-back { transform:rotateY(180deg); }
+.achievement-top { display:flex; align-items:center; flex-wrap:wrap; gap:12px; justify-content:space-between; }
+.achievement-top .pill { font-size:10px; }
+.achievement-event { margin-block:32px 24px; }
+.achievement-face h3 { margin:8px 0 16px; font-family:var(--font-editorial),Georgia,serif; font-size:1.8rem; font-weight:500; line-height:1.15; }
+.achievement-date { margin:0 0 24px; font-size:12px; color:var(--muted); }
+.achievement-date time { color:var(--ink); }
+.achievement-hint { display:flex; justify-content:space-between; gap:12px; margin-top:auto; padding-top:18px; border-top:1px solid var(--edge); color:var(--accent); font-size:12px; font-weight:600; }
+.achievement-winners { list-style:none; padding:0; margin:0 0 20px; display:grid; gap:14px; }
+.achievement-winners li { display:grid; font-size:12px; line-height:1.5; }
+.achievement-winners strong { font-size:14px; font-weight:600; }
+.achievement-place { color:var(--accent); font-size:11px; font-weight:700; }
+.achievement-points { color:var(--muted); }
+.achievement-flip-control { position:absolute; inset:0; width:100%; height:100%; border:0; padding:0; border-radius:16px; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.achievement-flip-control:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  .achievement-perspective { transition:scale 180ms ease; }
+  .achievement-perspective:hover { scale:1.02; }
+}
+@media (min-width:768px) { .achievement-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+/* With the notice board alongside, use the actual available section width. */
+@supports (grid-template-columns:repeat(auto-fit,minmax(min(100%,max(270px,calc((100% - 48px)/3))),1fr))) {
+  .achievement-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,max(270px,calc((100% - 48px)/3))),1fr)); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .achievement-rotor { transform:none !important; }
+  .achievement-face { transform:none; }
+  .achievement-face[aria-hidden="true"] { visibility:hidden; }
+}

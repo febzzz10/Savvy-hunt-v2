@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { AchievementCards } from "./home/achievement-card";
+import type { AchievementResult } from "../lib/achievement-results";
 import { EventUpdates } from "./home/event-updates";
 import { SchoolPodium } from "./home/school-podium";
 import { MobileUpdates } from "./home/mobile-updates";
@@ -12,7 +14,7 @@ import { Programme, SectionHeading, dateLabel, timeLabel, type ProgrammeEvent, t
 import { EmptyState, Icon, Skeleton } from "./ui";
 type Announcement = { _id: string; title: string; body: string; publishedAt?: number };
 type Photo = { _id: string; altText: string; caption?: string };
-type Result = { eventId: string; eventTitle: string; eventSlug: string; categoryId: string; publishedAt: number };
+
 export function HomeContent() { return <Load fallback={<><HeroSection /><Skeleton label="Connecting to live event dataâ€¦" /></>}>{edition => <HomeData editionId={edition._id} />}</Load>; }
 function HomeData({ editionId }: { editionId: string }) {
   const standings = useQuery(ref<{ editionId: string }, Standing[]>("scoreboard:getOverall"), { editionId });
@@ -20,7 +22,7 @@ function HomeData({ editionId }: { editionId: string }) {
   const categories = useQuery(ref<{ editionId: string }, { _id: string; name: string }[]>("categories:listCurrent"), { editionId });
   const announcements = useQuery(ref<{ editionId: string }, Announcement[]>("announcements:listPublic"), { editionId });
   const photos = useQuery(ref<{ editionId: string }, Photo[]>("gallery:listApproved"), { editionId });
-  const results = useQuery(ref<{ editionId: string; limit: number }, Result[]>("results:listRecentPublished"), { editionId, limit: 3 });
+  const results = useQuery(ref<{ editionId: string; limit: number }, AchievementResult[]>("results:listRecentPublished"), { editionId, limit: 6 });
   const live = events?.filter(event => event.status === "live");
   const next = events?.find(event => event.status === "upcoming");
   const leaders = standings?.filter(row => row.points > 0);
@@ -38,6 +40,7 @@ function HomeData({ editionId }: { editionId: string }) {
       <section className="home-leading" aria-labelledby="home-leading-title">
         <header className="school-standings-heading"><div><span className="eyebrow">School Standings</span><h2 id="home-leading-title">Leading Schools</h2></div><Link className="school-scoreboard-link" href="/scoreboard" aria-label="View Full Scoreboard"><Icon name="arrow" /></Link></header>
         {leaders === undefined || events === undefined ? <Skeleton label="Loading official standings..." /> : hasPublished && leaders.length ? <SchoolPodium rows={leaders} /> : <EmptyState title="Every point has its moment" icon="trophy">The leaderboard will appear when official points are published.</EmptyState>}
+        <div className="home-section-action school-scoreboard-action"><Link className="button secondary home-editorial-cta" href="/scoreboard">View Full Scoreboard <Icon name="arrow" /></Link></div>
       </section>
       <EventUpdates events={events} categories={categories} />
       <section className="home-snapshots" aria-labelledby="home-snapshots-title">
@@ -48,7 +51,7 @@ function HomeData({ editionId }: { editionId: string }) {
     </div>
     {!!live?.length && <section><SectionHeading number="In progress" title="Happening now" href="/schedule" action="Full schedule" /><Programme events={live} categories={categories} /></section>}
     <div className={announcements?.length ? "editorial-columns" : ""}>
-      <section><SectionHeading number="From the results desk" title="The latest achievements" href="/results" action="All results" />{results === undefined ? <Skeleton label="Loading official resultsâ€¦" /> : results.length ? results.map(result => <Link className="result-link" href={`/events/${result.eventSlug}`} key={result.eventId}><span className="pill" data-status="published">Official Â· Published</span><h3>{result.eventTitle} â†—</h3><span className="small">{dateLabel(result.publishedAt)} Â· {timeLabel(result.publishedAt)} IST</span></Link>) : <EmptyState title="The results desk is ready" icon="trophy" href="/schedule">Official results will appear here once published.</EmptyState>}</section>
+      <section><SectionHeading number="From the results desk" title="The latest achievements" />{results === undefined ? <Skeleton label="Loading official results…" /> : results.length ? <AchievementCards results={results} categories={categories} /> : <EmptyState title="The results desk is ready" icon="trophy" href="/schedule">Official results will appear here once published.</EmptyState>}<div className="home-section-action home-results-action"><Link className="button secondary home-editorial-cta" href="/results">View All Results <Icon name="arrow" /></Link></div></section>
       {!!announcements?.length && <section><SectionHeading number="From the organizers" title="Notice board" />{announcements.slice(0, 3).map(item => <article className="notice" key={item._id}>{item.publishedAt && <span className="eyebrow">{dateLabel(item.publishedAt)}</span>}<h3>{item.title}</h3><p>{item.body}</p></article>)}</section>}
     </div>
   </>;

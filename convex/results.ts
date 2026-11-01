@@ -10,12 +10,45 @@ export const getPublishedByEvent=query({args:{eventId:v.id("events")},handler:as
   const event=await ctx.db.get(eventId);if(!event?.activePublishedRevisionId)return [];
   return Promise.all((await rows(ctx,event.activePublishedRevisionId)).map(async r=>({schoolId:r.schoolId,schoolName:(await ctx.db.get(r.schoolId))?.name??"Archived school",points:r.points,placement:r.placement,entryLabel:r.entryLabel,sortOrder:r.sortOrder})));
 }});
-export const listRecentPublished=query({args:{editionId:v.id("editions"),limit:v.number()},handler:async(ctx,args)=>{
-  const limit=Math.min(50,Math.max(1,Math.floor(args.limit)));const events=await ctx.db.query("events").withIndex("by_edition_start",q=>q.eq("editionId",args.editionId)).collect();const published=events.filter(event=>event.activePublishedRevisionId);
-  const results=[];
-  for(const event of published){const revision=await ctx.db.get(event.activePublishedRevisionId!);if(!revision)continue;const entries=await rows(ctx,revision._id);results.push({eventId:event._id,eventTitle:event.title,eventSlug:event.slug,categoryId:event.categoryId,publishedAt:revision.publishedAt??0,entries:await Promise.all(entries.map(async row=>({schoolId:row.schoolId,schoolName:(await ctx.db.get(row.schoolId))?.name??"Archived school",points:row.points,placement:row.placement,entryLabel:row.entryLabel})))})}
-  return results.sort((a,b)=>b.publishedAt-a.publishedAt).slice(0,limit);
-}});
+export const listRecentPublished = query({
+  args: { editionId: v.id("editions"), limit: v.number() },
+  returns: v.array(v.object({
+    eventId: v.id("events"), eventTitle: v.string(), eventSlug: v.string(),
+    categoryId: v.id("categories"), publishedAt: v.number(),
+    entries: v.array(v.object({
+      schoolId: v.id("schools"), schoolName: v.string(), points: v.number(),
+      placement: v.optional(v.number()), entryLabel: v.optional(v.string()),
+      participantName: v.optional(v.string()),
+    })),
+  })),
+  handler: async (ctx, args) => {
+    const limit = Math.min(50, Math.max(1, Math.floor(args.limit)));
+    const published = [];
+    // Preserve latest-publication ordering, including corrections. Only hydrate
+    // entries and schools for the events actually returned to the homepage.
+    for await (const event of ctx.db.query("events").withIndex("by_edition_start", q => q.eq("editionId", args.editionId))) {
+      if (!event.activePublishedRevisionId) continue;
+      const revision = await ctx.db.get(event.activePublishedRevisionId);
+      if (!revision || revision.eventId !== event._id || revision.status !== "published" || revision.publishedAt === undefined) continue;
+      published.push({ event, publishedAt: revision.publishedAt, revisionId: revision._id });
+    }
+    const schools = new Map<Id<"schools">, string>();
+    return Promise.all(published.sort((a, b) => b.publishedAt - a.publishedAt).slice(0, limit).map(async ({ event, publishedAt, revisionId }) => {
+      const entries = await ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", revisionId)).take(200);
+      const publicEntries = [];
+      for (const row of entries) {
+        if (row.eventId !== event._id) continue;
+        if (!schools.has(row.schoolId)) schools.set(row.schoolId, (await ctx.db.get(row.schoolId))?.name ?? "Archived school");
+        publicEntries.push({ schoolId: row.schoolId, schoolName: schools.get(row.schoolId)!, points: row.points,
+          ...(row.placement === undefined ? {} : { placement: row.placement }),
+          ...(row.entryLabel ? { entryLabel: row.entryLabel } : {}),
+          ...(row.namePublishingApproved && row.displayParticipantName ? { participantName: row.displayParticipantName } : {}),
+        });
+      }
+      return { eventId: event._id, eventTitle: event.title, eventSlug: event.slug, categoryId: event.categoryId, publishedAt, entries: publicEntries };
+    }));
+  },
+});
 export const getAdminByEvent=query({args:{eventId:v.id("events")},handler:async(ctx,{eventId})=>{
   await requireAdmin(ctx);const event=await ctx.db.get(eventId);if(!event)throw new Error("Event missing");
   const revisions=await ctx.db.query("resultRevisions").withIndex("by_event",q=>q.eq("eventId",eventId)).collect();
