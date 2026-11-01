@@ -22,7 +22,7 @@ function HomeData({ editionId }: { editionId: string }) {
   const categories = useQuery(ref<{ editionId: string }, { _id: string; name: string }[]>("categories:listCurrent"), { editionId });
   const announcements = useQuery(ref<{ editionId: string }, Announcement[]>("announcements:listPublic"), { editionId });
   const photos = useQuery(ref<{ editionId: string }, Photo[]>("gallery:listApproved"), { editionId });
-  const results = useQuery(ref<{ editionId: string; limit: number }, AchievementResult[]>("results:listRecentPublished"), { editionId, limit: 6 });
+  const results = useQuery(ref<{ editionId: string; limit: number }, AchievementResult[]>("results:listRecentPublished"), { editionId, limit: 3 });
   const live = events?.filter(event => event.status === "live");
   const next = events?.find(event => event.status === "upcoming");
   const leaders = standings?.filter(row => row.points > 0);

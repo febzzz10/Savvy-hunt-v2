@@ -25,7 +25,7 @@ export function AchievementCard({ result, category }: { result: AchievementResul
           <div className="achievement-top"><span className="icon-disc"><Icon name="trophy" /></span><span className="pill" data-status="published">Official · Published</span></div>
           <div className="achievement-event">{category && <span className="eyebrow">{category}</span>}<h3>{result.eventTitle}</h3></div>
           <p className="achievement-date">Published<br /><time dateTime={new Date(result.publishedAt).toISOString()}>{dateLabel(result.publishedAt)} · {timeLabel(result.publishedAt)} IST</time></p>
-          <span className="achievement-hint">Flip to reveal winners <span aria-hidden="true">↗</span></span>
+          <span className="achievement-hint">Flip to reveal winners</span>
         </div>
         <div className="achievement-face achievement-back" aria-hidden={!flipped} inert={!flipped}>
           <span className="eyebrow">Official winners</span>

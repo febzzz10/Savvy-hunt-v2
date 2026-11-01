@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 const bundle = await build({
   stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {AchievementCards} from './components/home/achievement-card';
-    const results = [1,2,3,4,5,6].map(i=>({eventId:String(i),eventTitle:'Test event '+i,eventSlug:'event-'+i,categoryId:'arts',publishedAt:1800000000000,entries:i===4?[]:[{schoolId:'a',schoolName:'School A with a long official name',placement:1,points:10,participantName:'Approved participant'},{schoolId:'b',schoolName:'School B',placement:3,points:0},{schoolId:'c',schoolName:'School C',placement:3,points:0}]}));
+    const results = [1,2,3].map(i=>({eventId:String(i),eventTitle:'Test event '+i,eventSlug:'event-'+i,categoryId:'arts',publishedAt:1800000000000,entries:i===3?[]:[{schoolId:'a',schoolName:'School A with a long official name',placement:1,points:10,participantName:'Approved participant'},{schoolId:'b',schoolName:'School B',placement:3,points:0},{schoolId:'c',schoolName:'School C',placement:3,points:0}]}));
     window.updateResults=()=>{results[0]={...results[0],entries:[{schoolId:'c',schoolName:'Corrected School',placement:2,points:6}]};render()};
     const render=()=>root.render(<div className={location.search.includes('notices')?'editorial-columns':''}><section><h2>The latest achievements</h2><AchievementCards results={results} categories={[{_id:'arts',name:'Arts and literary competitions'}]}/></section>{location.search.includes('notices')&&<section><h2>Notice board</h2><p>News from the organizers</p></section>}</div>);const root=createRoot(document.getElementById('root'));render();`, resolveDir: process.cwd(), loader: 'tsx' },
   bundle: true, write: false, outdir: 'out', jsx: 'automatic',
@@ -45,7 +45,7 @@ try {
   const context=await browser.newContext();const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}${process.argv.includes('--notices')?'/?notices':''}`);
   const controls=page.locator('.achievement-flip-control');
-  await expect(controls).toHaveCount(6);
+  await expect(controls).toHaveCount(3);
   await expect(page.locator('.achievement-card a')).toHaveCount(0);
   for(const [width,fullWidthColumns] of [[320,1],[360,1],[375,1],[390,1],[414,1],[430,1],[768,2],[1024,3],[1440,3]]){
     const columns=process.argv.includes('--notices')?(width>=1440?2:1):fullWidthColumns;
@@ -77,7 +77,7 @@ try {
   await controls.first().press('Enter');await expect(controls.first()).toHaveAttribute('aria-pressed','true');
   await expect.poll(()=>page.locator('.achievement-rotor').first().evaluate(el=>Number(new DOMMatrixReadOnly(getComputedStyle(el).transform).m11.toFixed(2)))).toBe(-1);
   await page.evaluate(()=>window.updateResults());await expect(page.locator('.achievement-back').first()).toContainText('Corrected School');await expect(page.locator('.achievement-back').first()).not.toContainText('School A');
-  await controls.nth(3).click();await expect(page.locator('.achievement-back').nth(3)).toContainText('Results awaited');
+  await controls.nth(2).click();await expect(page.locator('.achievement-back').nth(2)).toContainText('Results awaited');
   const violations=(await new AxeBuilder({page}).include('.achievement-grid').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations;
   assert.deepEqual(violations,[]);
   await page.emulateMedia({reducedMotion:'reduce'});await controls.first().click();await controls.first().click();

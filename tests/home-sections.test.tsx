@@ -13,13 +13,13 @@ function setup() {
 }
 const event = (id: string, status: string, published = false) => ({ _id: id, slug: id, title: id, status, hasPublishedResults: published, startsAt: 0, categoryId: "category", venue: "Test venue" });
 describe("homepage stacked sections", () => {
-  it("requests six recent results and renders every returned event as a card", () => {
+  it("requests three recent results and renders every returned event as a card", () => {
     setup();
-    data.queries["results:listRecentPublished"] = Array.from({ length: 6 }, (_, index) => ({ eventId: `event-${index}`, eventSlug: `event-${index}`, eventTitle: `Published event ${index}`, categoryId: "arts", publishedAt: 1800000000000 - index, entries: [] }));
+    data.queries["results:listRecentPublished"] = Array.from({ length: 3 }, (_, index) => ({ eventId: `event-${index}`, eventSlug: `event-${index}`, eventTitle: `Published event ${index}`, categoryId: "arts", publishedAt: 1800000000000 - index, entries: [] }));
     const html = renderToStaticMarkup(<HomeContent />);
-    expect(data.calls.find(call => call.name === "results:listRecentPublished")?.args).toEqual({ editionId: "test", limit: 6 });
-    expect(html.match(/class="achievement-card"/g)).toHaveLength(6);
-    expect(html.indexOf("Published event 0</h3>")).toBeLessThan(html.indexOf("Published event 5</h3>"));
+    expect(data.calls.find(call => call.name === "results:listRecentPublished")?.args).toEqual({ editionId: "test", limit: 3 });
+    expect(html.match(/class="achievement-card"/g)).toHaveLength(3);
+    expect(html.indexOf("Published event 0</h3>")).toBeLessThan(html.indexOf("Published event 2</h3>"));
   });
   it("renders separate sections with honest empty states and working destinations", () => {
     setup(); const html = renderToStaticMarkup(<HomeContent />);
