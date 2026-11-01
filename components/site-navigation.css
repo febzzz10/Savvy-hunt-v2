@@ -28,7 +28,34 @@
   .responsive-navigation.admin-header .nav-links { display:none; width:100%; flex-wrap:wrap; max-height:calc(100dvh - 140px); overflow:auto; padding:8px 4px; }
   .responsive-navigation.admin-header .nav-links.is-open { display:flex; }
 }
+/* Preserve the existing 960px navigation breakpoint; floating styles start at 1024px. */
+@media (min-width:1024px) {
+  .responsive-navigation.site-header:not(.admin-header) {
+    position:sticky;
+    top:0;
+    z-index:40;
+    flex-shrink:0;
+    width:100%;
+    max-width:100%;
+    margin-inline:auto;
+    border:1px solid transparent;
+    border-bottom-color:var(--edge);
+    border-radius:0;
+    transition:top 300ms ease, width 300ms ease, max-width 300ms ease, border-radius 300ms ease, background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+  }
+  .responsive-navigation.site-header:not(.admin-header)[data-scrolled] {
+    top:12px;
+    width:calc(100% - 48px);
+    max-width:1200px;
+    border-color:var(--edge);
+    border-radius:20px;
+    background:color-mix(in srgb, var(--panel) 92%, transparent);
+    backdrop-filter:blur(12px);
+    box-shadow:0 4px 20px color-mix(in srgb, var(--ink) 9%, transparent);
+  }
+}
 @media (prefers-reduced-motion:reduce) {
+  .responsive-navigation.site-header:not(.admin-header) { transition:none; }
   .responsive-navigation .nav-links a { transition:none; }
 }
 

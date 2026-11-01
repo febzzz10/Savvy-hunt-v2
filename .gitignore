@@ -14,3 +14,4 @@ playwright-report/
 *.key
 service-account*.json
 credentials*.json
+.ua/
