@@ -1,5 +1,7 @@
 /* Scoped to the results desk; reuse Savvy Hunt's existing editorial tokens. */
-.achievement-grid { display:grid; grid-template-columns:1fr; grid-auto-rows:1fr; gap:24px; container-type:inline-size; }
+.achievement-grid { display:grid; width:100%; min-width:0; grid-template-columns:minmax(0,1fr); grid-auto-rows:1fr; gap:24px; }
+/* Give every level of the 3D stack the track's width, independent of intrinsic sizing. */
+.achievement-card,.achievement-perspective,.achievement-rotor { width:100%; min-width:0; }
 .achievement-card { display:flex; flex-direction:column; min-width:0; }
 .achievement-perspective { position:relative; perspective:1100px; flex:1; display:grid; }
 .achievement-rotor { display:grid; transform-style:preserve-3d; min-width:0; border-radius:16px; box-shadow:0 4px 16px #1f2a2308; }
@@ -25,9 +27,12 @@
   .achievement-perspective:hover { scale:1.02; }
 }
 @media (min-width:768px) { .achievement-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-/* With the notice board alongside, use the actual available section width. */
-@supports (grid-template-columns:repeat(auto-fit,minmax(min(100%,max(270px,calc((100% - 48px)/3))),1fr))) {
-  .achievement-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,max(270px,calc((100% - 48px)/3))),1fr)); }
+/* Mobile uses one definite track. Keep the available-width desktop/tablet layout
+   (including the notice board) without percentage-based auto-repeat on phones. */
+@media (min-width:768px) {
+  @supports (grid-template-columns:repeat(auto-fit,minmax(min(100%,max(270px,calc((100% - 48px)/3))),1fr))) {
+    .achievement-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,max(270px,calc((100% - 48px)/3))),1fr)); }
+  }
 }
 @media (prefers-reduced-motion:reduce) {
   .achievement-rotor { transform:none !important; }
