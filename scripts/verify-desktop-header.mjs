@@ -2,11 +2,12 @@ import { chromium, expect } from '@playwright/test';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const baseline = process.argv.includes('--baseline');
+const baseURL = process.env.NAV_TEST_URL || 'http://localhost:3000';
 // Run with --baseline before making changes to enable exact tablet/mobile comparison.
 const output = '.ua/tmp/desktop-header';
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
-const widths = [1920, 1440, 1280, 1024, 1023, 960, 768, 390, 375];
+const widths = [1920, 1600, 1440, 1366, 1280, 1024, 1023, 960, 768, 390, 375];
 const routes = ['/scoreboard', '/schedule', '/results', '/snapshots', '/about', '/admin'];
 const snapshots = {};
 try {
@@ -19,7 +20,7 @@ try {
   for (const route of ['/', '/about']) {
     for (const width of widths) {
       await page.setViewportSize({ width, height: 700 });
-      await page.goto(`http://localhost:3000${route}`);
+      await page.goto(`${baseURL}${route}`);
       const header = page.locator('.responsive-navigation');
       await expect(header).toBeVisible();
       await expect(header.locator('.brand')).toHaveText('SAVVY HUNT');
@@ -47,26 +48,44 @@ try {
       } else {
         await expect(header.locator('.menu-toggle')).toBeHidden();
         await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
-        for (const href of routes) await expect(header.locator(`.nav-links a[href="${href}"]`)).toBeVisible();
+        for (const href of routes.filter(href => width < 1024 || href !== '/admin')) await expect(header.locator(`.nav-links a[href="${href}"]`)).toBeVisible();
       }
-      const mainTop = await page.locator('main').evaluate(el => el.getBoundingClientRect().top + scrollY);
-      await page.evaluate(() => scrollTo(0, 150));
+      const nav = header.locator('.nav');
+      const navBox = await nav.boundingBox();
       if (!baseline && width >= 1024) {
-        await expect(header).toHaveAttribute('data-scrolled', 'true');
-        await expect.poll(async () => (await styles())[0].borderRadius).toBe('20px');
-        await expect.poll(async () => header.evaluate(el => el.getBoundingClientRect().width)).toBeLessThan(Number.parseFloat(initial[0].width));
-        const scrolled = await styles();
-        expect(scrolled[0].position).toBe('sticky');
-        expect(scrolled[0].boxShadow).not.toBe('none');
-        expect(scrolled[0].backdropFilter).toContain('blur');
-        expect(scrolled[0].height).toBe(initial[0].height);
-        const boxes = await header.locator('.brand, .nav-links a').evaluateAll(els => els.map(el => {
+        const css = await nav.evaluate(el => {
+          const s = getComputedStyle(el);
+          return { position: s.position, radius: s.borderRadius, blur: s.backdropFilter, background: s.backgroundColor, panel: getComputedStyle(document.body).getPropertyValue('--panel').trim() };
+        });
+        expect(css.position).toBe('fixed');
+        expect(css.radius).toBe('9999px');
+        expect(css.blur).toBe('none');
+        expect(css.background).toBe('rgb(255, 255, 255)');
+        expect(navBox.y).toBe(24);
+        expect(navBox.height).toBe(72);
+        expect(navBox.width).toBeLessThanOrEqual(1200);
+        expect(navBox.x + navBox.width / 2).toBeCloseTo(await page.evaluate(() => {
+          const r = document.body.getBoundingClientRect(); return r.x + r.width / 2;
+        }), 0);
+        await expect(header.locator('.desktop-home-link')).toBeVisible();
+        await expect(header.locator('.public-admin-link')).toBeHidden();
+        await expect(header.locator('.desktop-admin-cta')).toHaveText('Admin Panel');
+        await expect(header.locator('.desktop-admin-cta')).toBeVisible();
+        const boxes = await nav.locator('.brand, .nav-links a:visible, .desktop-admin-cta').evaluateAll(els => els.map(el => {
           const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
         }));
         for (let i = 1; i < boxes.length; i++) {
           expect(boxes[i].left).toBeGreaterThanOrEqual(boxes[i - 1].right);
           expect(boxes[i].top).toBeLessThan(boxes[0].bottom);
+          expect(boxes[i].right).toBeLessThan(navBox.x + navBox.width);
         }
+        expect(await page.locator('main').evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThan(navBox.y + navBox.height);
+        if (width === 1440 || width === 1024) await page.screenshot({ path: `${output}/${route === '/' ? 'home' : 'about'}-${width}-top.png` });
+      }
+      const mainTop = await page.locator('main').evaluate(el => el.getBoundingClientRect().top + scrollY);
+      await page.evaluate(() => scrollTo(0, 150));
+      if (!baseline && width >= 1024) {
+        expect(await nav.boundingBox()).toEqual(navBox);
         if (width === 1440) await page.screenshot({ path: `${output}/${route === '/' ? 'home' : 'about'}-scrolled.png` });
       } else if (!baseline) {
         await expect(header).not.toHaveAttribute('data-scrolled');
@@ -76,9 +95,7 @@ try {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.evaluate(() => scrollTo(0, 0));
       if (!baseline && width >= 1024) {
-        await expect(header).not.toHaveAttribute('data-scrolled');
-        await expect.poll(async () => (await styles())[0].borderRadius).toBe('0px');
-        await expect.poll(async () => (await styles())[0].width).toBe(initial[0].width);
+        expect(await nav.boundingBox()).toEqual(navBox);
       }
       console.log(`passed ${route} ${width}px${baseline ? ' baseline' : ''}`);
     }
@@ -97,25 +114,28 @@ try {
       console.log('No pre-change baseline available; tablet/mobile style comparison skipped');
     }
     await page.setViewportSize({ width: 1440, height: 700 });
-    await page.goto('http://localhost:3000/about');
+    await page.goto(`${baseURL}/about`);
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(page.locator('#main-content')).toBeFocused();
-    for (const href of routes) {
-      await page.locator(`.nav-links a[href="${href}"]`).click();
+    for (const href of ['/', ...routes]) {
+      await page.locator(href === '/admin' ? '.desktop-admin-cta' : `.nav-links a[href="${href}"]`).click();
       await expect(page).toHaveURL(new RegExp(`${href}(?:/login)?(?:\\?.*)?$`));
       if (href !== '/admin') await expect(page.locator(`.nav-links a[href="${href}"]`)).toHaveAttribute('aria-current', 'page');
     }
-    await page.goto('http://localhost:3000/scoreboard/test-category');
+    await page.goto(`${baseURL}/scoreboard/test-category`);
     await expect(page.locator('.nav-links a[href="/scoreboard"]')).toHaveAttribute('data-section-active', 'true');
     await page.evaluate(() => scrollTo(0, 150));
     await page.setViewportSize({ width: 1023, height: 700 });
-    await expect(page.locator('.responsive-navigation')).not.toHaveAttribute('data-scrolled');
+    await expect(page.locator('.desktop-home-link')).toBeHidden();
+    await expect(page.locator('.desktop-admin-cta')).toBeHidden();
+    await expect(page.locator('.public-admin-link')).toBeVisible();
     await page.setViewportSize({ width: 1024, height: 700 });
-    await expect(page.locator('.responsive-navigation')).toHaveAttribute('data-scrolled', 'true');
+    await expect(page.locator('.desktop-home-link')).toBeVisible();
+    await expect(page.locator('.desktop-admin-cta')).toBeVisible();
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    expect(await page.locator('.responsive-navigation').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
+    expect(await page.locator('.desktop-admin-cta').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
     expect(errors).toEqual([]);
     console.log('passed routes, active states, skip link, resize, reduced motion, and hydration');
   }

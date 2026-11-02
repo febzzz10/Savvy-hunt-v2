@@ -11,7 +11,14 @@ const messages: Record<Status, string> = {
   reconnecting: "Reconnecting — displayed results may be out of date. Confirm connection before publishing.",
 };
 
-export function ConnectionStatus() {
+const compactMessages: Record<Status, string> = {
+  connecting: "Connecting…",
+  connected: "Connected",
+  offline: "Offline",
+  reconnecting: "Reconnecting…",
+};
+
+export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
   const convex = useConvex();
   const subscribe = useCallback((notify: () => void) => {
     const unsubscribe = convex.subscribeToConnectionState(notify);
@@ -31,6 +38,6 @@ export function ConnectionStatus() {
   // React uses this constant snapshot for both SSR and the initial hydration render.
   const status = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   return <div className={`connection-status${status === "connected" ? "" : " disconnected"}`} role="status" aria-live="polite" aria-atomic="true">
-    {messages[status]}
+    {compact ? <><span className="connection-full-label">{messages[status]}</span><span className="connection-compact-label" aria-hidden="true">{compactMessages[status]}</span></> : messages[status]}
   </div>;
 }

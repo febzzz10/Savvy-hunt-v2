@@ -21,5 +21,10 @@ describe("ConnectionStatus server snapshot", () => {
     const markup = renderToString(<ConvexProvider client={client}><ConnectionStatus /></ConvexProvider>);
     expect(markup).toBe('<div class="connection-status disconnected" role="status" aria-live="polite" aria-atomic="true">Connecting to live updates…</div>');
     expect(readConnection).not.toHaveBeenCalled();
+    const compact = renderToString(<ConvexProvider client={client}><ConnectionStatus compact /></ConvexProvider>);
+    expect(compact).toContain('class="connection-full-label"');
+    expect(compact).toContain('class="connection-compact-label" aria-hidden="true"');
+    expect(compact).toContain('role="status" aria-live="polite" aria-atomic="true"');
+    expect(readConnection).not.toHaveBeenCalled();
   });
 });
