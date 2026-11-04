@@ -8,10 +8,14 @@ const output = '.ua/tmp/desktop-header';
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const widths = [1920, 1600, 1440, 1366, 1280, 1024, 1023, 960, 768, 390, 375];
-const routes = ['/scoreboard', '/schedule', '/results', '/snapshots', '/about', '/admin'];
+const routes = ['/scoreboard', '/schedule', '/results', '/snapshots', '/about'];
 const snapshots = {};
 try {
   const page = await browser.newPage();
+  await page.addInitScript(() => {
+    const hide = () => { const style = document.createElement('style'); style.textContent = 'nextjs-portal{display:none!important}'; document.head?.appendChild(style); };
+    if (document.head) hide(); else document.addEventListener('DOMContentLoaded', hide);
+  });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {
@@ -48,7 +52,7 @@ try {
       } else {
         await expect(header.locator('.menu-toggle')).toBeHidden();
         await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
-        for (const href of routes.filter(href => width < 1024 || href !== '/admin')) await expect(header.locator(`.nav-links a[href="${href}"]`)).toBeVisible();
+        for (const href of routes) await expect(header.locator(`.nav-links a[href="${href}"]`)).toBeVisible();
       }
       const nav = header.locator('.nav');
       const navBox = await nav.boundingBox();
@@ -68,10 +72,9 @@ try {
           const r = document.body.getBoundingClientRect(); return r.x + r.width / 2;
         }), 0);
         await expect(header.locator('.desktop-home-link')).toBeVisible();
-        await expect(header.locator('.public-admin-link')).toBeHidden();
-        await expect(header.locator('.desktop-admin-cta')).toHaveText('Admin Panel');
-        await expect(header.locator('.desktop-admin-cta')).toBeVisible();
-        const boxes = await nav.locator('.brand, .nav-links a:visible, .desktop-admin-cta').evaluateAll(els => els.map(el => {
+        await expect(header.getByRole('link', { name: /admin/i })).toHaveCount(0);
+        await expect(header.locator('.desktop-admin-cta, .public-admin-link')).toHaveCount(0);
+        const boxes = await nav.locator('.brand, .nav-links a:visible').evaluateAll(els => els.map(el => {
           const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
         }));
         for (let i = 1; i < boxes.length; i++) {
@@ -120,22 +123,23 @@ try {
     await page.keyboard.press('Enter');
     await expect(page.locator('#main-content')).toBeFocused();
     for (const href of ['/', ...routes]) {
-      await page.locator(href === '/admin' ? '.desktop-admin-cta' : `.nav-links a[href="${href}"]`).click();
-      await expect(page).toHaveURL(new RegExp(`${href}(?:/login)?(?:\\?.*)?$`));
-      if (href !== '/admin') await expect(page.locator(`.nav-links a[href="${href}"]`)).toHaveAttribute('aria-current', 'page');
+      await page.locator(`.nav-links a[href="${href}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`${href}(?:\\?.*)?$`));
+      await expect(page.locator(`.nav-links a[href="${href}"]`)).toHaveAttribute('aria-current', 'page');
     }
+    await page.goto(`${baseURL}/admin`);
+    await expect(page).toHaveURL(/\/admin\/login/);
     await page.goto(`${baseURL}/scoreboard/test-category`);
     await expect(page.locator('.nav-links a[href="/scoreboard"]')).toHaveAttribute('data-section-active', 'true');
     await page.evaluate(() => scrollTo(0, 150));
     await page.setViewportSize({ width: 1023, height: 700 });
     await expect(page.locator('.desktop-home-link')).toBeHidden();
-    await expect(page.locator('.desktop-admin-cta')).toBeHidden();
-    await expect(page.locator('.public-admin-link')).toBeVisible();
+    await expect(page.locator('.desktop-admin-cta, .public-admin-link')).toHaveCount(0);
     await page.setViewportSize({ width: 1024, height: 700 });
     await expect(page.locator('.desktop-home-link')).toBeVisible();
-    await expect(page.locator('.desktop-admin-cta')).toBeVisible();
+    await expect(page.locator('.desktop-admin-cta, .public-admin-link')).toHaveCount(0);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    expect(await page.locator('.desktop-admin-cta').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
+    expect(await page.locator('.nav-links a').first().evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
     expect(errors).toEqual([]);
     console.log('passed routes, active states, skip link, resize, reduced motion, and hydration');
   }

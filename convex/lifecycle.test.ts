@@ -119,6 +119,23 @@ describe("Convex scoring and management integration", () => {
     expect((await s.t.query(api.scoreboard.getCategory, { editionId: s.editionId, categoryId: s.categories[0]._id })).map(row => row.points)).toEqual([0, 0]);
   });
 
+  it("exposes per-category points that sum to the official total", async () => {
+    const s = await setup();
+    const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 4 }, { schoolId: s.b, points: 1 }] });
+    const firstPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: first });
+    await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: first, expectedActiveRevisionId: firstPreview.expectedActiveRevisionId, expectedDraftVersion: firstPreview.expectedDraftVersion });
+    const second = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Second category event", categoryId: s.categories[2]._id, startsAt: 2_000_000_000_000 });
+    const secondDraft = await s.editor.mutation(api.results.saveDraft, { eventId: second, entries: [{ schoolId: s.a, points: 6 }] });
+    const secondPreview = await s.editor.query(api.results.preview, { eventId: second, draftRevisionId: secondDraft });
+    await s.superAdmin.mutation(api.results.publish, { eventId: second, draftRevisionId: secondDraft, expectedActiveRevisionId: secondPreview.expectedActiveRevisionId, expectedDraftVersion: secondPreview.expectedDraftVersion });
+    const row = (await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).find(entry => entry.id === s.a)!;
+    expect(row.categoryPoints?.[s.categories[1]._id]).toBe(4);
+    expect(row.categoryPoints?.[s.categories[2]._id]).toBe(6);
+    expect(row.categoryPoints?.[s.categories[0]._id] ?? 0).toBe(0);
+    expect(Object.values(row.categoryPoints ?? {}).reduce((total, points) => total + points, 0)).toBe(row.points);
+    expect(row.points).toBe(10);
+  });
+
   it("rejects a correction publication without a reason and keeps official results unchanged", async () => {
     const s = await setup();
     const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5 }] });

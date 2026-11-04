@@ -25,6 +25,20 @@ describe("editorial data presentation", () => {
     expect(html.match(/tie-label/g)).toHaveLength(2);
     expect(html.match(/>03</g)).toHaveLength(2);
   });
+  it("renders category columns with zero fallback and a prominent total", () => {
+    const categories = [
+      { _id: "c1", name: "Category I" }, { _id: "c2", name: "Category II" },
+      { _id: "c3", name: "Category III" }, { _id: "c4", name: "Category IV" },
+      { _id: "c5", name: "Category V" }, { _id: "c6", name: "Common Category" },
+    ];
+    const html = renderToStaticMarkup(<Rankings rows={[{ id: "a", name: "School A", points: 12, rank: 1, categoryPoints: { c1: 7, c6: 5 } }]} categories={categories} />);
+    for (const label of ["CAT 1", "CAT 2", "CAT 3", "CAT 4", "CAT 5", "COMMON CAT", "Total"]) expect(html).toContain(`>${label}<`);
+    expect(html).toContain(">7<");
+    expect(html.match(/>0</g)).toHaveLength(4);
+    expect(html).toContain(">12<");
+    expect(html).toContain("category-points");
+    expect(html).toContain("total-points");
+  });
   it("does not treat a completed event as a published result", () => {
     const html = renderToStaticMarkup(<Programme events={[{
       _id: "test", title: "Test event", slug: "test", startsAt: 0,

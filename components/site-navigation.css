@@ -63,8 +63,7 @@
   .responsive-navigation.admin-header .nav-links.is-open { display:flex; }
 }
 /* Preserve the existing 960px navigation breakpoint; floating styles start at 1024px. */
-.responsive-navigation .nav .desktop-home-link,
-.responsive-navigation .nav .desktop-admin-cta { display:none; }
+.responsive-navigation .nav .desktop-home-link { display:none; }
 @media (min-width:1024px) {
   .responsive-navigation.site-header:not(.admin-header) {
     min-height:128px;
@@ -79,39 +78,24 @@
     transform:translateX(-50%);
     z-index:40;
     display:grid;
-    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    grid-template-columns:auto minmax(0,1fr);
     gap:clamp(12px,1.5vw,24px);
     width:88%;
     max-width:1200px;
     height:72px;
-    padding:8px 12px 8px clamp(20px,2vw,32px);
+    padding:8px clamp(20px,2vw,32px);
     border:1px solid var(--edge);
     border-radius:9999px;
     background:var(--panel);
     box-shadow:0 4px 20px color-mix(in srgb, var(--ink) 7%, transparent);
   }
   .responsive-navigation.site-header:not(.admin-header) .brand-name { font-size:clamp(23px,2vw,28px); }
-  .responsive-navigation.site-header:not(.admin-header) .nav-links { gap:clamp(12px,1.5vw,24px); justify-content:center; }
+  .responsive-navigation.site-header:not(.admin-header) .nav-links { gap:clamp(12px,1.5vw,24px); justify-content:flex-end; }
   .responsive-navigation.site-header:not(.admin-header) .desktop-home-link { display:inline-flex; }
-  .responsive-navigation.site-header:not(.admin-header) .public-admin-link { display:none; }
-  .responsive-navigation.site-header:not(.admin-header) .desktop-admin-cta {
-    display:inline-flex;
-    justify-self:end;
-    justify-content:center;
-    min-height:48px;
-    padding:0 clamp(18px,2vw,28px);
-    border-radius:9999px;
-    background:var(--accent);
-    color:var(--panel);
-    white-space:nowrap;
-    transition:background-color 180ms;
-  }
-  .responsive-navigation.site-header:not(.admin-header) .desktop-admin-cta:hover { background:var(--accent-hover); }
   .responsive-navigation.site-header:not(.admin-header) .header-meta { width:88%; max-width:1200px; padding:104px 24px 0; }
   .responsive-navigation.site-header:not(.admin-header) ~ main { scroll-margin-top:120px; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .responsive-navigation .nav .desktop-admin-cta { transition:none; }
   .responsive-navigation .nav-links a { transition:none; }
 }
 

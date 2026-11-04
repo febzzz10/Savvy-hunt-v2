@@ -12,7 +12,7 @@ type Category = { _id: string; name: string; slug: string };
 type Event = { _id: string; title: string; slug: string; status: string; startsAt: number; venue?: string; categoryId: string; description?: string; hasPublishedResults: boolean };
 
 export function Nav() {
-  return <SiteNavigation links={[["/scoreboard", "Scoreboard"], ["/schedule", "Schedule"], ["/results", "Results"], ["/snapshots", "Snapshots"], ["/about", "About"], ["/admin", "Admin"]]} />;
+  return <SiteNavigation links={[["/scoreboard", "Scoreboard"], ["/schedule", "Schedule"], ["/results", "Results"], ["/snapshots", "Snapshots"], ["/about", "About"]]} />;
 }
 
 export function Board({ slug }: { slug?: string }) { return <Load>{edition => <BoardData editionId={edition._id} slug={slug} />}</Load>; }
@@ -26,7 +26,7 @@ function BoardData({ editionId, slug }: { editionId: string; slug?: string }) {
   const rows = slug ? category : overall;
   const hasPublished = events?.some(event => (!selected || event.categoryId === selected._id) && event.hasPublishedResults);
   return <><nav className="actions category-tabs" aria-label="Scoreboard categories"><Link className="button secondary" href="/scoreboard" aria-current={!slug ? "page" : undefined}>Overall</Link>{categories?.map(item => <Link className="button secondary" key={item._id} href={`/scoreboard/${item.slug}`} aria-current={slug === item.slug ? "page" : undefined}>{item.name}</Link>)}</nav><h2 className="standings-title">{selected?.name ?? "Overall standings"}</h2>
-    {rows === undefined || events === undefined ? <Skeleton label="Loading official standings…" /> : <>{hasPublished && <Podium rows={rows} />}{!hasPublished && <EmptyState title="Official results are on their way" icon="trophy" href="/schedule">Leaders will appear when official points are published.</EmptyState>}{rows.length ? <Rankings rows={rows} /> : <EmptyState title="Participating schools will appear here" href="/schedule">Follow the schedule while the organizers prepare the standings.</EmptyState>}</>}
+    {rows === undefined || events === undefined || categories === undefined ? <Skeleton label="Loading official standings…" /> : <>{hasPublished && <Podium rows={rows} />}{!hasPublished && <EmptyState title="Official results are on their way" icon="trophy" href="/schedule">Leaders will appear when official points are published.</EmptyState>}{rows.length ? <Rankings rows={rows} categories={slug ? undefined : categories} /> : <EmptyState title="Participating schools will appear here" href="/schedule">Follow the schedule while the organizers prepare the standings.</EmptyState>}</>}
     {selected && <section><h2>Official {selected.name} event results</h2><div className="grid">{events?.filter(event => event.categoryId === selected._id && event.hasPublishedResults).map(event => <Link className="card" href={`/events/${event.slug}`} key={event._id}><h3>{event.title}</h3><span className="pill">Official result</span></Link>)}</div>{events && !events.some(event => event.categoryId === selected._id && event.hasPublishedResults) && <p>No official results have been published for this category.</p>}</section>}
   </>;
 }
