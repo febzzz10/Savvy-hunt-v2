@@ -112,3 +112,57 @@ describe("event category and publication history", () => {
     expect((await s.event()).categoryId).toBe(s.categories[1]._id);
   });
 });
+
+describe("event deletion", () => {
+  it("deletes an unpublished event with its draft while keeping audit history and other events", async () => {
+    const s = await setup();
+    const revision = await s.draft(7);
+    const otherId = await s.admin.mutation(api.events.save, { ...s.input, title: "Untouched event" });
+    const target = await s.event();
+    await s.admin.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: target.updatedAt });
+    expect(await s.t.run(ctx => ctx.db.get(s.eventId))).toBeNull();
+    expect(await s.t.run(ctx => ctx.db.get(revision))).toBeNull();
+    expect(await s.t.run(ctx => ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", revision)).collect())).toEqual([]);
+    expect(await s.t.run(ctx => ctx.db.get(otherId))).not.toBeNull();
+    expect((await s.admin.query(api.admins.listAudit, {})).some(row => row.action === "event.delete" && row.entityId === s.eventId)).toBe(true);
+  });
+
+  it("allows an active editor to delete an unpublished event", async () => {
+    const s = await setup();
+    const editor = s.t.withIdentity({ subject: "editor-delete", tokenIdentifier: "test|editor-delete" });
+    await s.t.run(ctx => ctx.db.insert("admins", { authUserId: "test|editor-delete", displayName: "Editor", role: "editor", isActive: true, createdAt: 1, updatedAt: 1 }));
+    await editor.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: (await s.event()).updatedAt });
+    expect(await s.t.run(ctx => ctx.db.get(s.eventId))).toBeNull();
+  });
+
+  it("rejects deletion by unauthenticated users and non-admins", async () => {
+    const s = await setup();
+    const regular = s.t.withIdentity({ subject: "regular-delete", tokenIdentifier: "test|regular-delete" });
+    const target = await s.event();
+    await expect(regular.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: target.updatedAt })).rejects.toThrow("FORBIDDEN");
+    await expect(s.t.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: target.updatedAt })).rejects.toThrow("UNAUTHENTICATED");
+    expect(await s.t.run(ctx => ctx.db.get(s.eventId))).not.toBeNull();
+  });
+
+  it("refuses published and withdrawn events without touching the scoreboard or history", async () => {
+    const s = await setup();
+    const revision = await s.publish();
+    let target = await s.event();
+    await expect(s.admin.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: target.updatedAt })).rejects.toThrow(/publication history/i);
+    expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId }))[0].points).toBe(7);
+    expect(await s.t.run(ctx => ctx.db.get(revision))).not.toBeNull();
+    await s.admin.mutation(api.results.revoke, { eventId: s.eventId, reason: "Withdrawn", expectedActiveRevisionId: revision });
+    target = await s.event();
+    await expect(s.admin.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: target.updatedAt })).rejects.toThrow(/publication history/i);
+    expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId }))[0].points).toBe(0);
+    expect(await s.t.run(ctx => ctx.db.get(s.eventId))).not.toBeNull();
+  });
+
+  it("rejects a stale delete instead of removing an event edited elsewhere", async () => {
+    const s = await setup();
+    const stale = await s.event();
+    await s.admin.mutation(api.events.save, { ...s.input, id: s.eventId, venue: "Changed venue" });
+    await expect(s.admin.mutation(api.events.remove, { eventId: s.eventId, expectedUpdatedAt: stale.updatedAt - 1 })).rejects.toThrow("STALE_EVENT");
+    expect(await s.event()).toMatchObject({ venue: "Changed venue" });
+  });
+});

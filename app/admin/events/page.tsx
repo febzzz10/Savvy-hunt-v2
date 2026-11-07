@@ -10,6 +10,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Load } from "@/components/data";
 import { EmptyState, Icon, Skeleton } from "@/components/ui";
 import { EventForm } from "@/components/admin/events/event-form";
+import { DeleteEventDialog } from "@/components/admin/events/delete-dialog";
 import { WinnersDialog } from "@/components/admin/events/winners-dialog";
 import { EventDialog, EventPublicationStatus, eventDate, localDate, statuses, statusLabel, type EventRecord, type EventStatus } from "@/components/admin/events/shared";
 import { friendlyResultsError } from "@/lib/results-editor";
@@ -22,13 +23,15 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
   const events = useQuery(api.events.listAdmin, { editionId });
   const self = useQuery(api.admins.getSelf, {});
   const save = useMutation(api.events.save);
+  const remove = useMutation(api.events.remove);
   const [editing, setEditing] = useState<EventRecord>();
   const [formVersion, setFormVersion] = useState(0), [dirty, setDirty] = useState(false), [formBusy, setFormBusy] = useState(false);
   const [resultEvent, setResultEvent] = useState<Id<"events">>();
   const [search, setSearch] = useState(""), [status, setStatus] = useState(""), [category, setCategory] = useState(""), [date, setDate] = useState(""), [sort, setSort] = useState("programme");
   const [notice, setNotice] = useState(""), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const [transition, setTransition] = useState<{ event: EventRecord; status: EventRecord["status"] }>();
-  const formPanel = useRef<HTMLDivElement>(null), lock = useRef(false);
+  const [deleting, setDeleting] = useState<EventRecord>(), [deleteBusy, setDeleteBusy] = useState(false), [deleteError, setDeleteError] = useState("");
+  const formPanel = useRef<HTMLDivElement>(null), lock = useRef(false), deleteLock = useRef(false);
   function reset() { setEditing(undefined); setDirty(false); setFormVersion(v => v + 1); }
   function edit(event?: EventRecord) {
     if (formBusy || (dirty && !confirm("Discard your unsaved event changes?"))) return;
@@ -45,6 +48,16 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
       setNotice(`${current.title} is now ${statusLabel(transition.status)}.`); setTransition(undefined);
     } catch (cause) { setError(friendlyResultsError(cause)); }
     finally { lock.current = false; setBusy(false); }
+  }
+  async function deleteEvent() {
+    if (!deleting || deleteLock.current) return;
+    deleteLock.current = true; setDeleteBusy(true); setDeleteError("");
+    try {
+      await remove({ eventId: deleting._id, expectedUpdatedAt: deleting.updatedAt });
+      if (editing?._id === deleting._id) reset();
+      setNotice(`${deleting.title} was deleted.`); setDeleting(undefined);
+    } catch (cause) { setDeleteError(friendlyResultsError(cause)); }
+    finally { deleteLock.current = false; setDeleteBusy(false); }
   }
   function clear() { setSearch(""); setStatus(""); setCategory(""); setDate(""); setSort("programme"); }
   if (!categories || !schools || !events || !self) return <><h1>Event manager</h1><Skeleton label="Loading events and schools…" /></>;
@@ -71,11 +84,12 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
           <div className="event-metadata"><span><Icon name="calendar" /> {eventDate(event.startsAt)} IST</span><span><Icon name="pin" /> {event.venue || "Venue to be announced"}</span></div>
           <p className="small event-participants">{event.participatingSchoolIds?.length ? `${event.participatingSchoolIds.length} participating schools · ${event.participatingSchoolIds.map(id => schools.find(s => s._id === id)?.name ?? "Archived school").join(", ")}` : "Open to all active schools"}</p>
           {event.activePublishedRevisionId ? <PublishedPreview eventId={event._id} /> : <p className="small">{event.publicationState === "revoked" ? "Official results withdrawn. Publication history is retained." : event.publicationState === "draft" ? "Draft results are private." : "Results have never been published."}</p>}
-          <div className="event-item-actions"><button className="button" onClick={() => setResultEvent(event._id)}><Icon name="trophy" /> {event.activePublishedRevisionId ? "Manage winners" : "Enter winners"}</button><button className="button secondary" disabled={formBusy} onClick={() => edit(event)}>Edit event</button><label className="event-status-control"><span className="sr-only">Status for {event.title}</span><select value={event.status} disabled={busy} onChange={e => { setError(""); setTransition({ event, status: e.target.value as EventRecord["status"] }); }}>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>{event.activePublishedRevisionId && <Link className="text-link" href={`/events/${event.slug}`}>View results <Icon name="arrow" /></Link>}</div>
+          <div className="event-item-actions"><button className="button" onClick={() => setResultEvent(event._id)}><Icon name="trophy" /> {event.activePublishedRevisionId ? "Manage winners" : "Enter winners"}</button><button className="button secondary" disabled={formBusy} onClick={() => edit(event)}>Edit event</button><button className="button secondary" disabled={formBusy || deleteBusy} onClick={() => { setError(""); setDeleteError(""); setDeleting(event); }}><Icon name="trash" /> Delete</button><label className="event-status-control"><span className="sr-only">Status for {event.title}</span><select value={event.status} disabled={busy} onChange={e => { setError(""); setTransition({ event, status: e.target.value as EventRecord["status"] }); }}>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>{event.activePublishedRevisionId && <Link className="text-link" href={`/events/${event.slug}`}>View results <Icon name="arrow" /></Link>}</div>
         </article>)}
       </section>
     </div>
     {resultEvent && <WinnersDialog eventId={resultEvent} schools={schools} canPublish={self.role === "super_admin"} onClose={() => setResultEvent(undefined)} />}
+    {deleting && <DeleteEventDialog event={deleting} busy={deleteBusy} error={deleteError} onCancel={() => { if (!deleteBusy) { setDeleting(undefined); setDeleteError(""); } }} onConfirm={deleteEvent} />}
     {transition && <EventDialog title="Update event status" busy={busy} onClose={() => setTransition(undefined)}><div className="event-dialog-body"><p>Change <strong>{transition.event.title}</strong> from {statusLabel(transition.event.status)} to <strong>{statusLabel(transition.status)}</strong>?</p><p className="small">The public schedule updates immediately. Published results and points remain as they are.</p>{error && <p className="error" role="alert">{error}</p>}</div><footer className="event-dialog-footer actions"><button className="button secondary" disabled={busy} onClick={() => setTransition(undefined)}>Cancel</button><button className="button" disabled={busy} onClick={updateStatus}>{busy ? "Updating…" : "Update status"}</button></footer></EventDialog>}
   </div>;
 }

@@ -34,6 +34,7 @@ export function friendlyResultsError(error: unknown) {
   const raw = error && typeof error === "object" && "data" in error && typeof error.data === "string" ? error.data : error instanceof Error ? error.message : String(error ?? "");
   const message = raw.replace(/^\[CONVEX[^\]]*\]\s*/i, "").trim();
   if (/cannot change.*category.*publication|category.*previously published/i.test(message)) return "Cannot change this event's category because official results were previously published. Keep the original category or create a new event.";
+  if (/publication history.*cannot be deleted/i.test(message)) return "This event has published, corrected, or withdrawn results and cannot be deleted. The scoreboard and result history must stay intact.";
   if (/STALE_EVENT/i.test(message)) return "This event changed in another session. Cancel and reopen the editor to load the latest details.";
   if (/UNAUTHENTICATED/i.test(message)) return "Please sign in again.";
   if (/FORBIDDEN/i.test(message)) return "You do not have permission to do that.";

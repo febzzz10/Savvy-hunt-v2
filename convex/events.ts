@@ -87,3 +87,23 @@ export const save = mutation({
     return id;
   },
 });
+
+export const remove = mutation({
+  args: { eventId: v.id("events"), expectedUpdatedAt: v.number() },
+  returns: v.object({ status: v.literal("deleted") }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw new Error("Event missing");
+    if (event.updatedAt !== args.expectedUpdatedAt) throw new ConvexError("STALE_EVENT");
+    if (await hasPublicationHistory(ctx, event)) throw new Error("Event has publication history and cannot be deleted");
+    const revisions = await ctx.db.query("resultRevisions").withIndex("by_event", q => q.eq("eventId", event._id)).collect();
+    for (const revision of revisions) {
+      for (const entry of await ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", revision._id)).collect()) await ctx.db.delete(entry._id);
+      await ctx.db.delete(revision._id);
+    }
+    await ctx.db.delete(event._id);
+    await ctx.db.insert("auditLogs", { editionId: event.editionId, actorAuthUserId: admin.authUserId, action: "event.delete", entityType: "event", entityId: event._id, summary: event.title, createdAt: Date.now() });
+    return { status: "deleted" as const };
+  },
+});
