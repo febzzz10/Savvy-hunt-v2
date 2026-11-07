@@ -45,7 +45,7 @@ Current presentation includes responsive shared navigation, mobile navigation/up
 
 | Entities | Relationships and role |
 |---|---|
-| editions, categories, schools | Edition-scoped competition configuration and roster; schools archive rather than disappear from history |
+| editions, categories, schools | Edition-scoped competition configuration and roster; schools archive only without published participation history |
 | events | Edition/category, optional participating schools, schedule/status and active published revision pointer |
 | resultRevisions, resultEntries | Event revision history and ordered school point/placement rows; repeated schools supported |
 | schoolCategoryTotals | Materialized edition/school/category scores changed by publication deltas |
@@ -57,10 +57,10 @@ Current presentation includes responsive shared navigation, mobile navigation/up
 
 Key backend behaviors:
 
-- `results.saveDraft`: validates at most 200 entries, safe integer points/placements, edition and participation; checks expected version when replacing a draft. Previously official archived schools can remain in corrections. Public queries do not expose drafts.
-- `results.preview`: supplies active revision/draft expectations and per-school deltas. `publish` rejects stale revisions/drafts and empty results, returns already_published/unchanged where appropriate, updates totals transactionally and supersedes the previous revision. `revoke` subtracts contributions, marks the revision revoked, removes the active pointer and audits a mandatory reason.
+- `results.saveDraft`: validates at most 200 entries, safe integer points/placements, edition and participation; checks expected version when replacing a draft. Previously official archived schools can remain in correction drafts, but publication requires every school to still be active. Public queries do not expose drafts.
+- `results.preview`: supplies active revision/draft expectations and per-school deltas. `publish` rejects stale revisions/drafts, archived schools and empty results; it returns already_published/unchanged where appropriate, updates totals transactionally and supersedes the previous revision. `revoke` subtracts contributions, marks the revision revoked, removes the active pointer and audits a mandatory reason.
 - `events.save`: validates timestamps, length limits, slug uniqueness, category/school edition and active participation. Historical publication permanently locks category. Optional expected category/update timestamps protect current form submissions; these checks are not universally mandatory API arguments.
-- `schools.save`: validates names/codes, uppercases codes and enforces edition-local uniqueness. Archiving affects public standings without deleting official entries.
+- `schools.save`: validates names/codes, uppercases codes and enforces edition-local uniqueness. Archiving is blocked when any published participation history exists; otherwise it affects public standings without deleting official entries.
 - `admins.bootstrap`: internal owner-only first admin, closed by any existing admin/bootstrap marker. `sealBootstrap` closes legacy installations without granting access. `admins.save` prevents removing the caller's own super-admin privileges. Audit pagination is super-admin-only.
 - `announcements.save` returns content to draft; `setStatus` explicitly publishes/hides. `siteSettings.update` requires super admin.
 - Gallery cron runs every two minutes. Sync uses run state, paginated Drive reads, scheduled continuations and reconciliation. New files become pending; changed/missing/moved files lose verification/consent as appropriate. Approval checks reviewed version/checksum, approved-folder presence and duplicate approved entries, then internally rechecks authorization/state.

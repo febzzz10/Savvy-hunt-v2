@@ -1,9 +1,11 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import type { PaginationResult } from "convex/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "./schema";
 import { api, internal } from "./_generated/api";
 import type { DriveMetadata } from "../lib/drive-validation";
+import type { Doc, Id } from "./_generated/dataModel";
 import { serviceAccountTestKey } from "../tests/service-account-fixture";
 const modules = import.meta.glob("./**/*.ts");
 const fileId = "drive_photo_123456789012345";
@@ -40,6 +42,13 @@ async function setup() {
   });
   const editionId = await admin.mutation(api.editions.initialize, { name: "Gallery test", year: 2026 });
   return { t, admin, regular, revoked, editionId };
+}
+type GalleryFields = Omit<Doc<"galleryItems">, "_id" | "_creationTime" | "editionId">;
+async function addPhoto(s: Awaited<ReturnType<typeof setup>>, i: number, overrides: Partial<GalleryFields> = {}) {
+  return s.t.run(ctx => ctx.db.insert("galleryItems", {
+    editionId: s.editionId, driveFileId: `drive_photo_${String(i).padStart(15, "0")}`, altText: `Photo ${i}`, sortOrder: i,
+    approvalStatus: "approved", consentConfirmed: true, verifiedMd5Checksum: checksum, availability: "present", addedBy: "test|admin", createdAt: i, ...overrides,
+  }));
 }
 beforeEach(async () => {
   const key = await serviceAccountTestKey();
@@ -176,4 +185,105 @@ describe("Drive-only gallery workflow", () => {
     expect(await s.t.run(ctx => ctx.db.get(itemId))).toMatchObject({ source: "admin", approvalStatus: "hidden", approvedBy: "historical-admin", approvedAt: 10, caption: "Historical caption" });
   });
 
+  it("fills an approved page when ineligible approved rows precede eligible photos", async () => {
+    const s = await setup();
+    for (let i = 0; i < 12; i++) await addPhoto(s, i, { consentConfirmed: false });
+    const eligible: Id<"galleryItems">[] = [];
+    for (let i = 12; i < 15; i++) eligible.push(await addPhoto(s, i));
+    const result = await s.t.query(api.gallery.pageApproved, { editionId: s.editionId, paginationOpts: { numItems: 5, cursor: null } });
+    expect(result.page.map(photo => photo._id)).toEqual(eligible);
+  });
+
+  it("pages eligible photos without duplicates or gaps across scan boundaries", async () => {
+    const s = await setup(); const expected: Id<"galleryItems">[] = [];
+    for (let i = 0; i < 60; i++) {
+      const id = await addPhoto(s, i, i % 2 ? { consentConfirmed: false } : {});
+      if (i % 2 === 0) expected.push(id);
+    }
+    const seen: Id<"galleryItems">[] = []; let cursor: string | null = null;
+    let result: PaginationResult<{ _id: Id<"galleryItems">; altText: string }>;
+    for (;;) {
+      result = await s.t.query(api.gallery.pageApproved, { editionId: s.editionId, paginationOpts: { numItems: 7, cursor } });
+      seen.push(...result.page.map(photo => photo._id));
+      cursor = result.continueCursor;
+      if (result.isDone) break;
+    }
+    expect(seen).toEqual(expected);
+  });
+
+  it("never exposes ineligible or non-approved rows publicly", async () => {
+    const s = await setup();
+    const valid = await addPhoto(s, 0);
+    await addPhoto(s, 1, { approvalStatus: "draft" });
+    await addPhoto(s, 2, { approvalStatus: "pending" });
+    await addPhoto(s, 3, { approvalStatus: "hidden" });
+    await addPhoto(s, 4, { approvalStatus: "rejected" });
+    await addPhoto(s, 5, { consentConfirmed: false });
+    await addPhoto(s, 6, { verifiedMd5Checksum: undefined });
+    await addPhoto(s, 7, { availability: "missing" });
+    await addPhoto(s, 8, { verifiedMd5Checksum: "" });
+    const page = await s.t.query(api.gallery.pageApproved, { editionId: s.editionId, paginationOpts: { numItems: 12, cursor: null } });
+    expect(page.page.map(photo => photo._id)).toEqual([valid]);
+    expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([{ _id: valid, altText: "Photo 0" }]);
+  });
+
+  it("caps listApproved at 12 eligible photos", async () => {
+    const s = await setup();
+    const eligible: Id<"galleryItems">[] = [];
+    for (let i = 0; i < 15; i++) eligible.push(await addPhoto(s, i));
+    expect((await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).map(photo => photo._id)).toEqual(eligible.slice(0, 12));
+  });
+
+  it("paginates filtered admin views without duplicates or gaps", async () => {
+    const s = await setup();
+    const pending: Id<"galleryItems">[] = [], approved: Id<"galleryItems">[] = [], rejected: Id<"galleryItems">[] = [];
+    for (let i = 0; i < 6; i++) pending.push(await addPhoto(s, i, { approvalStatus: i % 2 ? "pending" : "draft" }));
+    for (let i = 10; i < 16; i++) approved.push(await addPhoto(s, i));
+    for (let i = 20; i < 26; i++) rejected.push(await addPhoto(s, i, { approvalStatus: i % 2 ? "rejected" : "hidden" }));
+    async function collect(view: "pending" | "approved" | "rejected") {
+      const seen: Id<"galleryItems">[] = []; let cursor: string | null = null; let result: PaginationResult<Doc<"galleryItems">>;
+      for (;;) {
+        result = await s.admin.query(api.gallery.pageAdmin, { editionId: s.editionId, view, paginationOpts: { numItems: 2, cursor } });
+        seen.push(...result.page.map(row => row._id));
+        cursor = result.continueCursor;
+        if (result.isDone) return seen;
+      }
+    }
+    for (const [view, expected] of [["pending", pending], ["approved", approved], ["rejected", rejected]] as const) {
+      const seen = await collect(view);
+      expect(seen).toHaveLength(expected.length);
+      expect(new Set(seen).size).toBe(seen.length);
+      expect([...seen].sort()).toEqual([...expected].sort());
+    }
+  });
+
+  it("fills filtered admin pages with matching rows", async () => {
+    const s = await setup();
+    for (let i = 0; i < 12; i++) await addPhoto(s, i);
+    const pending = [await addPhoto(s, 20, { approvalStatus: "draft", consentConfirmed: false }), await addPhoto(s, 21, { approvalStatus: "pending", consentConfirmed: false })];
+    const rejected = [await addPhoto(s, 30, { approvalStatus: "hidden" }), await addPhoto(s, 31, { approvalStatus: "rejected" })];
+    const pendingPage = await s.admin.query(api.gallery.pageAdmin, { editionId: s.editionId, view: "pending", paginationOpts: { numItems: 5, cursor: null } });
+    expect(pendingPage.page.map(row => row._id).sort()).toEqual([...pending].sort());
+    const approvedPage = await s.admin.query(api.gallery.pageAdmin, { editionId: s.editionId, view: "approved", paginationOpts: { numItems: 5, cursor: null } });
+    expect(approvedPage.page).toHaveLength(5);
+    expect(approvedPage.page.every(row => row.approvalStatus === "approved")).toBe(true);
+    const rejectedPage = await s.admin.query(api.gallery.pageAdmin, { editionId: s.editionId, view: "rejected", paginationOpts: { numItems: 5, cursor: null } });
+    expect(rejectedPage.page.map(row => row._id).sort()).toEqual([...rejected].sort());
+    expect((await s.admin.query(api.gallery.pageAdmin, { editionId: s.editionId, paginationOpts: { numItems: 12, cursor: null } })).page).toHaveLength(12);
+  });
+
+  it("fills listApproved past ineligible approved rows", async () => {
+    const s = await setup();
+    for (let i = 0; i < 12; i++) await addPhoto(s, i, { consentConfirmed: false });
+    const eligible: Id<"galleryItems">[] = [];
+    for (let i = 12; i < 15; i++) eligible.push(await addPhoto(s, i));
+    expect((await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).map(photo => photo._id)).toEqual(eligible);
+  });
+
+  it("returns an empty approved page for an empty gallery", async () => {
+    const s = await setup();
+    const result = await s.t.query(api.gallery.pageApproved, { editionId: s.editionId, paginationOpts: { numItems: 12, cursor: null } });
+    expect(result.page).toEqual([]);
+    expect(result.isDone).toBe(true);
+  });
 });

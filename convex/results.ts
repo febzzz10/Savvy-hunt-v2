@@ -82,7 +82,7 @@ export const publish=mutation({args:{eventId:v.id("events"),draftRevisionId:v.id
   const old=event.activePublishedRevisionId?await rows(ctx,event.activePublishedRevisionId):[],next=await rows(ctx,draft._id);
   if(!next.length)throw new Error("Cannot publish empty results");
   contributions(next);
-  for(const item of next){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId)throw new Error("Invalid school in draft")}
+  for(const item of next){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId)throw new Error("Invalid school in draft");if(event.participatingSchoolIds?.length&&!event.participatingSchoolIds.includes(item.schoolId))throw new Error("School is no longer participating");if(school.status!=="active")throw new Error("School is archived")}
   if(event.activePublishedRevisionId&&sameEntries(old,next))return {status:"unchanged" as const};
   const now=Date.now();
   for(const [schoolId,delta] of deltas(old,next)){

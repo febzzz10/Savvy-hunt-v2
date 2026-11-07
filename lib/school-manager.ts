@@ -18,6 +18,7 @@ export function filterSchools(schools: School[], search: string, status: string,
 }
 export function schoolError(cause: unknown) {
   const message = cause instanceof Error ? cause.message : String(cause);
+  if (/published results/i.test(message)) return "This school has published results and cannot be deactivated. Its historical participation stays in the scoreboard.";
   if (/already exists/i.test(message)) return "That school name or code is already in use. Check both fields and try again.";
   if (/UNAUTH|FORBIDDEN/i.test(message)) return "Your admin access could not be confirmed. Sign in again and retry.";
   if (/School missing/i.test(message)) return "This school is no longer available. Refresh the page to load the current list.";

@@ -23,6 +23,7 @@ describe("school manager", () => {
   });
   it("turns backend failures into actionable messages without exposing internals", () => {
     expect(schoolError(new Error("School name or code already exists"))).toContain("already in use");
+    expect(schoolError(new Error("This school cannot be archived because it has published results."))).toContain("cannot be deactivated");
     expect(schoolError(new Error("FORBIDDEN"))).toContain("admin access");
     expect(schoolError(new Error("internal secret stack"))).not.toContain("internal secret");
   });

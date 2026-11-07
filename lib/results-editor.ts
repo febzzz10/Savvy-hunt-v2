@@ -41,6 +41,7 @@ export function friendlyResultsError(error: unknown) {
   if (/STALE_REVISION/i.test(message)) return "Official results changed in another session. Reload the page and try again.";
   if (/correction reason required/i.test(message)) return "Enter a reason for this correction.";
   if (/cannot publish empty results/i.test(message)) return "Add at least one result row before publishing.";
+  if (/school is archived/i.test(message)) return "This school has been archived. Reactivate it before publishing results.";
   if (/revision is not a draft/i.test(message)) return "This revision is no longer a draft. Reload the page.";
   const eventMessages = ["Event title already exists", "Event title is required", "Invalid category", "Invalid schedule", "Invalid participating school", "Duplicate participating school", "Cannot remove a school from published results", "Event information is too long", "Event missing"];
   const eventMessage = eventMessages.find(text => message.includes(text));
