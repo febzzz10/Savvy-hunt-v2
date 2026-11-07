@@ -14,7 +14,7 @@
 | IDs | Native Convex `Id<"table">` references; never string-join foreign keys. |
 | Dates | UTC epoch milliseconds (`number`); format in chosen edition timezone in UI. |
 | Labels | Human names are editable; references use IDs; URL slugs are stable and unique **within edition**. |
-| Soft deletion | Archive schools/events where history exists; do not cascade-delete published scoring. |
+| Soft deletion | Archive events where history exists; archive schools only when they have no published participation history. Do not cascade-delete published scoring. |
 | Validation | `v` argument/schema validators **plus business-rule checks** in every mutation. |
 | Roles | Auth identity resolved on backend and mapped to active `admins` row. |
 | Visibility | Public queries return only approved content/active published results. |
@@ -68,7 +68,7 @@ Fields marked **required** must exist; `?` means optional. All tables implicitly
 | `editionId` | `Id<"editions">` required | Ownership. |
 | `name` | `string` required | Admin-supplied school name. |
 | `code` | `string?` | Optional unique short code per edition. |
-| `status` | `"active" \| "archived"` required | Archive rather than delete scored schools. |
+| `status` | `"active" \| "archived"` required | Archive only schools without published participation history; never delete scored schools. |
 | `logoRef` | `string?` | Organizer-approved logo reference (implementation-defined). |
 | `createdAt`, `updatedAt` | `number` required | Auditing and sorting. |
 
@@ -256,7 +256,7 @@ OverallTotal(schoolId) = SUM(CategoryTotal(schoolId, category)
 
 ### 4.2 Correction / revoke
 
-- **Correction:** Copy active published revision into new **draft**; edit draft only; publish using same delta/atomic swap algorithm; require reason.
+- **Correction:** Copy active published revision into new **draft**; edit draft only; publish using same delta/atomic swap algorithm; require reason and require every receiving school to still be active in the edition.
 - **Revoke:** Check role and reason; subtract all contributions of active published revision; clear event pointer; mark old revision revoked; update public state and audit **in one mutation**.
 - **Category of event with published results:** block ordinary edits. If necessary, a super-admin-only category migration must move category contributions in one transaction and log it. This is not necessary in MVP UI.
 - **Concurrent admins:** enforce `expectedActiveRevisionId` check to catch stale previews. Convex mutation transactions provide atomicity; do not split across separate client calls.

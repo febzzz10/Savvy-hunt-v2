@@ -156,7 +156,7 @@ flowchart TD
     ARCHIVE --> HISTORY[Preserve historical published contributions]
 ```
 
-**Form requirements:** School name required; trim whitespace; reject empty or duplicate code; show loading and result. Archive is reversible by privileged policy (pending), and **never** delete published result entries. Active school leaderboard behavior is as in `prd.md`/`database.md`.
+**Form requirements:** School name required; trim whitespace; reject empty or duplicate code; show loading and result. A school without published participation history may be archived and later restored; schools with active, superseded, revoked, or zero-point published results cannot be archived. Published result entries are **never** deleted. Active school leaderboard behavior is as in `prd.md`/`database.md`.
 
 ## 6. Admin: create or manage an event
 

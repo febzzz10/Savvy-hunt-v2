@@ -90,8 +90,27 @@ finally {
       if (data.event.activePublishedRevisionId) await admin.client.mutation(api.results.revoke, { eventId, expectedActiveRevisionId: data.event.activePublishedRevisionId, reason: "Phase 4 capacity failure cleanup" });
       await admin.client.mutation(api.events.save, { editionId: edition._id, id: eventId, title: data.event.title, categoryId: data.event.categoryId, startsAt: data.event.startsAt, status: "cancelled" });
     }
-    if (schoolId) await admin.client.mutation(api.schools.save, { editionId: edition._id, id: schoolId, name: schoolName, status: "archived" });
-    await admin.close();
+    if (schoolId) {
+      try {
+        await admin.client.mutation(api.schools.save, { editionId: edition._id, id: schoolId, name: schoolName, status: "archived" });
+        result.cleanup = { schoolArchived: true };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/published results/i.test(message)) {
+          result.cleanup = { schoolArchived: false, reason: "Published participation history is retained by design." };
+        } else {
+          result.failure ??= `Cleanup archive failed: ${message}`;
+          console.error(`Cleanup archive failed: ${message}`);
+        }
+      }
+    }
+    try {
+      await admin.close();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      result.failure ??= `Admin client close failed: ${message}`;
+      console.error(`Admin client close failed: ${message}`);
+    }
   }
   result.finishedAt = new Date().toISOString();
   await evidence("capacity", result);
