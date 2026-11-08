@@ -3,7 +3,6 @@ export type AchievementEntry = {
   schoolName: string;
   points?: number;
   placement?: number;
-  entryLabel?: string;
   participantName?: string;
 };
 

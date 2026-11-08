@@ -27,8 +27,13 @@ describe("homepage official achievements", () => {
       await ctx.db.patch(fixture.eventId, { resultStatus: "published" });
     });
     const [official] = await read();
-    expect(official.entries[0]).toMatchObject({ schoolName: "Official School", placement: 1, points: 10, entryLabel: "Team A" });
+    expect(official.entries[0]).toMatchObject({ schoolName: "Official School", placement: 1, points: 10 });
     expect(JSON.stringify(official)).not.toContain("Private name");
+    expect(JSON.stringify(official)).not.toContain("Team A");
+    const publishedRows = await t.query(api.results.getPublishedByEvent, { eventId: fixture.eventId });
+    expect(publishedRows[0]).not.toHaveProperty("entryLabel");
+    expect(JSON.stringify(publishedRows)).not.toContain("Private name");
+    expect(JSON.stringify(publishedRows)).not.toContain("Team A");
     const correction = await t.run(async ctx => {
       const revisionId = await ctx.db.insert("resultRevisions", { eventId: fixture.eventId, revisionNumber: 2, status: "draft", createdBy: "test", createdAt: 20 });
       await ctx.db.insert("resultEntries", { eventId: fixture.eventId, revisionId, schoolId: fixture.schoolId, placement: 2, points: 6, sortOrder: 0, displayParticipantName: "Approved name", namePublishingApproved: true });
@@ -41,6 +46,7 @@ describe("homepage official achievements", () => {
       await ctx.db.patch(fixture.eventId, { activePublishedRevisionId: correction });
     });
     expect((await read())[0]).toMatchObject({ publishedAt: 30, entries: [{ placement: 2, points: 6, participantName: "Approved name" }] });
+    expect(JSON.stringify(await t.query(api.results.getPublishedByEvent, { eventId: fixture.eventId }))).not.toContain("Approved name");
     await t.run(ctx => ctx.db.patch(correction, { status: "revoked" }));
     expect(await read()).toEqual([]);
   });

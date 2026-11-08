@@ -20,7 +20,7 @@
 .achievement-winners li { display:grid; font-size:12px; line-height:1.5; }
 .achievement-winners strong { font-size:14px; font-weight:600; }
 .achievement-place { color:var(--accent); font-size:11px; font-weight:700; }
-.achievement-points { color:var(--muted); }
+.achievement-school { color:var(--muted); }
 .achievement-flip-control { position:absolute; inset:0; width:100%; height:100%; border:0; padding:0; border-radius:16px; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 .achievement-flip-control:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
 @media (hover:hover) and (prefers-reduced-motion:no-preference) {

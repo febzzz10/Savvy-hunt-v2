@@ -64,6 +64,41 @@ describe("results editor publish gate", () => {
     expect(sameResultRows(original, [row({ points: 5, placement: 1, entryLabel: "Duet" })])).toBe(false);
   });
 
+  it("detects participant-name and approval changes, treating undefined and false approval as equivalent", () => {
+    const original = [row({ displayParticipantName: "Asha", namePublishingApproved: true })];
+    expect(sameResultRows(original, [row({ displayParticipantName: "  Asha  ", namePublishingApproved: true })])).toBe(true);
+    expect(sameResultRows(original, [row({ displayParticipantName: "Asha B", namePublishingApproved: true })])).toBe(false);
+    expect(sameResultRows(original, [row({ displayParticipantName: "Asha", namePublishingApproved: false })])).toBe(false);
+    expect(sameResultRows(
+      [row({ displayParticipantName: "Asha", namePublishingApproved: undefined })],
+      [row({ displayParticipantName: "Asha", namePublishingApproved: false })],
+    )).toBe(true);
+  });
+
+  it("allows a saved name-only correction to pass the publish gate", () => {
+    const corrected = row({ displayParticipantName: "Asha B", namePublishingApproved: true });
+    expect(gate({
+      isCorrection: true,
+      rows: [corrected],
+      savedRows: [corrected],
+      officialRows: [row({ displayParticipantName: "Asha", namePublishingApproved: true })],
+      reason: "Correct the participant name",
+      savedReason: "Correct the participant name",
+    })).toEqual({ ready: true, message: "" });
+  });
+
+  it("allows a saved approval-only correction to pass the publish gate", () => {
+    const corrected = row({ displayParticipantName: "Asha", namePublishingApproved: true });
+    expect(gate({
+      isCorrection: true,
+      rows: [corrected],
+      savedRows: [corrected],
+      officialRows: [row({ displayParticipantName: "Asha", namePublishingApproved: false })],
+      reason: "Approve the participant name",
+      savedReason: "Approve the participant name",
+    })).toEqual({ ready: true, message: "" });
+  });
+
   it("blocks a correction that matches the published revision", () => {
     const result = gate({
       isCorrection: true,

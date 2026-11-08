@@ -10,10 +10,10 @@ import { Skeleton } from "@/components/ui";
 import { EventDialog, EventPublicationStatus, useUnsavedChanges } from "./shared";
 
 type Data = FunctionReturnType<typeof api.results.getAdminByEvent>;
-type Row = { key: string; schoolId: Id<"schools"> | ""; points: string; placement: string; entryLabel: string };
+type Row = { key: string; schoolId: Id<"schools"> | ""; points: string; placement: string; entryLabel: string; displayParticipantName: string; namePublishingApproved: boolean };
 const revisionKey = (data: Data) => `${data.draft?._id ?? "none"}:${data.draft?.draftVersion ?? 0}:${data.event.activePublishedRevisionId ?? "none"}:${data.event.updatedAt}`;
-const toRows = (data: Data): Row[] => (data.draft ? data.draftEntries : data.officialEntries).map((row, i) => ({ key: String(i), schoolId: row.schoolId, points: String(row.points), placement: row.placement ? String(row.placement) : "", entryLabel: row.entryLabel ?? "" }));
-const entries = (rows: Row[]) => rows.map(row => ({ schoolId: row.schoolId as Id<"schools">, points: Number(row.points), placement: row.placement ? Number(row.placement) : undefined, entryLabel: row.entryLabel.trim() || undefined }));
+const toRows = (data: Data): Row[] => (data.draft ? data.draftEntries : data.officialEntries).map((row, i) => ({ key: String(i), schoolId: row.schoolId, points: String(row.points), placement: row.placement ? String(row.placement) : "", entryLabel: row.entryLabel ?? "", displayParticipantName: row.displayParticipantName ?? "", namePublishingApproved: Boolean(row.displayParticipantName?.trim() && row.namePublishingApproved) }));
+const entries = (rows: Row[]) => rows.map(row => ({ schoolId: row.schoolId as Id<"schools">, points: Number(row.points), placement: row.placement ? Number(row.placement) : undefined, entryLabel: row.entryLabel.trim() || undefined, displayParticipantName: row.displayParticipantName.trim() || undefined, namePublishingApproved: Boolean(row.displayParticipantName.trim() && row.namePublishingApproved) }));
 
 export function WinnersDialog({ eventId, schools, canPublish, onClose }: { eventId: Id<"events">; schools: Doc<"schools">[]; canPublish: boolean; onClose: () => void }) {
   const data = useQuery(api.results.getAdminByEvent, { eventId });
@@ -38,11 +38,15 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
   const dirty = !sameResultRows(entries(rows), entries(initial)) || reason !== (base.draft?.changeReason ?? "");
   useUnsavedChanges(dirty);
   const preview = useQuery(api.results.preview, live.draft ? { eventId, draftRevisionId: live.draft._id } : "skip");
-  const gate = publishGate({ isCorrection, draftExists: Boolean(base.draft), hasPreview: Boolean(preview) && !stale, rows: entries(rows), savedRows: base.draftEntries, officialRows: base.officialEntries, reason, savedReason: base.draft?.changeReason ?? "" });
+  const gate = publishGate({ isCorrection, draftExists: Boolean(base.draft), hasPreview: Boolean(preview) && !stale, rows: entries(rows), savedRows: entries(initial), officialRows: base.officialEntries, reason, savedReason: base.draft?.changeReason ?? "" });
   const eligible = schools.filter(s => (s.status === "active" || base.officialEntries.some(row => row.schoolId === s._id)) && (!base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(s._id)));
   function load(data: Data) { setBase(data); setRows(toRows(data)); nextKey.current = toRows(data).length; setReason(data.draft?.changeReason ?? ""); setConfirmation(null); }
-  function add(placement: string) { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement, entryLabel: "" }]); setConfirmation(null); }
+  function add(placement: string) { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement, entryLabel: "", displayParticipantName: "", namePublishingApproved: false }]); setConfirmation(null); }
   function update(key: string, patch: Partial<Row>) { setRows(rows.map(row => row.key === key ? { ...row, ...patch } : row)); setConfirmation(null); }
+  function updateName(key: string, value: string) {
+    setRows(rows.map(row => row.key === key ? { ...row, displayParticipantName: value, namePublishingApproved: row.displayParticipantName.trim() === value.trim() ? row.namePublishingApproved : false } : row));
+    setConfirmation(null);
+  }
   function validate() {
     if (rows.length > 200) return "An event can have at most 200 result entries.";
     const seen = new Set<string>();
@@ -50,6 +54,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
       if (!row.schoolId || !eligible.some(s => s._id === row.schoolId)) return "Choose an eligible school for every entry.";
       if (row.points.trim() === "" || !Number.isSafeInteger(Number(row.points)) || Number(row.points) < 0) return "Enter nonnegative whole-number manual points for every entry.";
       if (row.placement && (!Number.isSafeInteger(Number(row.placement)) || Number(row.placement) < 1)) return "Placements must be positive whole numbers.";
+      if (row.namePublishingApproved && !row.displayParticipantName.trim()) return "Enter a participant name before approving it for public display.";
       // Existing multi-entry school results remain editable. New ambiguous duplicates are blocked.
       const duplicate = seen.has(row.schoolId);
       const existingCount = initial.filter(item => item.schoolId === row.schoolId).length;
@@ -84,7 +89,8 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
     return <div className="winner-entry" key={row.key}>
       <label className="field winner-school"><span>School *</span><select required value={row.schoolId} onChange={e => update(row.key, { schoolId: e.target.value as Id<"schools"> })}><option value="">Select school</option>{eligible.map(school => <option key={school._id} value={school._id} disabled={school._id !== row.schoolId && rows.some(item => item.schoolId === school._id)}>{school.name}{school.status !== "active" ? " (archived)" : ""}</option>)}</select></label>
       <label className="field"><span>Manual points *</span><input type="number" required min="0" step="1" value={row.points} onChange={e => update(row.key, { points: e.target.value })} /></label>
-      <label className="field winner-school"><span>Entry / team label (optional)</span><input value={row.entryLabel} onChange={e => update(row.key, { entryLabel: e.target.value })} /></label>
+      <label className="field winner-name"><span>Participant Name</span><input value={row.displayParticipantName} onChange={e => updateName(row.key, e.target.value)} placeholder="Optional" /></label>
+      <label className="field winner-approval"><span>Approve name for public display</span><input type="checkbox" checked={row.namePublishingApproved} disabled={!row.displayParticipantName.trim()} onChange={e => update(row.key, { namePublishingApproved: e.target.checked })} /></label>
       {other && <label className="field"><span>Placement (optional)</span><input type="number" min="1" step="1" value={row.placement} onChange={e => update(row.key, { placement: e.target.value })} /></label>}
       <button type="button" className="text-link winner-remove" onClick={() => { setRows(rows.filter(item => item.key !== row.key)); setConfirmation(null); }} aria-label={`Remove ${schools.find(s => s._id === row.schoolId)?.name ?? "empty entry"} from ${row.placement ? `place ${row.placement}` : "other results"}`}>Remove</button>
     </div>;
@@ -107,7 +113,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
         {isCorrection && <label className="field"><span>Reason for correction *</span><textarea required value={reason} onChange={e => { setReason(e.target.value); setConfirmation(null); }} placeholder="Explain why these official results need to change" /></label>}
       </fieldset>
       <section className="winner-impact"><h3>Official score impact</h3>
-        {preview && !stale && !dirty ? <>{preview.changes.map(change => <p key={change.schoolId}><span>{schools.find(s => s._id === change.schoolId)?.name ?? "Archived school"}</span><strong>{change.oldPoints} → {change.newPoints} <small>({change.delta >= 0 ? "+" : ""}{change.delta})</small></strong></p>)}{!preview.changes.length && <p>No point changes. Placement and label changes are still included.</p>}</> : <p className="small">Save your draft to review the official school point changes.</p>}
+        {preview && !stale && !dirty ? <>{preview.changes.map(change => <p key={change.schoolId}><span>{schools.find(s => s._id === change.schoolId)?.name ?? "Archived school"}</span><strong>{change.oldPoints} → {change.newPoints} <small>({change.delta >= 0 ? "+" : ""}{change.delta})</small></strong></p>)}{!preview.changes.length && <p>No point changes. Placement and participant name changes are still included.</p>}</> : <p className="small">Save your draft to review the official school point changes.</p>}
       </section>
       {canPublish && isCorrection && <details className="event-extra"><summary>Revoke official results</summary><p className="small">Remove this event’s published points from the scoreboard. Audit history is kept. Enter a correction reason above.</p><button className="button secondary" disabled={Boolean(busy) || stale || !reason.trim()} onClick={() => setConfirmation("revoke")}>Revoke official results</button></details>}
       {error && <p className="error" role="alert">{error}</p>}{notice && <p className="success" role="status">{notice}</p>}

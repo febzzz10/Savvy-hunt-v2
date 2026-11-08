@@ -1,6 +1,6 @@
 export type ScoreRow<K> = { schoolId: K; points: number };
-export type EntryRow<K> = ScoreRow<K> & { placement?: number; entryLabel?: string };
-const entryKey = <K>(row: EntryRow<K>) => `${String(row.schoolId)}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.entryLabel ?? "").trim()}`;
+export type EntryRow<K> = ScoreRow<K> & { placement?: number; entryLabel?: string; displayParticipantName?: string; namePublishingApproved?: boolean };
+const entryKey = <K>(row: EntryRow<K>) => `${String(row.schoolId)}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.entryLabel ?? "").trim()}\u0000${(row.displayParticipantName ?? "").trim()}\u0000${row.namePublishingApproved ? "1" : "0"}`;
 export function sameEntries<K>(left: EntryRow<K>[], right: EntryRow<K>[]) {
   if (left.length !== right.length) return false;
   const a = left.map(entryKey).sort(), b = right.map(entryKey).sort();

@@ -26,16 +26,22 @@ function EditorForm({ eventId, data, schools, canPublish }: { eventId: string; d
   const publish = useMutation(mut<{ eventId: string; draftRevisionId: string; expectedActiveRevisionId: string | null; expectedDraftVersion: number }, PublishResult>("results:publish"));
   const revoke = useMutation(mut<{ eventId: string; reason: string; expectedActiveRevisionId: string | null }, unknown>("results:revoke"));
   const isCorrection = Boolean(data.event.activePublishedRevisionId);
-  const savedRows: Row[] = data.draftEntries.map(row => ({ schoolId: row.schoolId, points: row.points, placement: row.placement, entryLabel: row.entryLabel }));
+  const toEditorRow = (row: Row): Row => ({ schoolId: row.schoolId, points: row.points, placement: row.placement, entryLabel: row.entryLabel, displayParticipantName: row.displayParticipantName, namePublishingApproved: Boolean(row.displayParticipantName?.trim() && row.namePublishingApproved) });
+  const normalizeRows = (source: Row[]): Row[] => source.map(row => ({ ...row, displayParticipantName: row.displayParticipantName?.trim() || undefined, namePublishingApproved: Boolean(row.displayParticipantName?.trim() && row.namePublishingApproved) }));
+  const savedRows: Row[] = data.draftEntries.map(toEditorRow);
   const savedReason = data.draft?.changeReason ?? "";
-  const [rows, setRows] = useState<Row[]>(() => (data.draft ? data.draftEntries : data.officialEntries).map(row => ({ schoolId: row.schoolId, points: row.points, placement: row.placement, entryLabel: row.entryLabel })));
+  const [rows, setRows] = useState<Row[]>(() => (data.draft ? data.draftEntries : data.officialEntries).map(toEditorRow));
   const [reason, setReason] = useState(savedReason), [notice, setNotice] = useState("");
   const preview = useQuery(ref<{ eventId: string; draftRevisionId: string }, { expectedActiveRevisionId: string | null; expectedDraftVersion: number; changes: Array<{ schoolId: string; oldPoints: number; newPoints: number; delta: number }> }>("results:preview"), data.draft ? { eventId, draftRevisionId: data.draft._id } : "skip");
-  const gate = publishGate({ isCorrection, draftExists: Boolean(data.draft), hasPreview: Boolean(preview), rows, savedRows, officialRows: data.officialEntries, reason, savedReason });
+  const gate = publishGate({ isCorrection, draftExists: Boolean(data.draft), hasPreview: Boolean(preview), rows: normalizeRows(rows), savedRows, officialRows: data.officialEntries.map(toEditorRow), reason, savedReason });
+
+  function updateName(index: number, value: string) {
+    setRows(rows.map((item, position) => position === index ? { ...item, displayParticipantName: value, namePublishingApproved: (item.displayParticipantName ?? "").trim() === value.trim() ? item.namePublishingApproved : false } : item));
+  }
 
   async function handleSave() {
     try {
-      await save({ eventId, entries: rows, reason: isCorrection ? reason : undefined, expectedDraftVersion: data.draft?.draftVersion });
+      await save({ eventId, entries: normalizeRows(rows), reason: isCorrection ? reason : undefined, expectedDraftVersion: data.draft?.draftVersion });
       setNotice(isCorrection ? "Correction draft saved. Public results are unchanged." : "Draft saved. Public results are unchanged.");
     } catch (error) { setNotice(friendlyResultsError(error)); }
   }
@@ -65,15 +71,16 @@ function EditorForm({ eventId, data, schools, canPublish }: { eventId: string; d
       <label className="field"><span>School</span><select aria-label="School" value={row.schoolId} onChange={event => setRows(rows.map((item, position) => position === index ? { ...item, schoolId: event.target.value } : item))}><option value="">Select school</option>{schools?.map(school => <option key={school._id} value={school._id}>{school.name}</option>)}</select></label>
       <label className="field"><span>Manual points</span><input type="number" min="0" step="1" value={row.points} onChange={event => setRows(rows.map((item, position) => position === index ? { ...item, points: Number(event.target.value) } : item))} /></label>
       <label className="field"><span>Placement (optional)</span><input type="number" min="1" value={row.placement ?? ""} onChange={event => setRows(rows.map((item, position) => position === index ? { ...item, placement: event.target.value ? Number(event.target.value) : undefined } : item))} /></label>
-      <label className="field"><span>Entry label (optional)</span><input value={row.entryLabel ?? ""} onChange={event => setRows(rows.map((item, position) => position === index ? { ...item, entryLabel: event.target.value } : item))} /></label>
+      <label className="field"><span>Participant Name</span><input value={row.displayParticipantName ?? ""} onChange={event => updateName(index, event.target.value)} placeholder="Optional" /></label>
+      <label className="field"><span>Approve name for public display</span><input type="checkbox" checked={Boolean(row.namePublishingApproved)} disabled={!(row.displayParticipantName ?? "").trim()} onChange={event => setRows(rows.map((item, position) => position === index ? { ...item, namePublishingApproved: event.target.checked } : item))} /></label>
       <button className="button secondary" onClick={() => setRows(rows.filter((_, position) => position !== index))}>Remove row</button>
     </div>)}
-    <div className="actions"><button className="button secondary" onClick={() => setRows([...rows, { schoolId: "", points: 0 }])}>Add result row</button><button className="button" onClick={handleSave}>Save draft</button></div>
+    <div className="actions"><button className="button secondary" onClick={() => setRows([...rows, { schoolId: "", points: 0, displayParticipantName: "", namePublishingApproved: false }])}>Add result row</button><button className="button" onClick={handleSave}>Save draft</button></div>
     <section className="card">
       <h3>{isCorrection ? "Publish a correction" : "Publish first official results"}</h3>
       <p>{isCorrection ? "A reason is required. Save it with the draft before publishing the corrected results." : "No official results exist for this event yet. Publishing makes this draft the first official revision."}</p>
       {isCorrection && <label className="field"><span>Reason for correction *</span><input required aria-describedby="correction-reason-help" placeholder="e.g. Judge corrected the placement" value={reason} onChange={event => setReason(event.target.value)} /><small id="correction-reason-help">Required for corrections and revocations. Saved with the draft.</small></label>}
-      {preview ? <>{preview.changes.map(change => <p key={change.schoolId}>{schools?.find(school => school._id === change.schoolId)?.name}: {change.oldPoints} → {change.newPoints} ({change.delta >= 0 ? "+" : ""}{change.delta})</p>)}{!preview.changes.length && <p>No point changes. Placement or entry label updates will still be published.</p>}</> : <p>Save a draft to see the publication preview.</p>}
+      {preview ? <>{preview.changes.map(change => <p key={change.schoolId}>{schools?.find(school => school._id === change.schoolId)?.name}: {change.oldPoints} → {change.newPoints} ({change.delta >= 0 ? "+" : ""}{change.delta})</p>)}{!preview.changes.length && <p>No point changes. Placement or participant name updates will still be published.</p>}</> : <p>Save a draft to see the publication preview.</p>}
       {canPublish ? <><button className="button" disabled={!gate.ready} onClick={handlePublish}>{isCorrection ? "Publish correction" : "Publish official results"}</button>{!gate.ready && <p role="status">{gate.message}</p>}</> : <p>A super admin must publish official results.</p>}
     </section>
     {canPublish && isCorrection && <section className="card"><h3>Revoke official results</h3><p>Revoking removes these points from the public scoreboard. The revision history and audit log are kept.</p><button className="button secondary" disabled={!reason.trim()} onClick={handleRevoke}>Revoke official result</button></section>}

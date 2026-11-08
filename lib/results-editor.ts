@@ -1,6 +1,6 @@
-export type EditorRow = { schoolId: string; points: number; placement?: number; entryLabel?: string };
+export type EditorRow = { schoolId: string; points: number; placement?: number; entryLabel?: string; displayParticipantName?: string; namePublishingApproved?: boolean };
 
-const rowKey = (row: EditorRow) => `${row.schoolId}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.entryLabel ?? "").trim()}`;
+const rowKey = (row: EditorRow) => `${row.schoolId}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.entryLabel ?? "").trim()}\u0000${(row.displayParticipantName ?? "").trim()}\u0000${row.namePublishingApproved ? "1" : "0"}`;
 
 export function sameResultRows(left: EditorRow[], right: EditorRow[]) {
   if (left.length !== right.length) return false;

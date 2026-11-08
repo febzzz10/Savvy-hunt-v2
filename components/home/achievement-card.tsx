@@ -30,13 +30,16 @@ export function AchievementCard({ result, category }: { result: AchievementResul
         <div className="achievement-face achievement-back" aria-hidden={!flipped} inert={!flipped}>
           <span className="eyebrow">Official winners</span>
           <h3>{result.eventTitle}</h3>
-          {winners.length ? <ul className="achievement-winners">{winners.map((winner, index) => <li key={`${winner.schoolId}-${index}`}>
-            <span className="achievement-place">{winner.placeLabel}{winner.tied ? " · Tied" : ""}</span>
-            <strong>{winner.participantName || winner.schoolName}</strong>
-            {winner.participantName && <span>{winner.schoolName}</span>}
-            {winner.entryLabel && <span>{winner.entryLabel}</span>}
-            {winner.points !== undefined && <span className="achievement-points">{winner.points} {winner.points === 1 ? "point" : "points"}</span>}
-          </li>)}</ul> : <p className="muted">{result.entries.length ? "No podium placements published. View full results for official awards." : "Results awaited. Official winners will appear once published."}</p>}
+          {winners.length ? <ul className="achievement-winners">{winners.map((winner, index) => {
+            const name = winner.participantName?.trim() ?? "";
+            const school = winner.schoolName.trim();
+            const showName = Boolean(name) && name.toLowerCase() !== school.toLowerCase();
+            return <li key={`${winner.schoolId}-${index}`}>
+              <span className="achievement-place">{winner.placeLabel}{winner.tied ? " · Tied" : ""}</span>
+              <strong>{showName ? name : school}</strong>
+              {showName && <span className="achievement-school">{school}</span>}
+            </li>;
+          })}</ul> : <p className="muted">{result.entries.length ? "No podium placements published. View full results for official awards." : "Results awaited. Official winners will appear once published."}</p>}
           <span className="achievement-hint">Flip back <span aria-hidden="true">↶</span></span>
         </div>
       </motion.div>
