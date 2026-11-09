@@ -34,7 +34,7 @@ export const page = internalAction({
         const folder = args.phase === "incoming" ? folders.incoming : folders.approved;
         const metadata = await driveMetadata(token, folder, true);
         if (metadata.trashed || metadata.mimeType !== "application/vnd.google-apps.folder") throw new DriveError("Configured Drive folder is not an accessible folder.");
-        const result = await listDriveImages(token, folder, args.cursor);
+        const result = await listDriveImages(token, folder, args.cursor, metadata.driveId);
         const files = result.files.filter(file => file.id && file.md5Checksum && isApprovedDriveImage(file, folder)).map(file => ({ id: file.id!, name: (file.name ?? "Photo").slice(0, 500), md5Checksum: file.md5Checksum!, createdAt: Number.isFinite(Date.parse(file.createdTime ?? "")) ? Date.parse(file.createdTime!) : Date.now(), inApproved: Boolean(file.parents?.includes(folders.approved)) }));
         await ctx.runMutation(internal.gallerySyncData.upsertPage, { editionId: args.editionId, runId: args.runId, files });
         console.info("gallery.sync_page", { runId: args.runId, phase: args.phase, checked: result.files.length, valid: files.length });
@@ -44,9 +44,14 @@ export const page = internalAction({
         const result = await ctx.runQuery(internal.gallerySyncData.pageForReconcile, { editionId: args.editionId, paginationOpts: { numItems: 25, cursor: args.cursor ?? null } });
         for (const item of result.page) {
           if (item.lastSeenRunId === args.runId) continue;
+          // Already reconciled as missing in an earlier run; a reappearance is picked up by the folder listing above.
+          if (item.availability === "missing") continue;
           let file;
           try { file = await driveMetadata(token, item.driveFileId); }
-          catch (error) { if (!(error instanceof DriveError) || error.status !== 404) throw error; }
+          catch (error) {
+            if (!(error instanceof DriveError) || error.status !== 404) throw error;
+            console.info("gallery.gallery_item_missing", { runId: args.runId, operation: "files.get", driveFileId: item.driveFileId, status: 404, reason: error.details.reason ?? "notFound" });
+          }
           if (file?.md5Checksum && (isApprovedDriveImage(file, folders.incoming) || isApprovedDriveImage(file, folders.approved))) {
             await ctx.runMutation(internal.gallerySyncData.upsertPage, { editionId: args.editionId, runId: args.runId, files: [{ id: item.driveFileId, name: (file.name ?? item.filename ?? item.altText).slice(0, 500), md5Checksum: file.md5Checksum, createdAt: item.createdAt, inApproved: Boolean(file.parents?.includes(folders.approved)) }] });
           } else {
@@ -54,12 +59,12 @@ export const page = internalAction({
           }
         }
         if (!result.isDone) await ctx.scheduler.runAfter(0, internal.gallerySync.page, { ...args, cursor: result.continueCursor });
-        else { await ctx.runMutation(internal.gallerySyncData.finish, { editionId: args.editionId, runId: args.runId }); console.info("gallery.sync_completed", { runId: args.runId }); }
+        else { const summary = await ctx.runMutation(internal.gallerySyncData.finish, { editionId: args.editionId, runId: args.runId }); console.info("gallery.sync_completed", { runId: args.runId, ...summary }); }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Drive synchronization failed";
-      console.error("gallery.sync_failed", { runId: args.runId, phase: args.phase, message });
-      await ctx.runMutation(internal.gallerySyncData.finish, { editionId: args.editionId, runId: args.runId, error: message });
+      const summary = await ctx.runMutation(internal.gallerySyncData.finish, { editionId: args.editionId, runId: args.runId, error: message });
+      console.error("gallery.sync_failed", { runId: args.runId, phase: args.phase, message, ...summary });
     }
     return null;
   },

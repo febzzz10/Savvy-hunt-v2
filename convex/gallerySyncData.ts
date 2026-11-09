@@ -22,7 +22,7 @@ export const acquire = internalMutation({
   handler: async (ctx, args) => {
     const state = await ctx.db.query("gallerySyncState").withIndex("by_editionId", q => q.eq("editionId", args.editionId)).unique();
     if (state?.running && Date.now() - state.startedAt < 15 * 60_000) return false;
-    const next = { ...args, running: true, startedAt: Date.now(), finishedAt: undefined, lastError: undefined, imported: 0, checked: 0 };
+    const next = { ...args, running: true, startedAt: Date.now(), finishedAt: undefined, lastError: undefined, imported: 0, checked: 0, unavailable: 0 };
     if (state) await ctx.db.patch(state._id, next); else await ctx.db.insert("gallerySyncState", next);
     await ctx.scheduler.runAfter(0, internal.gallerySync.page, { ...args, phase: "incoming" });
     return true;
@@ -33,14 +33,14 @@ export const active = internalQuery({
   handler: async (ctx, args) => { const state = await ctx.db.query("gallerySyncState").withIndex("by_editionId", q => q.eq("editionId", args.editionId)).unique(); return Boolean(state?.running && state.runId === args.runId); },
 });
 export const finish = internalMutation({
-  args: { editionId: v.id("editions"), runId: v.string(), error: v.optional(v.string()) }, returns: v.null(),
+  args: { editionId: v.id("editions"), runId: v.string(), error: v.optional(v.string()) }, returns: v.object({ imported: v.number(), checked: v.number(), unavailable: v.number() }),
   handler: async (ctx, args) => {
     const state = await ctx.db.query("gallerySyncState").withIndex("by_editionId", q => q.eq("editionId", args.editionId)).unique();
-    if (state?.runId === args.runId) {
-      await ctx.db.patch(state._id, { running: false, finishedAt: Date.now(), lastError: args.error });
-      await ctx.db.insert("auditLogs", { editionId: args.editionId, actorAuthUserId: "system:drive-sync", action: args.error ? "gallery.syncFailed" : "gallery.syncCompleted", entityType: "edition", entityId: args.editionId, summary: args.error ?? `Imported ${state.imported}; checked ${state.checked}`, createdAt: Date.now() });
-    }
-    return null;
+    if (state?.runId !== args.runId) return { imported: 0, checked: 0, unavailable: 0 };
+    const summary = { imported: state.imported, checked: state.checked, unavailable: state.unavailable ?? 0 };
+    await ctx.db.patch(state._id, { running: false, finishedAt: Date.now(), lastError: args.error });
+    await ctx.db.insert("auditLogs", { editionId: args.editionId, actorAuthUserId: "system:drive-sync", action: args.error ? "gallery.syncFailed" : "gallery.syncCompleted", entityType: "edition", entityId: args.editionId, summary: args.error ?? `Imported ${summary.imported}; checked ${summary.checked}; unavailable ${summary.unavailable}`, createdAt: Date.now() });
+    return summary;
   },
 });
 export const upsertPage = internalMutation({
@@ -84,6 +84,7 @@ export const markUnavailable = internalMutation({
     const item = await ctx.db.get(args.itemId);
     if (!item || item.lastSeenRunId === args.runId || (item.reviewVersion ?? 0) !== args.expectedReviewVersion || item.availability === "missing") return null;
     await ctx.db.patch(item._id, { availability: "missing", approvalStatus: item.approvalStatus === "approved" ? "pending" : item.approvalStatus, verifiedMd5Checksum: undefined, consentConfirmed: false, consentMd5Checksum: undefined, reviewVersion: (item.reviewVersion ?? 0) + 1 });
+    await ctx.db.patch(state._id, { unavailable: (state.unavailable ?? 0) + 1 });
     await ctx.db.insert("auditLogs", { editionId: item.editionId, actorAuthUserId: "system:drive-sync", action: "gallery.unavailable", entityType: "galleryItem", entityId: item._id, summary: "File removed, trashed, unsupported or outside gallery folders; retained for review", createdAt: Date.now() });
     return null;
   },

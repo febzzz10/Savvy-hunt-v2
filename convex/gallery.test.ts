@@ -11,7 +11,7 @@ const modules = import.meta.glob("./**/*.ts");
 const fileId = "drive_photo_123456789012345";
 const checksum = "a".repeat(32);
 const image = (id = fileId, folder = "approved", md5 = checksum): DriveMetadata => ({ id, name: "school.png", mimeType: "image/png", size: "1000", parents: [folder], md5Checksum: md5, createdTime: "2026-10-01T00:00:00Z" });
-function mockDrive(files: DriveMetadata[], options: { failListing?: boolean; paginated?: boolean } = {}) {
+function mockDrive(files: DriveMetadata[], options: { failListing?: boolean; paginated?: boolean; failFileStatus?: number } = {}) {
   const fetcher = vi.fn(async (input: string | URL, init?: RequestInit) => {
     const url = new URL(String(input));
     if (url.hostname !== "oauth2.googleapis.com" && init?.method && init.method !== "GET") throw new Error("Gallery attempted a Drive write");
@@ -25,8 +25,9 @@ function mockDrive(files: DriveMetadata[], options: { failListing?: boolean; pag
     }
     const id = url.pathname.split("/").at(-1);
     if (["incoming", "approved"].includes(id ?? "")) return Response.json({ id, mimeType: "application/vnd.google-apps.folder", capabilities: { canAddChildren: true } });
+    if (options.failFileStatus) return Response.json({ error: { errors: [{ reason: "backendError" }] } }, { status: options.failFileStatus });
     const file = files.find(file => file.id === id);
-    if (!file) return Response.json({}, { status: 404 });
+    if (!file) return Response.json({ error: { errors: [{ reason: "notFound" }] } }, { status: 404 });
     return Response.json(file);
   });
   vi.stubGlobal("fetch", fetcher);
@@ -105,6 +106,37 @@ describe("Drive-only gallery workflow", () => {
   });
   it("does not reconcile deletions after failed listings and records an actionable error", async () => {
     const s = await setup(); mockDrive([], { failListing: true });
+    const itemId = await s.admin.mutation(api.gallery.add, { editionId: s.editionId, driveFileId: fileId, altText: "Photo" });
+    await s.admin.action(api.gallerySync.syncNow, { editionId: s.editionId }); await s.t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect((await s.t.run(ctx => ctx.db.get(itemId)))?.availability).toBeUndefined();
+    expect((await s.admin.query(api.gallerySyncData.getState, { editionId: s.editionId }))?.lastError).toContain("503");
+  });
+  it("does not re-request Drive for records already reconciled as missing", async () => {
+    const s = await setup(); const fetcher = mockDrive([]);
+    const itemId = await s.t.run(ctx => ctx.db.insert("galleryItems", { editionId: s.editionId, driveFileId: "stale_missing_1793211099849", altText: "Stale", sortOrder: 1, approvalStatus: "pending", consentConfirmed: false, availability: "missing", addedBy: "test|admin", createdAt: 1 }));
+    await s.admin.action(api.gallerySync.syncNow, { editionId: s.editionId }); await s.t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect(fetcher.mock.calls.filter(([input]) => new URL(String(input)).pathname === "/drive/v3/files/stale_missing_1793211099849")).toHaveLength(0);
+    expect((await s.t.run(ctx => ctx.db.get(itemId)))?.availability).toBe("missing");
+    const state = await s.admin.query(api.gallerySyncData.getState, { editionId: s.editionId });
+    expect(state).toMatchObject({ unavailable: 0 });
+    expect(state?.lastError).toBeUndefined();
+  });
+  it("marks a newly missing file unavailable and reports it without failing the sync", async () => {
+    const s = await setup(); mockDrive([]);
+    const itemId = await s.admin.mutation(api.gallery.add, { editionId: s.editionId, driveFileId: fileId, altText: "Photo" });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {}), info = vi.spyOn(console, "info").mockImplementation(() => {});
+    await s.admin.action(api.gallerySync.syncNow, { editionId: s.editionId }); await s.t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect(await s.t.run(ctx => ctx.db.get(itemId))).toMatchObject({ availability: "missing" });
+    const state = await s.admin.query(api.gallerySyncData.getState, { editionId: s.editionId });
+    expect(state).toMatchObject({ unavailable: 1 });
+    expect(state?.lastError).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith("gallery.drive_request_failed", expect.objectContaining({ operation: "files.get", resourceId: fileId, status: 404, reason: "notFound" }));
+    expect(info).toHaveBeenCalledWith("gallery.gallery_item_missing", expect.objectContaining({ driveFileId: fileId, status: 404 }));
+    expect(info).toHaveBeenCalledWith("gallery.sync_completed", expect.objectContaining({ unavailable: 1 }));
+    warn.mockRestore(); info.mockRestore();
+  });
+  it("preserves records and reports failure when a per-file Drive request fails transiently", async () => {
+    const s = await setup(); mockDrive([], { failFileStatus: 503 });
     const itemId = await s.admin.mutation(api.gallery.add, { editionId: s.editionId, driveFileId: fileId, altText: "Photo" });
     await s.admin.action(api.gallerySync.syncNow, { editionId: s.editionId }); await s.t.finishAllScheduledFunctions(() => vi.runAllTimers());
     expect((await s.t.run(ctx => ctx.db.get(itemId)))?.availability).toBeUndefined();

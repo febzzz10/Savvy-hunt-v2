@@ -46,15 +46,34 @@ describe("Read-only service-account Drive integration", () => {
     expect(url.searchParams.get("pageToken")).toBe("page2");
     expect(url.searchParams.get("includeItemsFromAllDrives")).toBe("true");
     expect(url.searchParams.get("supportsAllDrives")).toBe("true");
+    expect(url.searchParams.get("corpora")).toBeNull();
     expect(url.searchParams.get("q")).toContain("trashed = false");
     expect(url.searchParams.get("q")).toContain("image/jpeg");
     fetcher.mockResolvedValue(response({ files: [], incompleteSearch: true }));
     await expect(listDriveImages("access", "incoming")).rejects.toThrow("incomplete listing");
+  });
+  it("scopes listings to a Shared Drive when the folder reports a driveId", async () => {
+    const fetcher = vi.fn().mockResolvedValue(response({ files: [] })); vi.stubGlobal("fetch", fetcher);
+    await listDriveImages("access", "folder", undefined, "shared_drive_123");
+    const url = new URL(fetcher.mock.calls[0][0]);
+    expect(url.searchParams.get("corpora")).toBe("drive");
+    expect(url.searchParams.get("driveId")).toBe("shared_drive_123");
+    expect(url.searchParams.get("includeItemsFromAllDrives")).toBe("true");
+    expect(url.searchParams.get("supportsAllDrives")).toBe("true");
   });
   it("explains a folder 404 with exact sharing and configuration instructions", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ error: { errors: [{ reason: "notFound" }] } }, 404)));
     await expect(driveMetadata("access", "gallery", true)).rejects.toThrow("Viewer");
     await expect(driveMetadata("access", "gallery", true)).rejects.toThrow("GOOGLE_DRIVE_FOLDER_ID");
     await expect(driveMetadata("access", "gallery", true)).rejects.toThrow("gallery@test.iam.gserviceaccount.com");
+  });
+  it("logs a failed file lookup with its resource id and operation, never credentials", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ error: { errors: [{ reason: "notFound" }] } }, 404)));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(driveMetadata("secret-token", "stale_file_123456789012")).rejects.toThrow("stale_file_123456789012");
+    await expect(driveMetadata("secret-token", "stale_file_123456789012")).rejects.toThrow("deleted, trashed");
+    expect(warn).toHaveBeenCalledWith("gallery.drive_request_failed", { operation: "files.get", resourceId: "stale_file_123456789012", status: 404, reason: "notFound" });
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("secret-token");
+    warn.mockRestore();
   });
 });

@@ -3,8 +3,9 @@ import { IMAGE_MIME_TYPES, type DriveMetadata } from "./drive-validation";
 
 const API = "https://www.googleapis.com/drive/v3/files";
 const FIELDS = "id,name,createdTime,mimeType,size,parents,trashed,md5Checksum,driveId";
+type DriveErrorDetails = { operation?: string; resourceId?: string; reason?: string };
 export class DriveError extends Error {
-  constructor(message: string, public status = 503) { super(message); }
+  constructor(message: string, public status = 503, public details: DriveErrorDetails = {}) { super(message); }
 }
 export function driveFolders() {
   const approved = process.env.GOOGLE_DRIVE_FOLDER_ID?.trim();
@@ -36,32 +37,34 @@ export async function driveToken() {
   if (!result.access_token) throw new DriveError("Google Drive did not return an access token.");
   return result.access_token;
 }
-export async function driveRequest(token: string, url: string, init: RequestInit = {}) {
+export async function driveRequest(token: string, url: string, init: RequestInit = {}, context: DriveErrorDetails = {}) {
   const response = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(60_000) });
   if (!response.ok) {
-    // Only log Google's error code/reason; never tokens, request bodies or raw responses.
+    // Only log Google's error code/reason and the Drive resource; never tokens, request bodies or raw responses.
     const error = await response.json().catch(() => ({})) as { error?: { errors?: { reason?: string }[] } };
     const reason = error.error?.errors?.[0]?.reason;
-    console.warn("gallery.drive_request_failed", { status: response.status, reason });
-    throw new DriveError(`Google Drive request failed (${response.status}${reason ? `: ${reason}` : ""}). Check folder access, Drive API enablement and read permissions.`, response.status);
+    console.warn("gallery.drive_request_failed", { operation: context.operation, resourceId: context.resourceId, status: response.status, reason });
+    throw new DriveError(`Google Drive ${context.operation ?? "request"} failed (${response.status}${reason ? `: ${reason}` : ""})${context.resourceId ? ` for ${context.resourceId}` : ""}. Check folder access, Drive API enablement and read permissions.`, response.status, { ...context, reason });
   }
   return response;
 }
 export async function driveMetadata(token: string, id: string, folder = false): Promise<DriveMetadata> {
+  const serviceAccount = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? "the configured service account";
   try {
-    return await (await driveRequest(token, `${API}/${encodeURIComponent(id)}?fields=${encodeURIComponent(FIELDS)}&supportsAllDrives=true`)).json();
+    return await (await driveRequest(token, `${API}/${encodeURIComponent(id)}?fields=${encodeURIComponent(FIELDS)}&supportsAllDrives=true`, {}, { operation: "files.get", resourceId: id })).json();
   } catch (error) {
-    if (folder && error instanceof DriveError && error.status === 404) {
-      throw new DriveError(`Google Drive folder returned 404 notFound. Verify GOOGLE_DRIVE_FOLDER_ID (or GOOGLE_DRIVE_INCOMING_FOLDER_ID when set) and share the folder directly with ${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? "the configured service account"} as Viewer. A missing folder or missing read permission produces this response. For a Workspace Shared Drive, check membership and organization sharing policies.`, 404);
+    if (error instanceof DriveError && error.status === 404) {
+      if (folder) throw new DriveError(`Google Drive folder ${id} returned 404 notFound. Verify GOOGLE_DRIVE_FOLDER_ID (or GOOGLE_DRIVE_INCOMING_FOLDER_ID when set) and share the folder directly with ${serviceAccount} as Viewer. A missing folder or missing read permission produces this response. For a Workspace Shared Drive, check membership and organization sharing policies.`, 404, error.details);
+      throw new DriveError(`Google Drive file ${id} returned 404 notFound. It may have been deleted, trashed, moved out of the gallery folders, or unshared from ${serviceAccount}. Existing gallery records are retained.`, 404, error.details);
     }
     throw error;
   }
 }
-export async function listDriveImages(token: string, folder: string, pageToken?: string) {
+export async function listDriveImages(token: string, folder: string, pageToken?: string, driveId?: string) {
   const q = `'${folder}' in parents and trashed = false and (${IMAGE_MIME_TYPES.map(m => `mimeType = '${m}'`).join(" or ")})`;
-  const params = new URLSearchParams({ q, fields: `nextPageToken,incompleteSearch,files(${FIELDS})`, pageSize: "100", spaces: "drive", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
+  const params = new URLSearchParams({ q, fields: `nextPageToken,incompleteSearch,files(${FIELDS})`, pageSize: "100", spaces: "drive", supportsAllDrives: "true", includeItemsFromAllDrives: "true", ...(driveId ? { corpora: "drive", driveId } : {}) });
   if (pageToken) params.set("pageToken", pageToken);
-  const result = await (await driveRequest(token, `${API}?${params}`)).json() as { files?: DriveMetadata[]; nextPageToken?: string; incompleteSearch?: boolean };
+  const result = await (await driveRequest(token, `${API}?${params}`, {}, { operation: "files.list", resourceId: folder })).json() as { files?: DriveMetadata[]; nextPageToken?: string; incompleteSearch?: boolean };
   if (result.incompleteSearch || !Array.isArray(result.files)) throw new DriveError("Google Drive returned an incomplete listing; reconciliation was skipped. Retry Sync Now.");
   return { files: result.files, nextPageToken: result.nextPageToken };
 }
