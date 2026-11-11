@@ -1,0 +1,31 @@
+.scoreboard-inspector { display:grid; gap:18px; }
+.scoreboard-inspector>p { margin:0; color:var(--muted); max-width:70ch; }
+.scoreboard-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:0; overflow:hidden; }
+.scoreboard-summary>div { padding:20px; border-left:1px solid var(--edge); min-width:0; }
+.scoreboard-summary>div:first-child { border-left:0; }
+.scoreboard-summary strong { display:block; margin:8px 0 4px; font-size:clamp(1.35rem,2.4vw,1.9rem); line-height:1.1; overflow-wrap:anywhere; }
+.scoreboard-summary p { margin:0; }
+.scoreboard-filter { display:flex; align-items:end; justify-content:space-between; gap:18px; flex-wrap:wrap; padding:18px; }
+.scoreboard-filter .field { margin:0; flex:1 1 260px; max-width:360px; }
+.scoreboard-filter p { margin:0; flex:1 1 280px; text-align:right; }
+.scoreboard-table table { min-width:540px; }
+.scoreboard-table caption { caption-side:top; text-align:left; padding:0 0 12px; }
+.scoreboard-table tr.is-selected { background:var(--wash); }
+.rank-mark { display:inline-grid; place-items:center; min-width:30px; height:30px; padding:0 8px; border-radius:999px; background:var(--wash); font-weight:700; font-variant-numeric:tabular-nums; }
+.rank-mark.is-medal { background:var(--sage); color:var(--accent); }
+.points-cell { font-variant-numeric:tabular-nums; font-weight:650; }
+.scoreboard-contributions { display:grid; gap:14px; }
+.scoreboard-contributions header { display:flex; align-items:start; justify-content:space-between; gap:16px; }
+.scoreboard-contributions h2 { margin:4px 0 0; }
+.scoreboard-contributions header p { margin:4px 0 0; }
+.scoreboard-contributions ul { list-style:none; margin:0; padding:0; display:grid; gap:0; }
+.scoreboard-contributions li { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-top:1px solid var(--edge); font-size:14px; }
+.scoreboard-contributions li strong { white-space:nowrap; color:var(--accent); }
+.scoreboard-contributions>p { margin:0; }
+@media(max-width:700px) {
+  .scoreboard-summary { grid-template-columns:minmax(0,1fr); }
+  .scoreboard-summary>div { border-left:0; border-top:1px solid var(--edge); }
+  .scoreboard-summary>div:first-child { border-top:0; }
+  .scoreboard-filter p { text-align:left; }
+  .scoreboard-contributions header { flex-direction:column; }
+}

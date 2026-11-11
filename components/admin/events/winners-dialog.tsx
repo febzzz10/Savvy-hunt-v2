@@ -5,15 +5,16 @@ import { useConvex, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { friendlyResultsError, publishGate, sameResultRows } from "@/lib/results-editor";
+import { draftRowsFromEditor, editorRowsFromDraft, friendlyResultsError, participantNameChange, publishGate, sameResultRows, validateDraftRows, type DraftRow } from "@/lib/results-editor";
 import { Skeleton } from "@/components/ui";
 import { EventDialog, EventPublicationStatus, useUnsavedChanges } from "./shared";
+import { ResultFields } from "./results-fields";
 
 type Data = FunctionReturnType<typeof api.results.getAdminByEvent>;
-type Row = { key: string; schoolId: Id<"schools"> | ""; points: string; placement: string; entryLabel: string; displayParticipantName: string; namePublishingApproved: boolean };
 const revisionKey = (data: Data) => `${data.draft?._id ?? "none"}:${data.draft?.draftVersion ?? 0}:${data.event.activePublishedRevisionId ?? "none"}:${data.event.updatedAt}`;
-const toRows = (data: Data): Row[] => (data.draft ? data.draftEntries : data.officialEntries).map((row, i) => ({ key: String(i), schoolId: row.schoolId, points: String(row.points), placement: row.placement ? String(row.placement) : "", entryLabel: row.entryLabel ?? "", displayParticipantName: row.displayParticipantName ?? "", namePublishingApproved: Boolean(row.displayParticipantName?.trim() && row.namePublishingApproved) }));
-const entries = (rows: Row[]) => rows.map(row => ({ schoolId: row.schoolId as Id<"schools">, points: Number(row.points), placement: row.placement ? Number(row.placement) : undefined, entryLabel: row.entryLabel.trim() || undefined, displayParticipantName: row.displayParticipantName.trim() || undefined, namePublishingApproved: Boolean(row.displayParticipantName.trim() && row.namePublishingApproved) }));
+const sourceRows = (data: Data) => data.draft ? data.draftEntries : data.officialEntries;
+const toRows = (data: Data) => draftRowsFromEditor(sourceRows(data));
+const entries = (rows: DraftRow[]) => editorRowsFromDraft(rows).map(row => ({ ...row, schoolId: row.schoolId as Id<"schools"> }));
 
 export function WinnersDialog({ eventId, schools, canPublish, onClose }: { eventId: Id<"events">; schools: Doc<"schools">[]; canPublish: boolean; onClose: () => void }) {
   const data = useQuery(api.results.getAdminByEvent, { eventId });
@@ -42,25 +43,14 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
   const eligible = schools.filter(s => (s.status === "active" || base.officialEntries.some(row => row.schoolId === s._id)) && (!base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(s._id)));
   function load(data: Data) { setBase(data); setRows(toRows(data)); nextKey.current = toRows(data).length; setReason(data.draft?.changeReason ?? ""); setConfirmation(null); }
   function add(placement: string) { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement, entryLabel: "", displayParticipantName: "", namePublishingApproved: false }]); setConfirmation(null); }
-  function update(key: string, patch: Partial<Row>) { setRows(rows.map(row => row.key === key ? { ...row, ...patch } : row)); setConfirmation(null); }
+  function update(key: string, patch: Partial<DraftRow>) { setRows(rows.map(row => row.key === key ? { ...row, ...patch } : row)); setConfirmation(null); }
   function updateName(key: string, value: string) {
-    setRows(rows.map(row => row.key === key ? { ...row, displayParticipantName: value, namePublishingApproved: row.displayParticipantName.trim() === value.trim() ? row.namePublishingApproved : false } : row));
+    setRows(rows.map(row => row.key === key ? participantNameChange(row, value) : row));
     setConfirmation(null);
   }
   function validate() {
-    if (rows.length > 200) return "An event can have at most 200 result entries.";
-    const seen = new Set<string>();
-    for (const row of rows) {
-      if (!row.schoolId || !eligible.some(s => s._id === row.schoolId)) return "Choose an eligible school for every entry.";
-      if (row.points.trim() === "" || !Number.isSafeInteger(Number(row.points)) || Number(row.points) < 0) return "Enter nonnegative whole-number manual points for every entry.";
-      if (row.placement && (!Number.isSafeInteger(Number(row.placement)) || Number(row.placement) < 1)) return "Placements must be positive whole numbers.";
-      if (row.namePublishingApproved && !row.displayParticipantName.trim()) return "Enter a participant name before approving it for public display.";
-      // Existing multi-entry school results remain editable. New ambiguous duplicates are blocked.
-      const duplicate = seen.has(row.schoolId);
-      const existingCount = initial.filter(item => item.schoolId === row.schoolId).length;
-      if (duplicate && existingCount < rows.filter(item => item.schoolId === row.schoolId).length) return "A school is selected more than once. Use a different school for each winner.";
-      seen.add(row.schoolId);
-    }
+    const invalid = validateDraftRows(rows, { eligibleSchoolIds: new Set(eligible.map(school => school._id)), initialRows: editorRowsFromDraft(initial) });
+    if (invalid) return invalid;
     if (isCorrection && !reason.trim()) return "Enter a reason for this correction.";
     return "";
   }
@@ -85,13 +75,9 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
     } catch (cause) { setError(friendlyResultsError(cause)); }
     finally { lock.current = false; setBusy(""); setConfirmation(null); }
   }
-  function renderRow(row: Row, other = false) {
+  function renderRow(row: DraftRow, other = false) {
     return <div className="winner-entry" key={row.key}>
-      <label className="field winner-school"><span>School *</span><select required value={row.schoolId} onChange={e => update(row.key, { schoolId: e.target.value as Id<"schools"> })}><option value="">Select school</option>{eligible.map(school => <option key={school._id} value={school._id} disabled={school._id !== row.schoolId && rows.some(item => item.schoolId === school._id)}>{school.name}{school.status !== "active" ? " (archived)" : ""}</option>)}</select></label>
-      <label className="field"><span>Manual points *</span><input type="number" required min="0" step="1" value={row.points} onChange={e => update(row.key, { points: e.target.value })} /></label>
-      <label className="field winner-name"><span>Participant Name</span><input value={row.displayParticipantName} onChange={e => updateName(row.key, e.target.value)} placeholder="Optional" /></label>
-      <label className="field winner-approval"><span>Approve name for public display</span><input type="checkbox" checked={row.namePublishingApproved} disabled={!row.displayParticipantName.trim()} onChange={e => update(row.key, { namePublishingApproved: e.target.checked })} /></label>
-      {other && <label className="field"><span>Placement (optional)</span><input type="number" min="1" step="1" value={row.placement} onChange={e => update(row.key, { placement: e.target.value })} /></label>}
+      <ResultFields row={row} schools={eligible} onChange={patch => update(row.key, patch)} onNameChange={value => updateName(row.key, value)} schoolLabel="School *" pointsLabel="Manual points *" isSchoolDisabled={schoolId => schoolId !== row.schoolId && rows.some(item => item.schoolId === schoolId)} other={other} />
       <button type="button" className="text-link winner-remove" onClick={() => { setRows(rows.filter(item => item.key !== row.key)); setConfirmation(null); }} aria-label={`Remove ${schools.find(s => s._id === row.schoolId)?.name ?? "empty entry"} from ${row.placement ? `place ${row.placement}` : "other results"}`}>Remove</button>
     </div>;
   }

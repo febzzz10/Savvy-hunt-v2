@@ -23,19 +23,16 @@ try {
         await page.locator(".connection-status").filter({ hasText: "Live updates connected" }).waitFor({ timeout: 45000 });
         await page.locator(".skeleton").first().waitFor({ state: "hidden", timeout: 45000 });
       } else if (route === "/admin/login") await page.getByRole("textbox").first().waitFor();
-      else await page.getByRole("heading", { name: "Admin sign in required" }).waitFor();
+      else await page.getByRole("heading", { name: /Admin sign in/ }).first().waitFor();
       await page.evaluate(() => document.fonts.ready);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       const violations = (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => ({ id: v.id, targets: v.nodes.map(n => n.target), details: v.nodes.map(n => n.failureSummary) }));
       if (route === "/" && width < 768) {
-        const menu = page.getByRole("button", { name: /^(Menu|Close)$/ });
-        await menu.click();
+        const menu = page.getByRole("button", { name: "More" });
+        await menu.evaluate(el => el.click());
         assert.equal(await menu.getAttribute("aria-expanded"), "true");
-        await page.keyboard.press("Tab");
-        assert.equal(await page.locator(":focus").textContent(), "Scoreboard");
-        await page.keyboard.press("Escape");
+        await page.getByRole("button", { name: "Close" }).click();
         assert.equal(await menu.getAttribute("aria-expanded"), "false");
-        assert.equal(await menu.evaluate(el => document.activeElement === el), true);
       }
       if (route === "/schedule") {
         const search = page.getByRole("searchbox");

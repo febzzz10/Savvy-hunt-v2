@@ -1,0 +1,25 @@
+.result-editor { display:grid; gap:18px; }
+.result-editor-head { display:flex; align-items:start; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+.result-editor-head h2 { margin:0 0 6px; }
+.result-editor-head p { margin:0; color:var(--muted); }
+.result-editor-rows { display:grid; gap:14px; margin-bottom:16px; }
+.result-editor .event-alert { display:grid; gap:10px; padding:14px 18px; border:1px solid var(--edge); background:var(--wash); border-radius:12px; font-size:14px; }
+.result-editor .event-alert p { margin:0; }
+.result-editor .winner-entry { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:0 16px; padding:16px; }
+.result-editor .winner-entry .field { margin:0 0 12px; min-width:0; }
+.result-editor .winner-entry .winner-name,
+.result-editor .winner-entry .winner-entry-label,
+.result-editor .winner-entry .winner-placement { grid-column:1 / -1; }
+.result-editor .winner-entry .field small { display:block; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.4; }
+.result-editor .winner-entry > .button { grid-column:1 / -1; justify-self:start; }
+.result-editor .actions { margin-top:0; }
+.result-editor .result-publication { display:grid; gap:10px; }
+.result-editor .result-publication h3 { margin:0; }
+.result-editor .result-publication p { margin:0; }
+.result-editor .result-publication p:has(strong) { display:flex; justify-content:space-between; gap:16px; }
+.result-editor .result-publication strong { color:var(--ink); }
+.result-editor .result-publication .button { justify-self:start; }
+@media(max-width:560px) {
+  .result-editor .winner-entry { grid-template-columns:minmax(0,1fr); padding:14px; }
+  .result-editor .winner-entry > .button { grid-column:auto; }
+}

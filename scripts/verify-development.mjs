@@ -71,17 +71,18 @@ try {
   await admin.getByRole("heading", { name: "Schools", exact: true }).waitFor();
   const schoolA = `Verification A ${stamp}`, schoolB = `Verification B ${stamp}`;
   for (const name of [schoolA, schoolB]) {
-    await admin.getByLabel("Name", { exact: true }).fill(name);
+    await admin.getByLabel("School name *", { exact: true }).fill(name);
     await admin.getByRole("button", { name: "Add school", exact: true }).click();
     await admin.getByRole("heading", { name, exact: true }).waitFor();
   }
   record("Real admin browser created two schools through UI");
   stage = "create event through admin UI";
   await admin.goto("http://localhost:3000/admin/events");
-  await admin.getByLabel("Title", { exact: true }).fill(`Verification Quiz ${stamp}`);
+  await admin.getByLabel("Event title *", { exact: true }).fill(`Verification Quiz ${stamp}`);
   const categories = await client.query(api.categories.listCurrent, { editionId });
-  await admin.getByLabel("Category", { exact: true }).selectOption(categories[1]._id);
-  await admin.getByLabel("Start date and time (Asia/Kolkata)", { exact: true }).fill("2026-11-01T10:00");
+  await admin.getByLabel(/Category \*/).selectOption(categories[1]._id);
+  await admin.getByLabel(/Starts at/).fill("2026-11-01T10:00");
+  await admin.locator(".event-form details").first().evaluate(details => { details.open = true; });
   await admin.getByLabel(schoolA, { exact: true }).check(); await admin.getByLabel(schoolB, { exact: true }).check();
   await admin.getByRole("button", { name: "Create event", exact: true }).click();
   await admin.getByRole("heading", { name: `Verification Quiz ${stamp}`, exact: true }).waitFor();
@@ -116,7 +117,7 @@ try {
   await admin.goto(`http://localhost:3000/admin/events/${event._id}/results`);
   for (const [id, points] of [[a, "10"], [b, "6"]]) {
     await admin.getByRole("button", { name: "Add result row" }).click();
-    await admin.getByLabel("School", { exact: true }).last().selectOption(id);
+    await admin.getByLabel(/School/).last().selectOption(id);
     await admin.getByLabel("Manual points", { exact: true }).last().fill(points);
   }
   await admin.getByRole("button", { name: "Save draft", exact: true }).click();
@@ -136,28 +137,28 @@ try {
   await Promise.all(viewers.map(page => page.getByRole("row").filter({ hasText: schoolA }).waitFor()));
   admin.on("dialog", dialog => dialog.accept());
   await admin.getByRole("button", { name: "Publish official results" }).click();
-  for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "10", exact: true }).waitFor();
-  for (const page of categoryPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "10", exact: true }).waitFor();
-  for (const page of eventPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "10", exact: true }).waitFor();
-  for (const page of homePages) await page.locator(".card").filter({ hasText: schoolA }).getByText("10 points", { exact: true }).waitFor();
-  record("Category standings, event results, and homepage top three updated in both anonymous sessions");
+  for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "10", exact: true }).first().waitFor();
+  for (const page of categoryPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "10", exact: true }).first().waitFor();
+  for (const page of eventPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "10", exact: true }).first().waitFor();
+  for (const page of homePages) await page.getByRole("article").filter({ hasText: `Verification Quiz ${stamp}` }).waitFor();
+  record("Category standings, event results, and homepage latest achievements updated in both anonymous sessions");
   record("Publication updated two separate anonymous browsers without navigation or refresh");
   stage = "correct result through admin UI";
   await admin.getByLabel("Correction or revocation reason").fill("Verification judge correction");
   await admin.getByLabel("Manual points").first().fill("8");
   await admin.getByRole("button", { name: "Save draft", exact: true }).click();
-  await admin.getByRole("button", { name: "Publish official results" }).click();
-  for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "8", exact: true }).waitFor();
-  for (const page of categoryPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "8", exact: true }).waitFor();
+  await admin.getByRole("button", { name: "Publish correction" }).click();
+  for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "8", exact: true }).first().waitFor();
+  for (const page of categoryPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "8", exact: true }).first().waitFor();
   record("Correction updated both anonymous browsers to 8 without double-counting");
   stage = "revoke result and reconnect anonymous browser";
   await contexts[1].setOffline(true);
   await admin.getByLabel("Correction or revocation reason").fill("Verification withdrawal");
   await admin.getByRole("button", { name: "Revoke official result" }).click();
-  await viewers[0].getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).waitFor();
+  await viewers[0].getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).first().waitFor();
   await contexts[1].setOffline(false);
-  await viewers[1].getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).waitFor();
-  for (const page of categoryPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).waitFor();
+  await viewers[1].getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).first().waitFor();
+  for (const page of categoryPages) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).first().waitFor();
   for (const page of eventPages) await page.getByText("Results pending.", { exact: true }).waitFor();
   record("Revocation propagated; disconnected browser recovered to current totals");
   stage = "live concurrent publication and stale preview checks";
@@ -175,7 +176,7 @@ try {
   await assert.rejects(client.mutation(api.results.publish, { eventId: raceEvent, draftRevisionId: revisedDraft, expectedActiveRevisionId: stalePreview.expectedActiveRevisionId, expectedDraftVersion: stalePreview.expectedDraftVersion }));
   await assert.rejects(client.mutation(api.results.saveDraft, { eventId: raceEvent, entries: [{ schoolId: a, points: 99 }] }));
   await client.mutation(api.results.revoke, { eventId: raceEvent, reason: "Verification cleanup", expectedActiveRevisionId: raceDraft });
-  for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).waitFor();
+  for (const page of viewers) await page.getByRole("row").filter({ hasText: schoolA }).getByRole("cell", { name: "0", exact: true }).first().waitFor();
   record("Live simultaneous publication counted once; stale publication and omitted draft version rejected");
   evidence.adminUi = [];
   for (const width of [1440, 390]) {

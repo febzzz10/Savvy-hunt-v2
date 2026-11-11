@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { friendlyResultsError, publishGate, sameResultRows, type EditorRow } from "../lib/results-editor";
+import { draftRowsFromEditor, editorRowsFromDraft, friendlyResultsError, participantNameChange, publishGate, sameResultRows, validateDraftRows, type DraftRow, type EditorRow } from "../lib/results-editor";
 
 const row = (overrides: Partial<EditorRow> = {}): EditorRow => ({ schoolId: "school-a", points: 5, ...overrides });
+const draft = (overrides: Partial<DraftRow> = {}): DraftRow => ({ key: "row-0", schoolId: "school-a", points: "5", placement: "", entryLabel: "", displayParticipantName: "", namePublishingApproved: false, ...overrides });
 
 function gate(overrides: Partial<Parameters<typeof publishGate>[0]> = {}) {
   return publishGate({
@@ -16,6 +17,34 @@ function gate(overrides: Partial<Parameters<typeof publishGate>[0]> = {}) {
     ...overrides,
   });
 }
+
+describe("results editor draft conversion", () => {
+  it("round-trips rows while trimming labels and resetting unapproved names", () => {
+    const converted = draftRowsFromEditor([row({ points: 0, placement: 1, entryLabel: " Solo ", displayParticipantName: "  ", namePublishingApproved: true })]);
+    expect(converted[0]).toMatchObject({ points: "0", placement: "1", entryLabel: " Solo ", displayParticipantName: "  " });
+    expect(editorRowsFromDraft(converted)[0]).toMatchObject({ points: 0, placement: 1, entryLabel: "Solo", displayParticipantName: undefined, namePublishingApproved: false });
+  });
+
+  it("clears public approval when the participant name changes", () => {
+    const approved = draft({ displayParticipantName: "Asha", namePublishingApproved: true });
+    expect(participantNameChange(approved, "Asha ").namePublishingApproved).toBe(true);
+    expect(participantNameChange(approved, "Asha B").namePublishingApproved).toBe(false);
+  });
+
+  it("rejects invalid points, placements, schools, and empty approved names", () => {
+    expect(validateDraftRows([draft({ points: "" })])).toMatch(/manual points/i);
+    expect(validateDraftRows([draft({ points: "1.5" })])).toMatch(/manual points/i);
+    expect(validateDraftRows([draft({ placement: "0" })])).toMatch(/placements/i);
+    expect(validateDraftRows([draft({ schoolId: "" })])).toMatch(/eligible school/i);
+    expect(validateDraftRows([draft({ namePublishingApproved: true })])).toMatch(/participant name/i);
+  });
+
+  it("keeps existing multi-entry schools editable but blocks new duplicates", () => {
+    const existing = [row(), row()];
+    expect(validateDraftRows([draft(), draft({ key: "row-1" })], { initialRows: existing })).toBe("");
+    expect(validateDraftRows([draft(), draft({ key: "row-1" })] )).toMatch(/selected more than once/i);
+  });
+});
 
 describe("results editor publish gate", () => {
   it("allows a first publication without a correction reason", () => {

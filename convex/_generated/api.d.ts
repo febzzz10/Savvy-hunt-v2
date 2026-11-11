@@ -12,6 +12,7 @@ import type * as admins from "../admins.js";
 import type * as announcements from "../announcements.js";
 import type * as categories from "../categories.js";
 import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
 import type * as editions from "../editions.js";
 import type * as events from "../events.js";
 import type * as gallery from "../gallery.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   announcements: typeof announcements;
   categories: typeof categories;
   crons: typeof crons;
+  dashboard: typeof dashboard;
   editions: typeof editions;
   events: typeof events;
   gallery: typeof gallery;
