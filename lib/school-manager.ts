@@ -16,11 +16,13 @@ export function filterSchools(schools: School[], search: string, status: string,
   return schools.filter(s => (!status || s.status === status) && `${s.name} ${s.code ?? ""}`.toLowerCase().includes(query)).sort((a, b) =>
     sort === "updated" ? b.updatedAt - a.updatedAt || a.name.localeCompare(b.name) : sort === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 }
-export function schoolError(cause: unknown) {
+export function schoolError(cause: unknown, action: "save" | "delete" = "save") {
   const message = cause instanceof Error ? cause.message : String(cause);
+  if (/cannot be deleted|published results or scoreboard history/i.test(message)) return "This school has published results or scoreboard history and cannot be deleted. Set it to Inactive instead.";
   if (/published results/i.test(message)) return "This school has published results and cannot be deactivated. Its historical participation stays in the scoreboard.";
+  if (/STALE_SCHOOL|changed in another session/i.test(message)) return "This school changed in another session. Close this dialog and reopen it to load the latest details.";
   if (/already exists/i.test(message)) return "That school name or code is already in use. Check both fields and try again.";
   if (/UNAUTH|FORBIDDEN/i.test(message)) return "Your admin access could not be confirmed. Sign in again and retry.";
   if (/School missing/i.test(message)) return "This school is no longer available. Refresh the page to load the current list.";
-  return "We couldn’t save this school. Check your connection and try again. Your entries are still here.";
+  return action === "delete" ? "We couldn't delete this school. Check your connection and try again." : "We couldn't save this school. Check your connection and try again. Your entries are still here.";
 }

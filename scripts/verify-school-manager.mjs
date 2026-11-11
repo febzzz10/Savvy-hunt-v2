@@ -52,15 +52,18 @@ try {
     await expect(page.getByLabel("School name *", { exact: true })).toHaveValue("");
     await first.getByRole("button", { name: "View details" }).click();
     await expect(first.getByRole("heading", { name: "Published event contributions" })).toBeVisible();
-    const toggle = first.getByRole("button", { name: /^(Deactivate|Activate)$/ });
+    const toggle = first.getByRole("button", { name: `Delete ${schoolName}` });
     await toggle.click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Delete School?" })).toBeVisible();
+    await expect(dialog.getByText(schoolName, { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Are you sure you want to delete this school? This action cannot be undone.")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     await expect(toggle).toBeFocused();
   }
-  report.checks.push("Required-name validation, search/reset, status filter, sorting, edit population, cancel/reset, details and confirmation/Escape/focus return; no school mutations performed.");
+  report.checks.push("Required-name validation, search/reset, status filter, sorting, edit population, cancel/reset, details and Delete confirmation/Escape/focus return; no school mutations performed.");
   assert.deepEqual(report.errors, []);
 } catch (error) { report.failure = error.stack; process.exitCode = 1; }
 finally {

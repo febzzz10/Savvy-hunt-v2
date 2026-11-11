@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Load } from "@/components/data";
+import { Icon } from "@/components/ui";
 import { EventDialog, useUnsavedChanges } from "@/components/admin/events/shared";
 import { filterSchools, schoolError, validateSchool, type School, type SchoolValues } from "@/lib/school-manager";
 
@@ -19,12 +20,15 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
   const schools = useQuery(api.schools.listAdmin, { editionId });
   const standings = useQuery(api.scoreboard.getOverall, { editionId });
   const save = useMutation(api.schools.save);
+  const remove = useMutation(api.schools.remove);
   const [editing, setEditing] = useState<School>();
   const [values, setValues] = useState<SchoolValues>(blank);
   const [errors, setErrors] = useState<{ name?: string; code?: string }>({});
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false);
   const [search, setSearch] = useState(""), [status, setStatus] = useState(""), [sort, setSort] = useState("az");
   const [pending, setPending] = useState<{ school: School; values: SchoolValues; fromForm: boolean }>();
+  const [deleting, setDeleting] = useState<School>();
+  const [deleteError, setDeleteError] = useState("");
   const lock = useRef(false), nameInput = useRef<HTMLInputElement>(null), panel = useRef<HTMLDivElement>(null);
   const initial = editing ? { name: editing.name, code: editing.code ?? "", status: editing.status } : blank;
   const dirty = JSON.stringify(initial) !== JSON.stringify(values);
@@ -56,6 +60,17 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
     if (editing?.status === "active" && values.status === "archived") setPending({ school: editing, values, fromForm: true });
     else void persist(values, editing);
   }
+  async function deleteSchool() {
+    if (!deleting || lock.current) return;
+    lock.current = true; setBusy(true); setDeleteError("");
+    try {
+      await remove({ editionId, schoolId: deleting._id, expectedUpdatedAt: deleting.updatedAt });
+      setNotice(`${deleting.name} deleted.`);
+      setDeleting(undefined);
+      if (editing?._id === deleting._id) reset();
+    } catch (cause) { setDeleteError(schoolError(cause, "delete")); }
+    finally { lock.current = false; setBusy(false); }
+  }
   const filtered = schools ? filterSchools(schools, search, status, sort) : [];
   return <>
     {notice && <p className="event-notice" role="status">{notice}</p>}
@@ -84,19 +99,20 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
         </div>
         <div className="event-feed-summary"><span role="status">{schools ? `Showing ${filtered.length} of ${schools.length} schools` : "Loading participating schools…"}</span>{(search || status || sort !== "az") && <button className="text-link" onClick={() => { setSearch(""); setStatus(""); setSort("az"); }}>Clear filters</button>}</div>
         {schools && !filtered.length && <div className="school-empty"><h3>{schools.length ? "No matching schools" : "No schools added yet"}</h3><p>{schools.length ? "Try another name or clear the filters." : "Use the form to add your first participating school."}</p></div>}
-        {filtered.map(school => <SchoolItem key={school._id} school={school} points={standings?.find(s => s.id === school._id)?.points} busy={busy} editing={editing?._id === school._id} onEdit={() => edit(school)} onStatus={() => { if (editing?._id === school._id && dirty && !confirm("Discard your unsaved school changes if this status update succeeds?")) return; setError(""); setPending({ school, values: { name: school.name, code: school.code ?? "", status: school.status === "active" ? "archived" : "active" }, fromForm: false }); }} />)}
+        {filtered.map(school => <SchoolItem key={school._id} school={school} points={standings?.find(s => s.id === school._id)?.points} busy={busy} editing={editing?._id === school._id} onEdit={() => edit(school)} onDelete={() => { setDeleteError(""); setDeleting(school); }} />)}
       </section>
     </div>
     {pending && <EventDialog title={pending.values.status === "archived" ? "Deactivate school" : "Activate school"} busy={busy} onClose={() => { setPending(undefined); setError(""); }}><div className="event-dialog-body"><p>{pending.values.status === "archived" ? "Deactivate" : "Activate"} <strong>{pending.school.name}</strong>?</p><p className="small">{pending.values.status === "archived" ? "Schools with published participation history cannot be deactivated. If this school has no published historical participation, it will be removed from public standings and eligibility for new result entries; existing event references remain preserved." : "This school will appear in public standings again with its retained official points."}</p>{error && <p role="alert" className="error">{error}</p>}</div><footer className="event-dialog-footer"><div className="actions"><button className="button secondary" disabled={busy} onClick={() => { setPending(undefined); setError(""); }}>Cancel</button><button className="button" disabled={busy} onClick={() => void persist(pending.values, pending.school, pending.fromForm)}>{busy ? "Saving…" : pending.values.status === "archived" ? "Deactivate school" : "Activate school"}</button></div></footer></EventDialog>}
+    {deleting && <EventDialog title="Delete School?" busy={busy} onClose={() => { if (!busy) { setDeleting(undefined); setDeleteError(""); } }}><div className="event-dialog-body"><p><strong>{deleting.name}</strong></p><p>Are you sure you want to delete this school? This action cannot be undone.</p>{deleteError && <p role="alert" className="error">{deleteError}</p>}</div><footer className="event-dialog-footer"><div className="actions"><button className="button secondary" disabled={busy} onClick={() => { setDeleting(undefined); setDeleteError(""); }}>Cancel</button><button className="button" disabled={busy} onClick={() => void deleteSchool()}>{busy ? "Deleting…" : "Delete School"}</button></div></footer></EventDialog>}
   </>;
 }
-function SchoolItem({ school, points, busy, editing, onEdit, onStatus }: { school: School; points?: number; busy: boolean; editing: boolean; onEdit: () => void; onStatus: () => void }) {
+function SchoolItem({ school, points, busy, editing, onEdit, onDelete }: { school: School; points?: number; busy: boolean; editing: boolean; onEdit: () => void; onDelete: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const breakdown = useQuery(api.scoreboard.getContributionBreakdown, expanded || school.status === "archived" ? { schoolId: school._id } : "skip");
   const officialPoints = school.status === "archived" ? breakdown?.reduce((sum, row) => sum + row.points, 0) : points;
   return <article className="event-feed-item school-item" data-editing={editing} aria-label={school.name}>
     <div className="school-item-top"><div><h3>{school.name}</h3><p className="small school-code">{school.code || "No code assigned"} <span className="pill" data-status={school.status === "active" ? "published" : "completed"}>{school.status === "active" ? "Active" : "Inactive"}</span>{editing && <span className="school-edit-label">Editing</span>}</p></div><div className="school-points"><strong>{officialPoints ?? "—"}</strong><span>{officialPoints === undefined ? "Loading points…" : "Official points"}</span></div></div>
-    <div className="event-item-actions"><button className="button secondary" disabled={busy} onClick={onEdit}>Edit</button><button className="button secondary" disabled={busy} onClick={onStatus}>{school.status === "active" ? "Deactivate" : "Activate"}</button><button className="text-link" aria-expanded={expanded} aria-controls={`details-${school._id}`} onClick={() => setExpanded(!expanded)}>{expanded ? "Hide details" : "View details"}</button></div>
+    <div className="event-item-actions"><button className="button secondary" disabled={busy} onClick={onEdit}>Edit</button><button className="button secondary" disabled={busy} onClick={onDelete} aria-label={`Delete ${school.name}`}><Icon name="trash" />Delete</button><button className="text-link" aria-expanded={expanded} aria-controls={`details-${school._id}`} onClick={() => setExpanded(!expanded)}>{expanded ? "Hide details" : "View details"}</button></div>
     {expanded && <div id={`details-${school._id}`} className="school-details"><h4>Published event contributions</h4>{breakdown === undefined ? <p role="status">Loading contributions…</p> : breakdown.length ? <ul>{breakdown.map(row => <li key={row.eventId}><Link href={`/admin/events/${row.eventId}/results`}>{row.eventTitle}</Link><strong>{row.points} pts</strong></li>)}</ul> : <p>No published contributions.</p>}</div>}
   </article>;
 }
