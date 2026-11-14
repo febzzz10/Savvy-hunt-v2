@@ -6,6 +6,7 @@ const dm = DM_Sans({ subsets: ["latin"], variable: "--font-dm", display: "swap" 
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "./providers";
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 export const metadata: Metadata = { title: { default: "Savvy Hunt", template: "%s | Savvy Hunt" }, description: "School event schedules, official results, live standings, and approved snapshots." };
 export default function RootLayout({children}:{children:React.ReactNode}){return <ClerkProvider><html lang="en"><body className={`${fraunces.variable} ${dm.variable}`}><Providers>{children}</Providers><Footer /><Analytics /></body></html></ClerkProvider>}
