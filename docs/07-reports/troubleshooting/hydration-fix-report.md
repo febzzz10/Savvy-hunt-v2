@@ -45,7 +45,7 @@ changes were introduced. This follows React's documented
 | `components/connection-status.tsx` | Explicit SSR-safe external store; real Convex/network subscription and cleanup |
 | `tests/connection-status.test.tsx` | Three server-render regression cases; identical markup and no live-state/browser-global reads |
 | `scripts/verify-hydration.mjs` | Repeatable real-browser fresh-load, navigation, socket-reconnect, offline and optional live-subscription checks |
-| `HYDRATION_FIX_REPORT.md` | This report |
+| `hydration-fix-report.md` | This report |
 
 Pre-existing staged and unstaged project changes were preserved. No changes were
 needed in `components/public.tsx`, the providers, Clerk middleware or Convex backend.
@@ -116,4 +116,4 @@ authorization, gallery and server-route tests; those tests are not a new live Dr
 
 No persistent connection failure was observed in these checks. No production
 deployment or environment change was performed. Broader launch blockers documented
-in `PHASE4_RELEASE_REPORT.md` are outside this hydration fix.
+in `../verification/phase4-release-report.md` are outside this hydration fix.

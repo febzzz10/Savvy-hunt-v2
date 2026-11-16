@@ -1,9 +1,11 @@
 # Savvy Hunt — App Flow, Screen Map & State Transitions
 
-**File:** `appflow.md`  
+**File:** `application-flow.md`  
 **Status:** Coding-agent UX/workflow contract for MVP  
 **Updated:** 28 October 2026  
-**Related docs:** [`prd.md`](./prd.md) · [`database.md`](./database.md) · [`techspc.md`](./techspc.md) · [`architectur.md`](./architectur.md)
+**Related docs:** [`prd.md`](prd.md) · [`database.md`](database.md) · [`technical-specification.md`](technical-specification.md) · [`architecture.md`](architecture.md)
+
+> **Historical planning document (28 October 2026).** This records pre-implementation intent, not current behavior. Where it disagrees with the code, [README.md](../../../README.md), [agent.md](../../../agent.md) and [memory.md](../../../memory.md) take precedence. Known drift: the category route is `/scoreboard/[slug]`; there is no Google OAuth or website photo upload — the gallery is read-only service-account Drive sync.
 
 > **One-sentence flow:** Visitors browse live event status and published results; admins create schools/events and **manually enter event points in drafts**; an authorized publication changes the official Convex result, which **automatically updates public school/category leaderboards in real time**.
 
@@ -17,7 +19,7 @@ flowchart TD
     HOME --> RESULTS[Results & Winners /results]
     HOME --> GALLERY[Snapshots /snapshots]
     HOME --> ABOUT[About /about]
-    BOARD --> CAT[Category /scoreboard/categorySlug]
+    BOARD --> CAT[Category /scoreboard/slug]
     SCHED --> DETAIL[Event /events/eventSlug]
     RESULTS --> DETAIL
     DETAIL --> BOARD
@@ -70,7 +72,7 @@ flowchart LR
 
 **Scoreboard interactions:**
 1. Open `/scoreboard`; see schools sorted by total official points and rank.
-2. Select a category tab → navigate to `/scoreboard/[categorySlug]` (or preserve shareable URL).
+2. Select a category tab → navigate to `/scoreboard/[slug]` (or preserve shareable URL).
 3. Read only that category's totals and relevant published results.
 4. Select **All Schools / Overall** → return to overall standings.
 5. When an admin publishes/corrects/revokes results, table/top three update through Convex subscriptions without page refresh.
@@ -136,7 +138,7 @@ flowchart TD
 
 **States that must be distinct:** `auth-loading`, `unauthenticated`, `authenticated-not-allowlisted`, `forbidden-role`, `authorized`. Never show a success state solely because the browser has an email/session; Convex authorizes operations.
 
-**Open decision:** Identity provider not chosen; follow `techspc.md` integration requirements and don't invent insecure shared-password auth.
+**Open decision:** Identity provider not chosen; follow `technical-specification.md` integration requirements and don't invent insecure shared-password auth.
 
 ## 5. Admin: add/edit/archive a school
 
@@ -348,9 +350,9 @@ flowchart TD
 - Placement/medal tie policy, whether to show more than three tied schools in the home widget.
 - Participant display-name consent and official photo publication procedure.
 - Auth provider/admin roster; edit/publish role split is a default.
-- Direct Drive upload (Phase 2) versus approved existing Drive links (MVP default).
+- Direct Drive upload is not implemented; the gallery syncs approved folders read-only with a service account.
 - Event schedule and venue details; use editable data rather than hardcoded dates.
 
 ## 14. Coding-agent instruction
 
-> Implement the flows in this document in dependency order. Begin with one fully functional admin-to-public scoring workflow. Every public score or winner must come from the event's active published revision in Convex. Always show separate states for draft, official, pending, unauthorized and stale. Do not assume an event being live or completed means results are published. Use `database.md` for field/transaction rules, `techspc.md` for service boundaries, and `prd.md` for acceptance. After each feature, validate both an authorized admin flow and anonymous public behavior.
+> Implement the flows in this document in dependency order. Begin with one fully functional admin-to-public scoring workflow. Every public score or winner must come from the event's active published revision in Convex. Always show separate states for draft, official, pending, unauthorized and stale. Do not assume an event being live or completed means results are published. Use `database.md` for field/transaction rules, `technical-specification.md` for service boundaries, and `prd.md` for acceptance. After each feature, validate both an authorized admin flow and anonymous public behavior.

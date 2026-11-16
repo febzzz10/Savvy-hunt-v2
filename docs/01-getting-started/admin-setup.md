@@ -127,7 +127,7 @@ remove it after confirming the target:
 npx convex env remove --deployment quiet-chickadee-449 ADMIN_BOOTSTRAP_SECRET
 ```
 
-For production, follow `PRODUCTION_DEPLOYMENT.md` with the explicitly approved
+For production, follow `../05-deployment/production-deployment.md` with the explicitly approved
 production target. The dev helper intentionally cannot operate on production.
 The deployment owner can run the same internal function in the production
 dashboard's authenticated function runner after reviewing its arguments.

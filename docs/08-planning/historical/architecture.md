@@ -1,10 +1,12 @@
 # SAVVY HUNT — Coding Agent Architecture
 
-**File:** `architectur.md`  
+**File:** `architecture.md`  
 **Version:** 1.0 — 28 October 2026  
 **Project:** Savvy Hunt school event website  
 **Reference:** https://github.com/roohiiiit/Savvy-Hunt/tree/main/Savvy-Hunt  
-**Product specification:** [`plan.md`](./plan.md)
+**Product specification:** [`plan.md`](plan.md)
+
+> **Historical planning document (28 October 2026).** This records pre-implementation architecture and rationale, not current behavior. Where it disagrees with the code, [README.md](../../../README.md), [agent.md](../../../agent.md) and [memory.md](../../../memory.md) take precedence. Known drift: Clerk is the implemented auth provider; the category route is `/scoreboard/[slug]`; Drive access is read-only through a service account (no OAuth, refresh token or upload).
 
 > **For coding agents:** Read this file before changing code. `plan.md` defines feature scope; **this file defines implementation boundaries and data flow**. If an unconfirmed choice affects implementation, flag it rather than pretending the school decided it. Build one working vertical slice at a time.
 
@@ -47,7 +49,7 @@ Savvy Hunt is a public, real-time scoreboard and school event website with a res
 - Six categories are seeded per edition; scores are nonnegative **integers** until official point policy changes.
 - Publish requires explicit confirmation; typing a score never updates public totals.
 - Admin roles: `super_admin` and `editor`; only `super_admin` publishes by default.
-- Snapshots means approved photos; direct upload from the website is **Phase 2**.
+- Snapshots means approved photos; organizers upload in Drive and the site reads them read-only (website upload was not adopted).
 - Dates, venues, branding, participant-name permissions, and actual audience size remain open.
 
 **Agent rule:** Do not invent school names, participant names, event results, date, points policy, or domain. Use clearly labeled development fixtures only in development.
@@ -92,7 +94,7 @@ flowchart TD
 |---|---|---|
 | `/` | `scoreboard.getTopThree`, `events.listPublic`, `results.listRecentPublished`, `siteSettings.getPublic` | Hero, top 3, live, upcoming, recent results |
 | `/scoreboard` | `scoreboard.getOverall` | Overall school leaderboard + category tabs |
-| `/scoreboard/[categorySlug]` | `scoreboard.getCategory` | One category leaderboard and recent results |
+| `/scoreboard/[slug]` | `scoreboard.getCategory` | One category leaderboard and recent results |
 | `/schedule` | `events.listPublic` | Upcoming / Live / Completed + filters |
 | `/events/[eventSlug]` | `events.getPublicBySlug`, `results.getPublishedByEvent` | Event detail, status, official winners |
 | `/results` | `results.listRecentPublished` | Official result history |
@@ -123,13 +125,13 @@ flowchart TD
 savvy-hunt/
 ├── app/
 │   ├── layout.tsx                   # Root providers, global layout
-│   ├── providers.tsx                # Client-side Convex + auth providers
+│   ├── providers.tsx                # Client-side Convex + Clerk providers
 │   ├── (public)/
 │   │   ├── layout.tsx               # Public header/footer
 │   │   ├── page.tsx                 # Homepage /
 │   │   ├── scoreboard/
 │   │   │   ├── page.tsx
-│   │   │   └── [categorySlug]/page.tsx
+│   │   │   └── [slug]/page.tsx
 │   │   ├── schedule/page.tsx
 │   │   ├── events/[eventSlug]/page.tsx
 │   │   ├── results/page.tsx
@@ -158,7 +160,7 @@ savvy-hunt/
 │   └── gallery/                     # GalleryGrid, PhotoForm
 ├── convex/
 │   ├── schema.ts
-│   ├── auth.config.ts              # Only if required by chosen auth integration
+│   ├── auth.config.ts              # Convex auth config (Clerk issuer)
 │   ├── editions.ts
 │   ├── categories.ts
 │   ├── schools.ts
@@ -186,7 +188,7 @@ savvy-hunt/
 ├── public/                           # School-approved static assets only
 ├── .env.example
 ├── plan.md
-├── architectur.md
+├── architecture.md
 └── README.md
 ```
 
@@ -403,7 +405,7 @@ siteSettings.update                         # super_admin only
 ### Security helper pattern
 
 ```ts
-// Conceptual only — adapt to selected auth provider.
+// Conceptual only — Clerk plus the Convex admins allowlist is the implemented pattern.
 async function requireAdmin(ctx, requiredCapability) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Authentication required");
@@ -417,7 +419,7 @@ async function requireAdmin(ctx, requiredCapability) {
 
 Use `requireAdmin()` **inside every sensitive Convex query/mutation/action**, not solely in Next.js route guards. For a server-side Drive operation, verify the admin's identity using a **supported, token-verified server integration**; do not trust `adminId` supplied by the browser.
 
-**Auth implementation decision:** Convex Auth is available but its Next.js SSR/Route Handler support is still experimental. Preferred MVP is **client-side admin UI with Convex-authorized backend operations**, after selecting a supported auth provider. Avoid implementing admin upload via Next.js until its token/session verification is tested. If robust server-side auth is essential, request approval for a supported hosted provider such as Clerk instead of inventing custom credentials.
+**Auth implementation decision (resolved):** Clerk is implemented with the `convex` JWT template and `CLERK_JWT_ISSUER_DOMAIN`; `convex/lib/security.ts` resolves the Clerk `tokenIdentifier` against the active `admins` allowlist. Convex Auth was considered and not adopted. There is no second provider, public signup or browser bootstrap secret; keep every administrative check server-side.
 
 ---
 
@@ -525,13 +527,13 @@ Test Drive folder (if used)       School-owned approved Drive folder
 # Safe for browser exposure
 NEXT_PUBLIC_CONVEX_URL=
 
-# Vercel server-only, if image proxy is implemented
+# Vercel server-only, read-only Drive access
 GOOGLE_DRIVE_FOLDER_ID=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REFRESH_TOKEN=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
+GALLERY_PROXY_SECRET=
 
-# Add provider-specific auth config after deciding integration.
+# Clerk auth: publishable key is browser-safe; secret and issuer stay server-side.
 # Never prefix credentials with NEXT_PUBLIC_.
 ```
 
@@ -644,6 +646,6 @@ GOOGLE_REFRESH_TOKEN=
 
 ## 16. Agent instruction to copy into a coding session
 
-> Read `architectur.md` and `plan.md` first. Build the Savvy Hunt application using Next.js App Router, TypeScript, Convex, Vercel and Google Drive. Follow the architecture's data model and permission boundaries. Prioritize a working end-to-end flow (create school → create event → save draft points → publish → reactive scoreboard → correction). Never hardcode school lists or official scores, never show drafts publicly, and never alter cumulative totals directly. Keep backend authorization and result publication atomic. Implement in small steps; after each step run typecheck/tests and report files changed, checks run, and unresolved blockers. Ask before introducing additional paid services or changing confirmed requirements.
+> Read `architecture.md` and `plan.md` first. Build the Savvy Hunt application using Next.js App Router, TypeScript, Convex, Vercel and Google Drive. Follow the architecture's data model and permission boundaries. Prioritize a working end-to-end flow (create school → create event → save draft points → publish → reactive scoreboard → correction). Never hardcode school lists or official scores, never show drafts publicly, and never alter cumulative totals directly. Keep backend authorization and result publication atomic. Implement in small steps; after each step run typecheck/tests and report files changed, checks run, and unresolved blockers. Ask before introducing additional paid services or changing confirmed requirements.
 
-**End of `architectur.md` — v1.0.**
+**End of `architecture.md` — v1.0.**

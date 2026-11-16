@@ -3,7 +3,9 @@
 **File:** `prd.md`  
 **Status:** Implementation-ready MVP scope, with explicitly marked working defaults  
 **Updated:** 28 October 2026  
-**Related:** [`plan.md`](./plan.md) · [`architectur.md`](./architectur.md) · [`database.md`](./database.md) · [`techspc.md`](./techspc.md) · [`appflow.md`](./appflow.md)
+**Related:** [`plan.md`](plan.md) · [`architecture.md`](architecture.md) · [`database.md`](database.md) · [`technical-specification.md`](technical-specification.md) · [`application-flow.md`](application-flow.md)
+
+> **Historical planning document (28 October 2026).** This records pre-implementation intent, not current behavior. Where it disagrees with the code, [README.md](../../../README.md), [agent.md](../../../agent.md) and [memory.md](../../../memory.md) take precedence. Known drift: authentication is Clerk; the category route is `/scoreboard/[slug]`; there is no Google OAuth or website photo upload — the gallery is read-only service-account Drive sync.
 
 > **Coding-agent summary:** Build a public school-event website and a secure organizer dashboard. Schools are created by admins. Each event belongs to one of six categories. Admins **manually enter points per event**; publishing an official result **automatically updates live school-wise, category-wise and overall leaderboards**. Google Drive holds gallery originals; Convex is the source of truth for scores.
 
@@ -61,7 +63,7 @@
 |---|---|---|---|
 | PR-01 | `/` | Savvy Hunt hero, live/upcoming events, top three schools, recent published results, gallery preview. | P0 |
 | PR-02 | `/scoreboard` | All active participating schools ranked by **overall official points**; category filters and zero-score states. | P0 |
-| PR-03 | `/scoreboard/[categorySlug]` | Category-specific leaderboard; show only points earned from that category's events. | P0 |
+| PR-03 | `/scoreboard/[slug]` | Category-specific leaderboard; show only points earned from that category's events. | P0 |
 | PR-04 | `/schedule` | Sort/filter scheduled events by category, day, and status. Display times using event timezone. | P0 |
 | PR-05 | `/events/[eventSlug]` | Event details, current status, and official winners/points when published; otherwise “Results pending.” | P0 |
 | PR-06 | `/results` | Recent **published** event results, searchable/filterable as needed. | P1 |
@@ -89,7 +91,7 @@
 - Direct editing of a school's cumulative total.
 - Public write access to results or photos.
 - Building a social feed/chat or a native mobile app.
-- Browser-to-Drive upload unless explicitly approved (Phase 2).
+- Browser-to-Drive upload; organizers use Drive folders and the site syncs read-only.
 
 ## 4. Functional acceptance criteria
 
@@ -131,7 +133,7 @@ Results view displays only active published result entries. When an event is com
 
 ### FR-09 — Gallery
 
-An admin registers or curates approved Google Drive images. Media must be approved and have alt text and confirmation of necessary photo permissions. Public queries never return hidden/draft media. Broken files display a graceful placeholder. Google credentials stay server-side.
+An admin reviews photos imported read-only from an organizer-managed Google Drive folder. Media must be approved and have alt text and confirmation of necessary photo permissions. Public queries never return hidden/draft media. Broken files display a graceful placeholder. Google credentials stay server-side.
 
 ### FR-10 — Authorization and audit
 
@@ -189,6 +191,6 @@ Anonymous users can read public results but cannot invoke admin operations. A va
 
 ## 9. Agent instructions
 
-- Scope is defined here; **implementation authority** lives in `techspc.md`, **data contracts** in `database.md`, **screens/transitions** in `appflow.md`. `architectur.md` and `plan.md` provide broader background.
+- Scope is defined here; **implementation authority** lives in `technical-specification.md`, **data contracts** in `database.md`, **screens/transitions** in `application-flow.md`. `architecture.md` and `plan.md` provide broader background.
 - Do not invent official events, schools, points, participant names, dates or domain. Use development-only labeled fixtures.
 - Implement vertical slices and test backend constraints before polishing UI. Report any unresolved working default before treating it as an organizer decision.

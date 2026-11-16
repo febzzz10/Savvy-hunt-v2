@@ -1,6 +1,6 @@
 # Savvy Hunt design implementation
 
-Source: `savvy-hunt-design-handoff/design.md` (read in full) and its accompanying mockup.
+Source: `../../04-design/design-handoff.md` (read in full) and its accompanying mockup.
 
 ## Phase 0 — Audit
 
@@ -76,18 +76,18 @@ Screenshots are stored locally in the gitignored `verification-evidence` directo
 
 | Page | Before | After |
 | --- | --- | --- |
-| Home desktop | [Before](../verification-evidence/redesign/before/home-1440.png) | [After](../verification-evidence/redesign/production/home-1440.png) |
-| Home mobile | [Before](../verification-evidence/redesign/before/home-390.png) | [After](../verification-evidence/redesign/production/home-390.png) |
-| Scoreboard | [Before](../verification-evidence/redesign/before/scoreboard-1440.png) | [After](../verification-evidence/redesign/production/scoreboard-1440.png) |
-| Schedule | [Before](../verification-evidence/redesign/before/schedule-1440.png) | [Filtered](../verification-evidence/redesign/after/schedule-filtered-1440.png) |
-| Results | [Before](../verification-evidence/redesign/before/results-1440.png) | [After](../verification-evidence/redesign/production/results-1440.png) |
-| Snapshots | [Before](../verification-evidence/redesign/before/snapshots-1440.png) | [After](../verification-evidence/redesign/production/snapshots-1440.png) |
-| About | [Before](../verification-evidence/redesign/before/about-1440.png) | [After](../verification-evidence/redesign/production/about-1440.png) |
-| Sign-in | [Before](../verification-evidence/redesign/before/admin-login-1440.png) | [After](../verification-evidence/redesign/production/admin-login-1440.png) |
-| Admin dashboard | [Earlier baseline](../verification-evidence/phase4-admin-1440.png) | [After](../verification-evidence/redesign/integrations/admin-1440.png) |
-| Gallery management | [Earlier baseline](../verification-evidence/phase4-admin-gallery-1440.png) | [After](../verification-evidence/redesign/integrations/admin-gallery-1440.png) |
+| Home desktop | [Before](../../../verification-evidence/redesign/before/home-1440.png) | [After](../../../verification-evidence/redesign/production/home-1440.png) |
+| Home mobile | [Before](../../../verification-evidence/redesign/before/home-390.png) | [After](../../../verification-evidence/redesign/production/home-390.png) |
+| Scoreboard | [Before](../../../verification-evidence/redesign/before/scoreboard-1440.png) | [After](../../../verification-evidence/redesign/production/scoreboard-1440.png) |
+| Schedule | [Before](../../../verification-evidence/redesign/before/schedule-1440.png) | [Filtered](../../../verification-evidence/redesign/after/schedule-filtered-1440.png) |
+| Results | [Before](../../../verification-evidence/redesign/before/results-1440.png) | [After](../../../verification-evidence/redesign/production/results-1440.png) |
+| Snapshots | [Before](../../../verification-evidence/redesign/before/snapshots-1440.png) | [After](../../../verification-evidence/redesign/production/snapshots-1440.png) |
+| About | [Before](../../../verification-evidence/redesign/before/about-1440.png) | [After](../../../verification-evidence/redesign/production/about-1440.png) |
+| Sign-in | [Before](../../../verification-evidence/redesign/before/admin-login-1440.png) | [After](../../../verification-evidence/redesign/production/admin-login-1440.png) |
+| Admin dashboard | [Earlier baseline](../../../verification-evidence/phase4-admin-1440.png) | [After](../../../verification-evidence/redesign/integrations/admin-1440.png) |
+| Gallery management | [Earlier baseline](../../../verification-evidence/phase4-admin-gallery-1440.png) | [After](../../../verification-evidence/redesign/integrations/admin-gallery-1440.png) |
 
-[Signed-in unauthorized state](../verification-evidence/redesign/integrations/admin-unauthorized.png) · [Filter-empty results](../verification-evidence/redesign/after/results-filter-empty-1440.png) · [Production metrics](../verification-evidence/redesign/production/metrics.json)
+[Signed-in unauthorized state](../../../verification-evidence/redesign/integrations/admin-unauthorized.png) · [Filter-empty results](../../../verification-evidence/redesign/after/results-filter-empty-1440.png) · [Production metrics](../../../verification-evidence/redesign/production/metrics.json)
 
 ## Limits requiring real event content or deployment verification
 

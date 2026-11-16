@@ -1,9 +1,11 @@
 # Savvy Hunt — Technical Specification (Coding Agent)
 
-**File:** `techspc.md`  
+**File:** `technical-specification.md`  
 **Status:** Implementation contract (MVP); unconfirmed choices are labeled  
 **Updated:** 28 October 2026  
-**Read with:** [`prd.md`](./prd.md) · [`database.md`](./database.md) · [`appflow.md`](./appflow.md) · [`architectur.md`](./architectur.md) · [`plan.md`](./plan.md)
+**Read with:** [`prd.md`](prd.md) · [`database.md`](database.md) · [`application-flow.md`](application-flow.md) · [`architecture.md`](architecture.md) · [`plan.md`](plan.md)
+
+> **Historical planning document (28 October 2026).** This records pre-implementation intent, not current behavior. Where it disagrees with the code, [README.md](../../../README.md), [agent.md](../../../agent.md) and [memory.md](../../../memory.md) take precedence. Known drift: Clerk is implemented; the category route is `/scoreboard/[slug]`; Drive access is read-only through a service account (no OAuth, refresh token or upload).
 
 > **Mission:** Build a reliable, real-time school event website using **Next.js App Router + TypeScript + Convex + Vercel + Google Drive**. The hardest requirement is **manual points per event with automatic, exactly-once aggregation upon official publication**. Build that backend contract before polishing cards/animations.
 
@@ -13,9 +15,9 @@
 |---|---|
 | `prd.md` | **What** is the product and what counts as correct? |
 | `database.md` | **What data** exists and how must scoring behave? |
-| **`techspc.md`** | **How** is the application organized and implemented? |
-| `appflow.md` | **How** do visitors and admins move through screens and states? |
-| `architectur.md` | System boundaries, original architectural rationale. |
+| **`technical-specification.md`** | **How** is the application organized and implemented? |
+| `application-flow.md` | **How** do visitors and admins move through screens and states? |
+| `architecture.md` | System boundaries, original architectural rationale. |
 | `plan.md` | Full roadmap, requirements background and operations. |
 
 If files appear to conflict: **owner-confirmed decisions override all defaults**. For a technical inconsistency, preserve scoring/security invariants, report the conflict and resolve it before making irreversible changes. No document grants permission to invent official event data.
@@ -57,13 +59,13 @@ flowchart LR
 savvy-hunt/
 ├── app/
 │   ├── layout.tsx
-│   ├── providers.tsx                   # client Convex + chosen auth provider
+│   ├── providers.tsx                   # client Convex + Clerk provider
 │   ├── (public)/
 │   │   ├── layout.tsx                  # public header/footer
 │   │   ├── page.tsx                    # /
 │   │   ├── scoreboard/
 │   │   │   ├── page.tsx
-│   │   │   └── [categorySlug]/page.tsx
+│   │   │   └── [slug]/page.tsx
 │   │   ├── schedule/page.tsx
 │   │   ├── events/[eventSlug]/page.tsx
 │   │   ├── results/page.tsx
@@ -117,9 +119,9 @@ savvy-hunt/
 ├── .env.example
 ├── prd.md
 ├── database.md
-├── techspc.md
-├── appflow.md
-├── architectur.md
+├── technical-specification.md
+├── application-flow.md
+├── architecture.md
 ├── plan.md
 └── README.md
 ```
@@ -134,7 +136,7 @@ savvy-hunt/
 |---|---|---|
 | `/` | `scoreboard.getTopThree`, `events.listPublic`, `results.listRecentPublished`, `siteSettings.getPublic` | `TopThree`, `LiveEventStrip`, `RecentResults` |
 | `/scoreboard` | `scoreboard.getOverall`, `categories.listCurrent` | `LeaderboardTable`, `CategoryTabs` |
-| `/scoreboard/[categorySlug]` | `scoreboard.getCategory`, `categories.listCurrent` | `LeaderboardTable`, `CategoryTabs` |
+| `/scoreboard/[slug]` | `scoreboard.getCategory`, `categories.listCurrent` | `LeaderboardTable`, `CategoryTabs` |
 | `/schedule` | `events.listPublic` | `EventFilters`, `EventCard` |
 | `/events/[eventSlug]` | `events.getPublicBySlug`, `results.getPublishedByEvent` | `EventDetail`, `WinnerList` |
 | `/results` | `results.listRecentPublished` | `ResultFeed` |
@@ -270,10 +272,10 @@ GET /api/gallery/[itemId]/image
   -> handle missing/inaccessible file with safe placeholder/status
 ```
 
-- Direct Drive public links may be provided **only if organizers intentionally approve public sharing**. Drive preview/thumbnail URLs are not a guaranteed high-traffic CDN.
+- Public Drive links are not used; verified bytes are served only through the checked image proxy route. Drive preview/thumbnail URLs are not a guaranteed high-traffic CDN.
 - Verify Google Drive API authorization and server deployment economics first. If a secure image endpoint cannot be implemented for MVP, show curated approved links/placeholder until approved alternative delivery is chosen; **do not fabricate working images**.
 - Prevent arbitrary Drive file proxying, credential exposure, cache leakage after hide, and public folder enumerations.
-- Direct website upload to Drive is **Phase 2**, not assumed to be approved.
+- Direct website upload to Drive was not adopted; the gallery syncs an approved folder read-only.
 
 ## 10. Environment configuration
 
@@ -281,17 +283,17 @@ GET /api/gallery/[itemId]/image
 # Browser-readable public deployment URL
 NEXT_PUBLIC_CONVEX_URL=
 
-# Authentication variables: provider-specific, decide after choosing provider
+# Authentication: Clerk (`convex` JWT template, issuer domain)
 # ...
 
-# Server-only Google Drive integration (exact auth model TBD)
+# Server-only Google Drive integration: read-only service account
 GOOGLE_DRIVE_FOLDER_ID=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REFRESH_TOKEN=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
+GALLERY_PROXY_SECRET=
 ```
 
-**These are illustrative variable names, not an approved final auth strategy.** Use service-account configuration only if the school's Drive-sharing and provider setup support it. Keep secrets in Vercel/Convex environment settings appropriate to their execution location. Never commit credentials or use `NEXT_PUBLIC_` for any secret.
+**Clerk and the read-only service account are the implemented configuration.** See [README.md](../../../README.md) and [../../05-deployment/gallery-drive-setup.md](../../05-deployment/gallery-drive-setup.md). Never commit credentials or use `NEXT_PUBLIC_` for any secret.
 
 ### Environments
 
@@ -382,4 +384,4 @@ Use compatible test tooling (e.g. Vitest for units and Playwright for E2E) **onl
 - Google Drive file retrieval: https://developers.google.com/workspace/drive/api/guides/manage-downloads
 - Vercel environment configuration: https://vercel.com/docs/environment-variables
 
-**Coding instruction:** Follow product rules in `prd.md`, data constraints in `database.md`, and screen transitions in `appflow.md`. Prioritize the secured P0 vertical slice over superficial page completion. Stop and flag contradictions involving confirmed requirements, privacy, cost, authentication or official scoring policy.
+**Coding instruction:** Follow product rules in `prd.md`, data constraints in `database.md`, and screen transitions in `application-flow.md`. Prioritize the secured P0 vertical slice over superficial page completion. Stop and flag contradictions involving confirmed requirements, privacy, cost, authentication or official scoring policy.

@@ -1,6 +1,22 @@
 # Savvy Hunt
 
-School event management website built with Next.js App Router, TypeScript, Tailwind CSS, Convex, Clerk, and Google Drive. **See [the Phase 4 release report](PHASE4_RELEASE_REPORT.md) for current evidence and blockers, and [production deployment instructions](PRODUCTION_DEPLOYMENT.md) for the release procedure. The configured Drive folder is now readable; see the [Drive-only gallery report](docs/gallery-drive-only-report.md) for current gallery verification. No production deployment has been performed.**
+School event management website built with Next.js App Router, TypeScript, Tailwind CSS, Convex, Clerk, and Google Drive. **See [the Phase 4 release report](docs/07-reports/verification/phase4-release-report.md) for release verification evidence and remaining gates, and [production deployment instructions](docs/05-deployment/production-deployment.md) for the procedure. Its Drive-folder 404 was later superseded: see the [Drive-only gallery report](docs/07-reports/implementation/gallery-drive-only-report.md) for current gallery verification. No production deployment has been performed.**
+
+## Documentation map
+
+- **Canonical:** [agent.md](agent.md) (engineering rules), [memory.md](memory.md) (evidence and current state), this README (setup and operations).
+- **Everything else:** [docs/README.md](docs/README.md) indexes design, deployment, reports and historical planning. Historical planning specs are under `docs/08-planning/historical/`; they record pre-implementation intent, and the code and canonical files above win.
+
+## Commands
+
+| Task | Command |
+|---|---|
+| Install | `npm ci` |
+| Development server | `npm run dev` |
+| Convex dev (deployment-affecting) | `npm run convex` |
+| ESLint plus full types | `npm run lint` |
+| Unit/isolated backend tests | `npm test` |
+| Production build | `npm run build` |
 
 ## Development setup
 
@@ -8,7 +24,7 @@ School event management website built with Next.js App Router, TypeScript, Tailw
 2. Create a **development** Clerk application and a separate **development** Convex project. In Clerk, configure a JWT template named `convex` with audience `convex`. Follow the [Convex Clerk setup](https://docs.convex.dev/auth/clerk) for the current issuer domain.
 3. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, and `CLERK_SECRET_KEY`. Do not put server secrets in a `NEXT_PUBLIC_` variable.
 4. Run `npx convex dev` and complete its interactive login/project selection. This generates `convex/_generated/`, synchronizes `convex/auth.config.ts`, and deploys backend functions. Commit the CLI-generated bindings; do not edit them manually. Set `CLERK_JWT_ISSUER_DOMAIN` in the **Convex development deployment**.
-5. Sign in at `/admin/login` and copy your complete identity key from `/admin/request-access`. Follow the [admin setup guide](docs/admin-setup.md): an existing super admin grants access through `/admin/admins`; on an empty installation only, the deployment owner runs the internal one-time bootstrap from the terminal. `/admin/setup` initializes the edition and six categories after approval. No public signup grants admin access, and there is no browser bootstrap secret.
+5. Sign in at `/admin/login` and copy your complete identity key from `/admin/request-access`. Follow the [admin setup guide](docs/01-getting-started/admin-setup.md): an existing super admin grants access through `/admin/admins`; on an empty installation only, the deployment owner runs the internal one-time bootstrap from the terminal. `/admin/setup` initializes the edition and six categories after approval. No public signup grants admin access, and there is no browser bootstrap secret.
 6. Run `npm run dev`. Use `/admin/admins` to add other allowlisted identities. A signed-in user may view their own provider-scoped identity key at `/admin/request-access` and give it to a super admin through an approved organization channel.
 
 ## Drive gallery setup
@@ -17,7 +33,7 @@ Organizers upload photos **directly to Google Drive**. The website has no upload
 
 Set `GOOGLE_DRIVE_FOLDER_ID` to the gallery folder ID in **both** Convex deployment env and the Next.js/Vercel server env. Leave `GOOGLE_DRIVE_INCOMING_FOLDER_ID` unset to use that same folder for incoming photos. If a separate Incoming folder is set, an organizer must move photos manually into the gallery folder before approval; the application never writes to Google Drive.
 
-Share the folder directly with `GOOGLE_SERVICE_ACCOUNT_EMAIL` as **Viewer**, and set `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` and the same `GALLERY_PROXY_SECRET` in both server environments. A shared personal My Drive folder is supported for this read-only workflow; a Workspace Shared Drive is optional. Supported images are JPEG, PNG, WebP, GIF and AVIF up to **15 MB**. Credentials remain server-side. See [the gallery setup guide](docs/gallery-drive-setup.md) for permissions, configuration and 404 diagnosis.
+Share the folder directly with `GOOGLE_SERVICE_ACCOUNT_EMAIL` as **Viewer**, and set `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` and the same `GALLERY_PROXY_SECRET` in both server environments. A shared personal My Drive folder is supported for this read-only workflow; a Workspace Shared Drive is optional. Supported images are JPEG, PNG, WebP, GIF and AVIF up to **15 MB**. Credentials remain server-side. See [the gallery setup guide](docs/05-deployment/gallery-drive-setup.md) for permissions, configuration and 404 diagnosis.
 
 ## Verification
 
@@ -36,7 +52,7 @@ For testing the optimized frontend, run `npm run build`, then `npx next start -p
 1. Create separate production Clerk and Convex projects. Configure their issuer, JWT template, and Vercel environment variables. Never reuse development data or credentials.
 2. Generate bindings with the production-compatible schema and deploy Convex backend functions. Review schema changes and backup/export official data before any scoring migration.
 3. Deploy the Next.js site to Vercel only after build, integration, security, responsive, and real-time checks pass. Set production Drive service account secrets and folder ID only in server-side environments.
-4. Perform owner-only first-admin setup in production using the internal bootstrap, initialize the edition, then add authorized staff. Follow [the admin setup guide](docs/admin-setup.md); remove any obsolete `ADMIN_BOOTSTRAP_SECRET`. Enter official schools and events through the admin UI.
+4. Perform owner-only first-admin setup in production using the internal bootstrap, initialize the edition, then add authorized staff. Follow [the admin setup guide](docs/01-getting-started/admin-setup.md); remove any obsolete `ADMIN_BOOTSTRAP_SECRET`. Enter official schools and events through the admin UI.
 5. Keep a manual tally sheet and a named decision maker for corrections during the event.
 
 ## Rollback

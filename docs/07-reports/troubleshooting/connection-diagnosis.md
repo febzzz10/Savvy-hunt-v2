@@ -119,7 +119,7 @@ transport failure. Production log access and production behavior were not tested
 
 Keep `.env.local` on development credentials. Configure production separately,
 following [Clerk's production guide](https://clerk.com/docs/guides/development/deployment/production)
-and the existing [deployment runbook](../PRODUCTION_DEPLOYMENT.md):
+and the existing [deployment runbook](../../05-deployment/production-deployment.md):
 
 1. Create/select the production Clerk instance; configure and verify its custom
    domain/DNS, HTTPS, sign-in/sign-out redirects and authorized origins. Configure

@@ -1,12 +1,12 @@
 # Savvy Hunt production deployment instructions
 
 Prepared 28 October 2026. **Instructions only: no production deployment was performed.**
-Read `PHASE4_RELEASE_REPORT.md` before release. Drive folder access, approved-image
+Read `../07-reports/verification/phase4-release-report.md` before release. Drive folder access, approved-image
 verification, credential rotation and organizer sign-off are release gates.
 
 ## 1. Freeze the release candidate
 
-Review the complete Git diff, including the gallery upload/sync work present in this
+Review the complete Git diff, including the gallery sync/moderation work present in this
 workspace. Its optional schema fields and additional gallery tables require explicit
 review; they are separate from the Phase 4 frontend fixes. Preserve scoring revision
 pointers, transaction boundaries, authorization and audit history. Commit the lockfile
@@ -47,11 +47,11 @@ Drive and the domain. Keep preview and production credentials and data separate.
 | `GALLERY_PROXY_SECRET` | Random secret | Identical secret | Never a browser variable |
 | `CONVEX_DEPLOY_KEY` | Scoped build secret, if CI deploys backend | — | Production key only in Production; preview key only in Preview |
 
-The independently added gallery supports optional OAuth credentials for personal
-My Drive writes. Do not switch modes merely to conceal the present access failure.
-If uploads/moves are required, confirm the school's approved write mode and follow
-`docs/gallery-drive-setup.md`. Service-account reads of a shared My Drive folder and
-service-account ownership of new uploads have different requirements.
+The gallery is read-only by design: organizers place photos in the approved Drive
+folder, Convex imports metadata and moderates publication, and the Next.js route serves
+verified bytes. No Google OAuth, refresh token or website upload exists. Confirm folder
+sharing with the service account as Viewer and follow `gallery-drive-setup.md`.
+Do not add write credentials to work around a folder-access failure.
 
 ## 3. Close the Drive gate first
 
@@ -105,7 +105,7 @@ the reviewed backend and matching frontend together. Do not point production at
    function in the authenticated deployment-owner dashboard/CLI, with the complete
    identity key and display name. This runs only on an empty installation; existing
    super admins grant further access through `/admin/admins`. Follow
-   `docs/admin-setup.md`, remove any obsolete `ADMIN_BOOTSTRAP_SECRET`, and configure
+   `../01-getting-started/admin-setup.md`, remove any obsolete `ADMIN_BOOTSTRAP_SECRET`, and configure
    the official edition/roster through protected workflows. Do not import development fixtures.
 3. On real staff devices, rehearse password/MFA/OAuth, sign-out, account recovery,
    lost-device handling and revocation with the chosen policy. Development test OTPs

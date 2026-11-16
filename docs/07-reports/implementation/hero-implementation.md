@@ -27,7 +27,7 @@ The three large SVGs total about 4.4MB. Their generated delivery versions total 
 - `public/images/hero/{brush-stroke,botanical-accent,handwritten-accent}-optimized.webp`: generated delivery assets.
 - `tests/home-loading.test.tsx`, `tests/home-sections.test.tsx`: isolated Next font mock and new two-line headline expectation.
 - `scripts/optimize-hero-artwork.mjs`, `scripts/verify-hero.mjs`: reproducible asset optimization and browser verification.
-- `docs/hero-implementation.md`: this report.
+- `hero-implementation.md`: this report.
 
 ## Responsive behavior
 

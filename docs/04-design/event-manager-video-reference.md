@@ -1,9 +1,9 @@
 # Savvy Hunt — Admin Events Redesign (Reference Video Adaptation)
 
-> Status: Approved direction pending implementation. 29 October 2026.  
+> Status: Implemented 29 October 2026; retained as the design brief. See [../07-reports/implementation/event-manager-redesign.md](../07-reports/implementation/event-manager-redesign.md) for what shipped.  
 > Target: existing organizer Events interface, not a new application.  
 > Visual references: `event-manager-reference.jpg` and `publish-winners-reference.jpg` extracted from the user-provided 32-second reference video.  
-> Must also obey the main Savvy Hunt `design.md` specification.
+> Must also obey the main Savvy Hunt `design-system.md` specification.
 
 ## 1. Intent
 
@@ -198,4 +198,4 @@ At widths below ~1024px stack panel and event feed. The Create Event panel may c
 
 ## 13. Copy/paste agent instruction
 
-> Read `design.md`, `ADMIN_EVENTS_VIDEO_REFERENCE.md`, and the two supplied reference screenshots. Inspect the existing Savvy Hunt source tree and map existing event and scoring capabilities before coding. Redesign the current admin Events page to match the reference video's efficient two-column Event Manager and Publish Winners modal while retaining the approved bright sage/ivory aesthetic. Reuse existing Next.js, Tailwind, Clerk, Convex, permissions, manual event-based scoring, aggregation and audit flows. Do not copy the video's hard-coded point scheme, extra passcode, or independent backend. Implement and verify the working page; report any gaps or constraints rather than silently inventing schema fields.
+> Read `design-system.md`, `event-manager-video-reference.md`, and the two supplied reference screenshots. Inspect the existing Savvy Hunt source tree and map existing event and scoring capabilities before coding. Redesign the current admin Events page to match the reference video's efficient two-column Event Manager and Publish Winners modal while retaining the approved bright sage/ivory aesthetic. Reuse existing Next.js, Tailwind, Clerk, Convex, permissions, manual event-based scoring, aggregation and audit flows. Do not copy the video's hard-coded point scheme, extra passcode, or independent backend. Implement and verify the working page; report any gaps or constraints rather than silently inventing schema fields.

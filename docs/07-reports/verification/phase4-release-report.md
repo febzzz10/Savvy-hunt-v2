@@ -3,6 +3,8 @@
 **Date:** 28 October 2026
 **Verdict: NOT APPROVED for production or an official event.**
 
+> **Later status (2026-10-29):** the Drive-folder 404 below was superseded by the [Drive-only gallery report](../implementation/gallery-drive-only-report.md), which found read-only access restored. This verdict, the credential-rotation requirement and the remaining production gates stay valid.
+
 The existing application builds, passes its automated suite, supports real development
 Clerk/Convex authentication and scoring, and passed a short 500-client subscription
 rehearsal. Frontend accessibility and operational controls were improved. Google
@@ -13,9 +15,9 @@ rehearsals remain. **No production deployment was performed.**
 
 ## Scope and environment
 
-- Read `FINAL_VERIFICATION_REPORT.md`, `FINAL_IMPLEMENTATION_REPORT.md`,
-  `IMPLEMENTATION_NOTES.md`, `README.md`, `prd.md`, `techspc.md`, `database.md`,
-  `appflow.md`, `architectur.md`, `plan.md` and project/Convex agent guidelines.
+- Read `final-verification-report.md`, `../implementation/final-implementation-report.md`,
+  `../implementation/implementation-notes.md`, `README.md`, `../../08-planning/historical/prd.md`, `../../08-planning/historical/technical-specification.md`, `../../08-planning/historical/database.md`,
+  `../../08-planning/historical/application-flow.md`, `../../08-planning/historical/architecture.md`, `../../08-planning/historical/plan.md` and project/Convex agent guidelines.
 - Backend: development `quiet-chickadee-449`, regional endpoint in `ap-southeast-2`.
   Clerk keys and instance were confirmed development/test. No deployment-key override
   was configured during these checks.
@@ -34,7 +36,7 @@ rehearsals remain. **No production deployment was performed.**
 during verification, including optional gallery metadata, upload/sync tables, actions,
 cron, server routes and tests. They were preserved and included in the final local
 build/test snapshot. This report does not represent approval of that expanded schema
-or write workflow. Review the entire release diff and `docs/gallery-drive-setup.md`;
+or write workflow. Review the entire release diff and `../../05-deployment/gallery-drive-setup.md`;
 real positive Drive verification is still blocked for those changes as well.
 
 ## 1. Google Drive: verified findings and exact blocker
@@ -247,7 +249,7 @@ private key in the current scanned source/history.
 
 ## 7. Production handover and remaining blockers
 
-Created `PRODUCTION_DEPLOYMENT.md`: release freeze, environment placement, distinct
+Created `../../05-deployment/production-deployment.md`: release freeze, environment placement, distinct
 preview/production credentials, Drive acceptance matrix, reviewed Vercel/Convex build
 command, staff rehearsal, backups, manual tally, incident response and rollback.
 It is a prepared procedure, **not an executed production rehearsal or deployment**.

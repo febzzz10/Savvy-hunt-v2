@@ -18,7 +18,7 @@ Unresolved externally: actual production deployment/domain, official event conte
 
 ## 3. Architecture memory
 
-- Next App Router/React strict TypeScript frontend; lockfile versions are recorded in agent.md. Root `app/layout.tsx` installs Clerk, fonts, Convex provider and footer. `proxy.ts` initializes Clerk middleware without an explicit route-protect call.
+- Next App Router/React strict TypeScript frontend; lockfile versions are recorded in agent.md. Root `app/layout.tsx` installs Clerk, fonts, Convex provider and footer. `proxy.ts` registers Clerk middleware and protects `/admin(.*)` (except `/admin/login(.*)`) with `auth.protect()`.
 - `app/providers.tsx` creates one module-level ConvexReactClient and uses ConvexProviderWithClerk. Most live route content uses client hooks; `components/data.tsx` supplies current-edition loading and string-reference helpers alongside newer generated API references.
 - Convex owns persistent data and business transactions. Indexed queries feed reactive subscriptions, with no separate scoreboard polling/state store. Result mutations atomically update revisions, aggregate totals, official event pointers and audit records.
 - Clerk authentication is separate from admin authorization. The complete issuer-scoped tokenIdentifier is the allowlist key. UI access gates supplement backend `requireAdmin` checks.
@@ -37,7 +37,7 @@ Unresolved externally: actual production deployment/domain, official event conte
 
 ## 5. UI/UX memory
 
-Current foundation: ivory canvas, sage surfaces, green actions, restrained terracotta/gold details, Fraunces headings and DM Sans body. Exact tokens live in `app/globals.css`; shared custom controls/icons live in `components/ui.tsx`. The nature redesign supersedes the cobalt/Archivo direction in `docs/editorial-redesign.md`. The supplied design handoff and earlier root design documents are historical references, not stronger authority than current source.
+Current foundation: ivory canvas, sage surfaces, green actions, restrained terracotta/gold details, Fraunces headings and DM Sans body. Exact tokens live in `app/globals.css`; shared custom controls/icons live in `components/ui.tsx`. The nature redesign supersedes the cobalt/Archivo direction in `docs/archive/editorial-redesign.md`. The supplied design handoff and the historical design documents under `docs/` are historical references, not stronger authority than current source.
 
 Current presentation includes responsive shared navigation, mobile navigation/updates, illustrated hero, school podium and achievement cards. Styles are split across shared CSS and feature CSS under `components/home/`, admin events and schools. Public snapshots use a native dialog lightbox with keyboard/focus handling. Visible focus, skip links, reduced motion, loading skeletons and genuine empty states are established patterns. Recent Git history records further header, mobile hero/navigation and achievement refinements on 2026-11-01; it does not independently prove user approval of every design detail.
 
@@ -72,15 +72,15 @@ Schema indexes and exact validators remain authoritative in `convex/schema.ts`; 
 
 | Confirmed issue | Established cause and resolution | Status/evidence and regression risk |
 |---|---|---|
-| Connection status SSR/hydration and unnecessary server sockets | Reading the live Convex connection hook during SSR could initialize a socket and differ from browser markup; changed to browser subscriptions with stable `useSyncExternalStore` server snapshot | Implemented in `components/connection-status.tsx`, covered by `tests/connection-status.test.tsx`; `HYDRATION_FIX_REPORT.md` and `docs/connection-diagnosis.md`. Historical browser heartbeat gaps still lack an established network/backend root cause |
-| Revoked events appeared category-editable | UI used absence of active pointer while backend retained publication history; admin query/form now use full history and lock original category, with stale-event checks/readable errors | `docs/event-category-editing-fix.md`, `convex/events.ts`, `components/admin/events/event-form.tsx`, backend/form/result-error tests. Revoke must never unlock historical categories |
-| Drive folder previously returned 404 | Later read-only preflight found access restored; report explicitly cannot establish which external configuration/sharing change restored it | `docs/gallery-drive-only-report.md` dated 2026-10-29 supersedes older access-blocker claims. Current external access not rechecked here |
+| Connection status SSR/hydration and unnecessary server sockets | Reading the live Convex connection hook during SSR could initialize a socket and differ from browser markup; changed to browser subscriptions with stable `useSyncExternalStore` server snapshot | Implemented in `components/connection-status.tsx`, covered by `tests/connection-status.test.tsx`; `docs/07-reports/troubleshooting/hydration-fix-report.md` and `docs/07-reports/troubleshooting/connection-diagnosis.md`. Historical browser heartbeat gaps still lack an established network/backend root cause |
+| Revoked events appeared category-editable | UI used absence of active pointer while backend retained publication history; admin query/form now use full history and lock original category, with stale-event checks/readable errors | `docs/07-reports/troubleshooting/event-category-editing-fix.md`, `convex/events.ts`, `components/admin/events/event-form.tsx`, backend/form/result-error tests. Revoke must never unlock historical categories |
+| Drive folder previously returned 404 | Later read-only preflight found access restored; report explicitly cannot establish which external configuration/sharing change restored it | `docs/07-reports/implementation/gallery-drive-only-report.md` dated 2026-10-29 supersedes older access-blocker claims. Current external access not rechecked here |
 | Website upload/OAuth complexity | Workflow was changed to manual Drive uploads and read-only service-account sync; legacy records retained | Current routes/helpers/schema and Drive-only report confirm removal. Do not resurrect writes from obsolete deployment prose |
-| Clerk secret previously exposed in example configuration | Reports state removal from source, but removal does not revoke a credential | README and `PHASE4_RELEASE_REPORT.md` still require owner rotation; completion unverified. No credential value was inspected or reproduced |
+| Clerk secret previously exposed in example configuration | Reports state removal from source, but removal does not revoke a credential | README and `docs/07-reports/verification/phase4-release-report.md` still require owner rotation; completion unverified. No credential value was inspected or reproduced |
 
 ## 8. Known issues and technical debt
 
-- Documentation drift is confirmed: production/Phase 4 documents mention an old Drive blocker and upload/OAuth paths; current code and Drive-only report supersede those details. Historical test counts are snapshots, not today's suite count.
+- Documentation drift was largely resolved on 2026-11-16, and the docs were reorganized under `docs/` on 2026-11-17: specs in `docs/08-planning/historical/` carry historical-status banners and corrected routes/Drive facts, and `README.md`, `AGENTS.md` and `docs/README.md` point to this file and `agent.md` as canonical. Remaining drift is confined to dated reports that describe the old Drive blocker or upload/OAuth paths; treat them as evidence of their date, not current configuration. Historical test counts are snapshots, not today's suite count.
 - Multiple backend queries collect whole edition/event ranges; scoreboard computes totals with in-memory filtering and recent publication query scans edition events before limiting hydration. Growth beyond rehearsal datasets needs profiling/pagination/index review; no current capacity failure is claimed.
 - String-based manually typed API references coexist with generated references, adding contract-drift risk. Older compact formatting is inconsistent with newer expanded modules.
 - Deployment evidence is incomplete. No committed CI pipeline enforces checks. Google font build downloads can require network. Production permissions, quota/billing, backups/restore and official staff/device rehearsal need environment-specific evidence.
@@ -93,7 +93,7 @@ Schema indexes and exact validators remain authoritative in `convex/schema.ts`; 
 | Area | Files | Purpose |
 |---|---|---|
 | Auth | `app/providers.tsx`, `proxy.ts`, `convex/auth.config.ts`, `convex/lib/security.ts`, `app/admin/layout.tsx` | JWT transport, UI access and backend authorization |
-| Provisioning | `convex/admins.ts`, `docs/admin-setup.md` | Allowlist, bootstrap, roles and audit |
+| Provisioning | `convex/admins.ts`, `docs/01-getting-started/admin-setup.md` | Allowlist, bootstrap, roles and audit |
 | Scores/results | `convex/results.ts`, `convex/scoreboard.ts`, `convex/lib/scoring.ts`, `lib/results-editor.ts`, `app/admin/events/[id]/results/page.tsx` | Draft/publication/delta/revoke workflows and error presentation |
 | Events/schools | `convex/events.ts`, `convex/schools.ts`, `components/admin/events/event-form.tsx`, `lib/school-manager.ts` | Lifecycle guards and management |
 | Home | `components/home.tsx`, `components/home/`, `lib/achievement-results.ts` | Live summaries, podium, hero and achievement mapping |
@@ -101,7 +101,7 @@ Schema indexes and exact validators remain authoritative in `convex/schema.ts`; 
 | Media delivery | `lib/drive-server.ts`, `lib/drive-validation.ts`, `app/api/gallery/[itemId]/image/route.ts` | Read-only service-account requests and checked proxy |
 | Foundation | `app/globals.css`, `app/layout.tsx`, `components/ui.tsx`, `components/site-navigation.tsx` | Current tokens, fonts and shared components |
 | Verification | `vitest.config.ts`, `tests/`, `convex/*.test.ts`, `scripts/` | Isolated tests and explicit development/browser checks |
-| Release | `.env.example`, `README.md`, `PRODUCTION_DEPLOYMENT.md`, `PHASE4_RELEASE_REPORT.md` | Configuration and operational procedures with historical caveats |
+| Release | `.env.example`, `README.md`, `docs/05-deployment/production-deployment.md`, `docs/07-reports/verification/phase4-release-report.md` | Configuration and operational procedures with historical caveats |
 
 Dependency/configuration authority: `package.json`, `package-lock.json`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs`. Available commands and safe execution workflow are in agent.md.
 
@@ -109,7 +109,7 @@ Dependency/configuration authority: `package.json`, `package-lock.json`, `tsconf
 
 Implemented milestones visible in source/reports: public/admin competition lifecycle; transactional result correction/revocation; Drive-only gallery; secured owner bootstrap and allowlist; SSR-safe connection indicator; nature redesign; event-history/category fixes; responsive navigation and achievement/mobile updates. Git's latest reviewed entries on 2026-11-01 concern header and achievement/mobile presentation.
 
-Earlier `prd.md`, `plan.md`, `architectur.md`, `database.md`, `appflow.md`, `techspc.md` and design handoff capture intent/history; they are not an active backlog or proof of current behavior. Next operational work depends on organizer content/policy approval and separately authorized production configuration, security rotation, backup/recovery and rehearsal. No production or data mutation was performed for these two documents.
+Earlier specs under `docs/08-planning/historical/` and the design handoff capture intent/history; they are not an active backlog or proof of current behavior. Next operational work depends on organizer content/policy approval and separately authorized production configuration, security rotation, backup/recovery and rehearsal. No production or data mutation was performed for these two documents.
 
 ## 11. Durable constraints
 
@@ -121,11 +121,13 @@ Dates below come from dated reports, inspected Git history or this documentation
 
 | Date | Decision or change | Reason | Status | Evidence |
 |---|---|---|---|---|
-| 2026-10-29 | Drive-only, service-account read-only gallery | Manual Drive upload workflow with moderated publication | Implemented; production acceptance unverified | `docs/gallery-drive-only-report.md`, current gallery/Drive source |
-| 2026-10-29 | Stable SSR connection snapshot and browser-only subscriptions | Avoid hydration divergence and SSR socket side effect | Implemented with regression coverage | `HYDRATION_FIX_REPORT.md`, `tests/connection-status.test.tsx` |
-| 2026-10-29 | Nature-inspired visual foundation | Documented redesign direction | Implemented; later refinements present | `docs/nature-redesign.md`, `app/globals.css`, `app/layout.tsx` |
+| 2026-10-29 | Drive-only, service-account read-only gallery | Manual Drive upload workflow with moderated publication | Implemented; production acceptance unverified | `docs/07-reports/implementation/gallery-drive-only-report.md`, current gallery/Drive source |
+| 2026-10-29 | Stable SSR connection snapshot and browser-only subscriptions | Avoid hydration divergence and SSR socket side effect | Implemented with regression coverage | `docs/07-reports/troubleshooting/hydration-fix-report.md`, `tests/connection-status.test.tsx` |
+| 2026-10-29 | Nature-inspired visual foundation | Documented redesign direction | Implemented; later refinements present | `docs/07-reports/implementation/nature-redesign.md`, `app/globals.css`, `app/layout.tsx` |
 | 2026-11-01 | Responsive header, mobile hero/navigation and achievement refinements | Commit subjects describe presentation improvements; further rationale not inferred | Present in reviewed Git history/source | `git log`, `components/site-navigation.tsx`, `components/home/` |
 | 2026-11-02 | Separate engineering guidance and persistent evidence memory | Requested agent onboarding and durable project context | Documentation created; no app behavior change | `agent.md`, `memory.md` |
+| 2026-11-16 | Documentation consistency pass | Planning specs had drifted from the read-only Drive gallery, Clerk auth and `[slug]` routes | Markdown-only edits; no app behavior change | `README.md`, `AGENTS.md`, `CLAUDE.md`, root specs, `docs/05-deployment/production-deployment.md` |
+| 2026-11-17 | Documentation reorganization | Root was cluttered with specs, reports and plans; no index existed | Markdown-only moves/renames, link updates and new `docs/README.md`; no app behavior change | `docs/README.md`, `README.md`, `AGENTS.md`, `CLAUDE.md` |
 
 ## Memory maintenance policy
 

@@ -1,6 +1,6 @@
 # Savvy Hunt — Phase 3 verification
 
-> Historical Phase 3 evidence. `PHASE4_RELEASE_REPORT.md` updates the Drive configuration/access findings, frontend checks, password recovery and capacity rehearsal. Use that report for current release blockers.
+> Historical Phase 3 evidence. `phase4-release-report.md` updates the Drive configuration/access findings, frontend checks, password recovery and capacity rehearsal. Use that report for current release blockers.
 
 **Date:** 28 October 2026
 **Verdict:** **Not yet cleared for an official event.** Build, backend integration, real Clerk/Convex authentication, live scoring synchronization, and core browser checks now pass. Approved Google Drive image delivery remains unverified because the development Drive credentials and folder were not supplied. Normal password/MFA sign-in and event-scale capacity also need a rehearsal.

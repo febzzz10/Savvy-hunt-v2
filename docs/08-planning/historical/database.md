@@ -3,7 +3,9 @@
 **File:** `database.md`  
 **Status:** Proposed implementable schema for Convex (MVP)  
 **Updated:** 28 October 2026  
-**Companion:** [`prd.md`](./prd.md) · [`techspc.md`](./techspc.md) · [`appflow.md`](./appflow.md) · [`architectur.md`](./architectur.md)
+**Companion:** [`prd.md`](prd.md) · [`technical-specification.md`](technical-specification.md) · [`application-flow.md`](application-flow.md) · [`architecture.md`](architecture.md)
+
+> **Historical planning document (28 October 2026).** This records a proposed schema, not the current one. `convex/schema.ts` and [memory.md](../../../memory.md) are authoritative. The implemented schema adds `gallerySyncState`, retains historical `galleryUploads` without writers, and uses a read-only Drive gallery; call names below are illustrative where they differ from `convex/*.ts`.
 
 > **Non-negotiable:** Structured data and official score totals live in **Convex**. Manual event result rows are entered as drafts. **Only each event's active published revision contributes points.** Never let a client directly overwrite a school or category total.
 
@@ -289,11 +291,11 @@ OverallTotal(schoolId) = SUM(CategoryTotal(schoolId, category)
 | Events | `events.create/update/setStatus/cancel` | editor / super_admin |
 | Results drafts | `results.createDraft/upsertDraftEntry/deleteDraftEntry` | editor / super_admin |
 | Publication | `results.previewRevision`, `results.publishRevision`, `results.revokePublished` | preview: editors allowed; publish/revoke: super_admin only |
-| Gallery | `gallery.addDriveFile/updateMetadata/publish/hide/reorder` | editor / super_admin (requires consent check) |
+| Gallery | `gallery.add/updateMetadata/approve/reject/hide/move` | editor / super_admin (requires consent check) |
 | Admin management | `admins.invite/updateRole/revoke` | super_admin only |
 | Settings and audit | `siteSettings.update`, `admin.listAuditLogs` | super_admin only |
 
-**Contract caution:** `previewRevision` is a read-only **admin query**, not a mutation. Match names and signatures with `techspc.md`; add admin list/detail queries as necessary. Queries used for public read must never expose draft content by accident.
+**Contract caution:** `previewRevision` is a read-only **admin query**, not a mutation. Match names and signatures with the current `convex/*.ts` exports; add admin list/detail queries as necessary. Queries used for public read must never expose draft content by accident.
 
 ## 6. Query performance and indexes
 
@@ -336,7 +338,7 @@ OverallTotal(schoolId) = SUM(CategoryTotal(schoolId, category)
 3. Write pure `convex/lib/scoring.ts` grouping and rank helpers with unit tests.
 4. Implement guarded draft+publish+revoke mutations as **transactional** backend operations.
 5. Expose indexed read-only scoreboard queries and test live subscriptions.
-6. Compare every new behavior to `prd.md` acceptance criteria and `appflow.md` state transitions.
+6. Compare every new behavior to `prd.md` acceptance criteria and `application-flow.md` state transitions.
 
 ## 10. Implementation extensions (28 October 2026)
 

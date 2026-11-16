@@ -7,6 +7,8 @@
 **Reference implementation:** https://github.com/roohiiiit/Savvy-Hunt/tree/main/Savvy-Hunt  
 **Proposed stack:** Next.js (App Router) + TypeScript + Convex + Vercel + Google Drive
 
+> **Historical planning document (28 October 2026).** This records pre-implementation intent, not current behavior. Where it disagrees with the code, [README.md](../../../README.md), [agent.md](../../../agent.md) and [memory.md](../../../memory.md) take precedence. Known drift: Clerk is implemented; the category route is `/scoreboard/[slug]`; the gallery is read-only service-account Drive sync with no OAuth or website upload.
+
 ---
 
 ## 0. Decisions and assumptions
@@ -145,7 +147,7 @@ The supplied repository contains static HTML pages for homepage, scoreboard, sch
 |---|---|---|
 | `/` | Homepage | Hero, current status, top three, live event cards, latest published results, schedule preview, gallery teaser |
 | `/scoreboard` | Overall scoreboards | School rankings, totals, category filter, tie handling, last-updated indicator |
-| `/scoreboard/[categorySlug]` | Category scoreboard | Ranking within one category, category-related result history |
+| `/scoreboard/[slug]` | Category scoreboard | Ranking within one category, category-related result history |
 | `/schedule` | Full schedule | Date/category/status filters, upcoming/live/completed sections |
 | `/events/[eventSlug]` | Event detail | Time, venue, category, live state, published results, winners |
 | `/results` | Published results hub | Latest published events, winning schools, links to event details |
@@ -297,9 +299,9 @@ Each stores an ID, label, slug, ordering and active state. Categories are fixed 
 
 ### 5.7 Admin gallery workflow
 
-**MVP assumption:** organizer stores originals in an approved Google Drive folder and registers selected file IDs/links in admin gallery. Admin adds caption, alt text and event category, previews image, then explicitly publishes.
+**Implemented instead of the MVP assumption:** organizer stores originals in an approved Google Drive folder; the read-only sync imports file metadata automatically. Admin adds caption, alt text and event category, previews the image, then explicitly publishes.
 
-**Later enhancement:** secure browser-based direct-to-Drive upload and/or periodic Drive-folder sync. Both require approved Google Drive API authentication, quotas, ownership and permission decisions.
+**Implemented instead:** periodic read-only Drive-folder sync through a service account. Browser-based direct-to-Drive upload was not adopted; it would require approved Drive write authentication, quotas, ownership and permission decisions.
 
 ---
 
@@ -627,7 +629,7 @@ Every public query must **explicitly filter** unpublished drafts, hidden media a
 - Authorized Next.js server route/adapter authenticates the admin and requests a short-lived, scoped Google API upload operation.
 - Create Drive file in the approved folder only; write its Drive ID and metadata to Convex.
 - Include progress, retry behavior, duplicate handling, and post-upload moderation.
-- Use Google OAuth or organization-approved service identity, depending on Drive ownership and organization policy. Do **not** assume that a service account automatically has access to a personal Drive folder.
+- Use Google OAuth or organization-approved service identity, depending on Drive ownership and organization policy. Do **not** assume that a service account automatically has access to a personal Drive folder. (Not adopted: the implemented gallery is read-only service-account sync.)
 
 Official references:  
 https://developers.google.com/workspace/drive/api/guides/about-files  
@@ -671,7 +673,7 @@ savvy-hunt/
 │   ├── page.tsx
 │   ├── scoreboard/
 │   │   ├── page.tsx
-│   │   └── [categorySlug]/page.tsx
+│   │   └── [slug]/page.tsx
 │   ├── schedule/page.tsx
 │   ├── events/[eventSlug]/page.tsx
 │   ├── results/page.tsx
@@ -923,15 +925,15 @@ NEXT_PUBLIC_CONVEX_URL=
 # Deployment environment settings managed through Convex/Vercel
 # These illustrative names must NOT be prefixed NEXT_PUBLIC_
 GOOGLE_DRIVE_FOLDER_ID=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REFRESH_TOKEN=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
+GALLERY_PROXY_SECRET=
 
-# Provider-specific login keys to be added after auth decision
+# Clerk: publishable key is client-safe; secret and issuer are server-side.
 # Keep .env.local out of version control.
 ```
 
-**Google OAuth and Drive variables are optional for the initial manual-link flow.** Choose least-privilege scopes; never commit credentials or use the browser to call privileged Google Drive APIs with backend secrets.
+**The implemented gallery uses no Google OAuth.** It reads an organizer-approved Drive folder with a read-only service account; never commit credentials or call privileged Google Drive APIs from the browser.
 
 ---
 

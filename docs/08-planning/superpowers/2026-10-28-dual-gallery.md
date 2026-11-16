@@ -1,5 +1,7 @@
 # Dual gallery implementation
 
+> **Historical plan, not adopted.** The dual-upload/OAuth design below was replaced by the read-only service-account gallery; see [gallery-drive-only-report.md](../../07-reports/implementation/gallery-drive-only-report.md). Do not implement Drive writes from this plan.
+
 Preserve the existing Next.js image proxy, Clerk admin allowlist, Convex gallery table,
 reactive public queries, checksum verification, and legacy draft/hidden records.
 

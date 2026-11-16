@@ -1,4 +1,4 @@
-> Historical dual-upload report. The current workflow is direct Drive only; see [the current report](gallery-drive-only-report.md).
+> Historical dual-upload report. The current workflow is direct Drive only; see [the current report](../implementation/gallery-drive-only-report.md).
 
 # Dual gallery verification — 2026-10-28
 
@@ -49,9 +49,9 @@ admin, creates no users/roles, and revokes its temporary Clerk session afterward
 Google service-account token exchange succeeds. The configured Approved folder returns
 HTTP **404 `notFound`**, and the folder ID and credentials match between local server and
 development Convex env. Correct the ID or share the folder with the configured identity.
-OAuth is absent. For actual personal My Drive writes, configure the three new OAuth
-variables; alternatively use a writable Workspace Shared Drive. See
-[the complete setup guide](gallery-drive-setup.md).
+OAuth is absent, and the read-only gallery remains so; do not configure OAuth variables.
+See [the current report](../implementation/gallery-drive-only-report.md) and
+[the complete setup guide](../../05-deployment/gallery-drive-setup.md).
 
 Successful real Google upload, real multi-page folder import, ID-preserving folder move,
 and public delivery of a consent-cleared real test image could not be certified against

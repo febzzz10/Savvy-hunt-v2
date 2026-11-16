@@ -1,9 +1,11 @@
 # Savvy Hunt implementation notes
 
+> **Historical implementation log (October 2026).** Status statements below were true when written; several are now superseded. For current state use [memory.md](../../../memory.md); for the schema contract use `convex/schema.ts` (not `../../08-planning/historical/database.md`); for auth and gallery behavior use [agent.md](../../../agent.md). Specifically: the Drive folder 404 is superseded by the read-only gallery report, the gallery is now read-only Drive sync (the concurrent upload work was not adopted), and `../../08-planning/historical/database.md` is a historical planning spec.
+
 ## Reconciliation
 
-- The workspace initially contained specifications only. The referenced repository is described in `plan.md` as static HTML backed partly by Supabase; its scripts are not suitable for the required Convex source of truth. The remote GitHub page could not be fetched in the initial implementation session.
-- `database.md` is the canonical table and scoring contract. `appflow.md` fixes editor versus super admin publication permissions. The handoff proposes Clerk; use Clerk identity with a Convex allowlist. Clerk configuration and first admin identity are organizer supplied.
+- The workspace initially contained specifications only. The referenced repository is described in `../../08-planning/historical/plan.md` as static HTML backed partly by Supabase; its scripts are not suitable for the required Convex source of truth. The remote GitHub page could not be fetched in the initial implementation session.
+- `../../08-planning/historical/database.md` is the canonical table and scoring contract. `../../08-planning/historical/application-flow.md` fixes editor versus super admin publication permissions. The handoff proposes Clerk; use Clerk identity with a Convex allowlist. Clerk configuration and first admin identity are organizer supplied.
 - Nonnegative integer points, Asia/Kolkata display, and curated existing Drive files are working defaults. Official scoring policy, admin roster, Drive access, media consent procedure, and event details remain open. No official scores or events are seeded.
 - Published revisions remain immutable. One active revision pointer per event is authoritative. Materialized totals are updated by deltas in the same Convex mutation. Ties use competition rank.
 - `announcements` is an added table because the original canonical schema has no multi-announcement model, while the current product request explicitly requires create, edit, publish, and remove. Hiding is the removal operation so audit history remains intact.
@@ -25,9 +27,9 @@
 
 ## Current blockers
 
-Phase 3 connected development Convex and Clerk, generated bindings, fixed the JWT issuer/template, and passed full lint, tests, build, and live browser scoring checks. Gallery editing/reordering and gallery/audit pagination are implemented. `FINAL_VERIFICATION_REPORT.md` records evidence and exact limits.
+Phase 3 connected development Convex and Clerk, generated bindings, fixed the JWT issuer/template, and passed full lint, tests, build, and live browser scoring checks. Gallery editing/reordering and gallery/audit pagination are implemented. `../verification/final-verification-report.md` records evidence and exact limits.
 
-Phase 4 found the service-account/folder/proxy configuration present and matching locally and in development Convex. Google token exchange returns 200, but the configured folder returns 404 and lists no accessible files. Positive image approval/delivery and real changed/unavailable-photo scenarios remain blocked by folder access and missing consent-cleared fixtures. See `PHASE4_RELEASE_REPORT.md` for current evidence and `PRODUCTION_DEPLOYMENT.md` for deployment instructions.
+Phase 4 found the service-account/folder/proxy configuration present and matching locally and in development Convex. Google token exchange returns 200, but the configured folder returns 404 and lists no accessible files. Positive image approval/delivery and real changed/unavailable-photo scenarios remain blocked by folder access and missing consent-cleared fixtures. See `../verification/phase4-release-report.md` for current evidence and `../../05-deployment/production-deployment.md` for deployment instructions.
 
 Normal password sign-in, new-device test email verification, sign-out and password recovery now pass with a temporary real Clerk development user. A short rehearsal passed with 500 live Convex clients and 2,000 subscriptions, including 50 forced reconnects; this is not production hosting/media capacity evidence. Frontend fixes add current-page navigation, keyboard skip links, readable sign-in attribution, wrapped identity keys, role messages, sign-out and hydration-safe offline/reconnect status. Scoring transactions and backend authorization remain authoritative.
 

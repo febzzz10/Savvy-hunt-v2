@@ -1,6 +1,6 @@
 # Savvy Hunt implementation report
 
-> Historical implementation status. Phase 3 supersedes the configuration and testing blockers below; see `FINAL_VERIFICATION_REPORT.md` for the current verified results and remaining release blockers.
+> Historical implementation status. Phase 3 supersedes the configuration and testing blockers below; see `../verification/final-verification-report.md` for the current verified results and remaining release blockers.
 
 **Date:** 28 October 2026  
 **Verdict:** **Not production ready.** The application source has been substantially completed, but no Convex deployment, Clerk application, or approved Drive service account is configured here. Full backend type checking, browser flows, and live synchronization are therefore unverified. Do not run an official event or deploy to production yet.
@@ -24,7 +24,7 @@
 | Public site | `app/page.tsx`, `about/page.tsx`, `results/page.tsx`, `schedule/page.tsx`, `scoreboard/`, `events/`, `snapshots/`, `components/home.tsx`, `components/public.tsx`, `components/gallery-photo.tsx` |
 | Admin site | `app/admin/` school, event, result, scoreboard, gallery, announcement, settings, audit, admin access, setup, and login routes |
 | Media and tests | `app/api/gallery/[itemId]/image/route.ts`, `lib/drive-validation.ts`, `tests/scoring.test.ts`, `tests/security.test.ts`, `tests/drive-validation.test.ts` |
-| Documentation | `README.md`, `IMPLEMENTATION_NOTES.md`, `database.md`, this report |
+| Documentation | `README.md`, `implementation-notes.md`, `../../08-planning/historical/database.md`, this report |
 
 ## Verification performed
 

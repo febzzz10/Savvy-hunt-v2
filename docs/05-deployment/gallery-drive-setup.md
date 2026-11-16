@@ -1,4 +1,4 @@
-# Direct Google Drive gallery setup
+# Google Drive gallery setup (read-only)
 
 Organizers upload photos manually into a Google Drive folder. Savvy Hunt reads that folder
 using a Google service account. The website has no photo-upload form, upload endpoint or

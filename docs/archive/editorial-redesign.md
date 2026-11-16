@@ -2,6 +2,8 @@
 
 Implemented in the existing Next.js application, using the supplied ZIP as a visual reference only.
 
+> **Superseded (historical).** The cobalt/Archivo direction below was replaced by the nature-inspired ivory/sage design recorded in [nature-redesign.md](../07-reports/implementation/nature-redesign.md) and the root [../04-design/design-system.md](../04-design/design-system.md). Current tokens live in `app/globals.css`; do not restore this palette without an explicit request.
+
 ## Visual direction
 
 - Warm white pages, cobalt links and actions, a small terracotta masthead punctuation mark, hairline rules and 4px controls.
@@ -35,9 +37,9 @@ Evidence files are local, in `verification-evidence/editorial/` (ignored by Git)
 
 | Page | Before | After |
 | --- | --- | --- |
-| Home, desktop | [Before](../verification-evidence/editorial/before-home-1440.png) | [After](../verification-evidence/editorial/after-home-1440.png) |
-| Home, mobile | [Before](../verification-evidence/editorial/before-home-390.png) | [After](../verification-evidence/editorial/after-home-390.png) |
-| Scoreboard, desktop | [Before](../verification-evidence/editorial/before-scoreboard-1440.png) | [After](../verification-evidence/editorial/after-scoreboard-1440.png) |
-| Schedule, desktop | [Before](../verification-evidence/editorial/before-schedule-1440.png) | [After](../verification-evidence/editorial/after-schedule-1440.png) |
+| Home, desktop | [Before](../../verification-evidence/editorial/before-home-1440.png) | [After](../../verification-evidence/editorial/after-home-1440.png) |
+| Home, mobile | [Before](../../verification-evidence/editorial/before-home-390.png) | [After](../../verification-evidence/editorial/after-home-390.png) |
+| Scoreboard, desktop | [Before](../../verification-evidence/editorial/before-scoreboard-1440.png) | [After](../../verification-evidence/editorial/after-scoreboard-1440.png) |
+| Schedule, desktop | [Before](../../verification-evidence/editorial/before-schedule-1440.png) | [After](../../verification-evidence/editorial/after-schedule-1440.png) |
 
 Machine-readable browser evidence: `verification-evidence/editorial/checks.json`.

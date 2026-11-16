@@ -11,3 +11,5 @@ Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
 
 <!-- convex-ai-end -->
+
+Read [agent.md](agent.md) and [memory.md](memory.md) before significant work; they are the canonical engineering rules and project state. [docs/README.md](docs/README.md) indexes the rest; planning specs and dated reports are historical, and current source wins on conflict.

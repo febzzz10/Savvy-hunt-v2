@@ -40,7 +40,7 @@ so it cannot establish which external sharing/configuration change restored acce
 If access fails again, open the intended folder as its organizer, check the ID, and share
 it directly with `savvy-hunt@savvy-hunt.iam.gserviceaccount.com` as **Viewer**. Check the
 same settings in Convex and Next/Vercel; check organizational sharing restrictions for
-Workspace drives. Full instructions are in [the setup guide](gallery-drive-setup.md).
+Workspace drives. Full instructions are in [the setup guide](../../05-deployment/gallery-drive-setup.md).
 
 ## Verification
 
