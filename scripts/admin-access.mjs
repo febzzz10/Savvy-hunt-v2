@@ -23,7 +23,7 @@ function run(args) {
 }
 function required(name) {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`Set ${name} in this terminal first (see docs/admin-setup.md).`);
+  if (!value) throw new Error(`Set ${name} in this terminal first (see docs/01-getting-started/admin-setup.md).`);
   return value;
 }
 function identity(tokenIdentifier) {

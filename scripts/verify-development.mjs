@@ -44,7 +44,7 @@ try {
   assert.ok(identityKey);
   record("Real Clerk convex-template JWT accepted by development Convex");
   if (!await client.query(api.admins.getSelf, {})) {
-    throw new Error("An explicitly approved verification super admin is required; see docs/admin-setup.md. Verification never bootstraps admin access.");
+    throw new Error("An explicitly approved verification super admin is required; see docs/01-getting-started/admin-setup.md. Verification never bootstraps admin access.");
   }
   const edition = await client.query(api.editions.getCurrent, {});
   const editionId = edition?._id ?? await client.mutation(api.editions.initialize, { name: `Verification ${stamp}`, year: 2026 });
