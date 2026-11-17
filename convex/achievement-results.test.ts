@@ -11,7 +11,7 @@ describe("homepage official achievements", () => {
     const fixture = await t.run(async ctx => {
       const editionId = await ctx.db.insert("editions", { name: "Test", slug: "test", year: 2026, timezone: "Asia/Kolkata", status: "active", isCurrent: true, createdAt: 1, updatedAt: 1 });
       const categoryId = await ctx.db.insert("categories", { editionId, name: "Arts", slug: "arts", sortOrder: 0, isActive: true });
-      const schoolId = await ctx.db.insert("schools", { editionId, name: "Official School", status: "active", createdAt: 1, updatedAt: 1 });
+      const schoolId = await ctx.db.insert("schools", { editionId, name: "Official School", createdAt: 1, updatedAt: 1 });
       const eventId = await ctx.db.insert("events", { editionId, categoryId, title: "Official Event", slug: "official-event", status: "completed", resultStatus: "draft", isFeatured: false, createdBy: "test", createdAt: 1, updatedAt: 1 });
       const revisionId = await ctx.db.insert("resultRevisions", { eventId, revisionNumber: 1, status: "draft", createdBy: "test", createdAt: 1 });
       const entryId = await ctx.db.insert("resultEntries", { eventId, revisionId, schoolId, placement: 1, points: 10, displayParticipantName: "Private name", namePublishingApproved: false, entryLabel: "Team A", sortOrder: 0 });

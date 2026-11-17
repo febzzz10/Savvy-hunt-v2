@@ -9,7 +9,7 @@ import "./results.css";
 
 type AdminEvent = { title: string; editionId: string; updatedAt: number; participatingSchoolIds?: string[]; activePublishedRevisionId?: string };
 type AdminResult = { event: AdminEvent; draft?: { _id: string; changeReason?: string; draftVersion?: number }; draftEntries: EditorRow[]; officialEntries: EditorRow[]; revisions: Array<{ status: string }> };
-type School = { _id: string; name: string; status?: string };
+type School = { _id: string; name: string };
 type Preview = { expectedActiveRevisionId: string | null; expectedDraftVersion: number; changes: Array<{ schoolId: string; oldPoints: number; newPoints: number; delta: number }> };
 type PublishResult = { status: "published" | "already_published" | "unchanged" };
 
@@ -48,7 +48,7 @@ function EditorForm({ eventId, live, schools, canPublish }: { eventId: string; l
   useUnsavedChanges(dirty);
   const preview = useQuery(ref<{ eventId: string; draftRevisionId: string }, Preview>("results:preview"), live.draft ? { eventId, draftRevisionId: live.draft._id } : "skip");
   const gate = publishGate({ isCorrection, draftExists: Boolean(base.draft), hasPreview: Boolean(preview) && !stale, rows: currentRows, savedRows: initialRows, officialRows: normalizeEditorRows(base.officialEntries), reason, savedReason: base.draft?.changeReason ?? "" });
-  const eligible = schools.filter(school => (school.status === "active" || base.officialEntries.some(row => row.schoolId === school._id)) && (!base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(school._id)));
+  const eligible = schools.filter(school => !base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(school._id));
   const hasPublicationHistory = base.revisions.some(revision => ["published", "superseded", "revoked"].includes(revision.status));
 
   function load(data: AdminResult) {
@@ -114,7 +114,7 @@ function EditorForm({ eventId, live, schools, canPublish }: { eventId: string; l
       <p>{isCorrection ? "A reason is required. Save it with the draft before publishing the corrected results." : "No official results exist for this event yet. Publishing makes this draft the first official revision."}</p>
       {isCorrection && <label className="field"><span>Correction or revocation reason *</span><input required aria-label="Correction or revocation reason" aria-describedby="correction-reason-help" placeholder="e.g. Judge corrected the placement" value={reason} onChange={event => { setReason(event.target.value); setError(""); }} /><small id="correction-reason-help">Required for corrections and revocations. Saved with the draft.</small></label>}
       {preview && !stale ? <>
-        {preview.changes.map(change => <p key={change.schoolId}><span>{schools.find(school => school._id === change.schoolId)?.name ?? "Archived school"}</span><strong>{change.oldPoints} → {change.newPoints} <small>({change.delta >= 0 ? "+" : ""}{change.delta})</small></strong></p>)}
+        {preview.changes.map(change => <p key={change.schoolId}><span>{schools.find(school => school._id === change.schoolId)?.name ?? "Removed school"}</span><strong>{change.oldPoints} → {change.newPoints} <small>({change.delta >= 0 ? "+" : ""}{change.delta})</small></strong></p>)}
         {!preview.changes.length && <p>No point changes. Placement, participant name, or entry label updates will still be published.</p>}
       </> : <p>Save a draft to see the publication preview.</p>}
       {canPublish ? <><button className="button" disabled={Boolean(busy) || stale || !gate.ready} onClick={() => perform("publish")}>{busy === "publish" ? "Publishing…" : isCorrection ? "Publish correction" : "Publish official results"}</button>{!gate.ready && <p role="status">{stale ? "Load the latest results to continue." : gate.message}</p>}</> : <p>A super admin must publish official results.</p>}

@@ -3,13 +3,13 @@ import { v } from "convex/values";
 import { rank } from "./lib/scoring";
 import { requireAdmin } from "./lib/security";
 export const getOverall=query({args:{editionId:v.id("editions")},handler:async(ctx,{editionId})=>{
-  const schools=(await ctx.db.query("schools").withIndex("by_edition",q=>q.eq("editionId",editionId)).collect()).filter(s=>s.status==="active");
+  const schools=await ctx.db.query("schools").withIndex("by_edition",q=>q.eq("editionId",editionId)).collect();
   const totals=await ctx.db.query("schoolCategoryTotals").withIndex("by_edition_category",q=>q.eq("editionId",editionId)).collect();
   return rank(schools.map(s=>{const rows=totals.filter(t=>t.schoolId===s._id);return {id:s._id,name:s.name,points:rows.reduce((n,t)=>n+t.points,0),categoryPoints:Object.fromEntries(rows.map(t=>[t.categoryId,t.points]))}}));
 }});
 export const getCategory=query({args:{editionId:v.id("editions"),categoryId:v.id("categories")},handler:async(ctx,args)=>{
   const category=await ctx.db.get(args.categoryId);if(!category||category.editionId!==args.editionId)throw new Error("Invalid category");
-  const schools=(await ctx.db.query("schools").withIndex("by_edition",q=>q.eq("editionId",args.editionId)).collect()).filter(s=>s.status==="active");
+  const schools=await ctx.db.query("schools").withIndex("by_edition",q=>q.eq("editionId",args.editionId)).collect();
   const totals=await ctx.db.query("schoolCategoryTotals").withIndex("by_edition_category",q=>q.eq("editionId",args.editionId).eq("categoryId",args.categoryId)).collect();
   return rank(schools.map(s=>({id:s._id,name:s.name,points:totals.find(t=>t.schoolId===s._id)?.points??0})));
 }});

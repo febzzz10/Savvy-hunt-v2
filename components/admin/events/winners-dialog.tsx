@@ -40,7 +40,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
   useUnsavedChanges(dirty);
   const preview = useQuery(api.results.preview, live.draft ? { eventId, draftRevisionId: live.draft._id } : "skip");
   const gate = publishGate({ isCorrection, draftExists: Boolean(base.draft), hasPreview: Boolean(preview) && !stale, rows: entries(rows), savedRows: entries(initial), officialRows: base.officialEntries, reason, savedReason: base.draft?.changeReason ?? "" });
-  const eligible = schools.filter(s => (s.status === "active" || base.officialEntries.some(row => row.schoolId === s._id)) && (!base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(s._id)));
+  const eligible = schools.filter(s => !base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(s._id));
   function load(data: Data) { setBase(data); setRows(toRows(data)); nextKey.current = toRows(data).length; setReason(data.draft?.changeReason ?? ""); setConfirmation(null); }
   function add(placement: string) { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement, entryLabel: "", displayParticipantName: "", namePublishingApproved: false }]); setConfirmation(null); }
   function update(key: string, patch: Partial<DraftRow>) { setRows(rows.map(row => row.key === key ? { ...row, ...patch } : row)); setConfirmation(null); }
@@ -99,7 +99,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
         {isCorrection && <label className="field"><span>Reason for correction *</span><textarea required value={reason} onChange={e => { setReason(e.target.value); setConfirmation(null); }} placeholder="Explain why these official results need to change" /></label>}
       </fieldset>
       <section className="winner-impact"><h3>Official score impact</h3>
-        {preview && !stale && !dirty ? <>{preview.changes.map(change => <p key={change.schoolId}><span>{schools.find(s => s._id === change.schoolId)?.name ?? "Archived school"}</span><strong>{change.oldPoints} → {change.newPoints} <small>({change.delta >= 0 ? "+" : ""}{change.delta})</small></strong></p>)}{!preview.changes.length && <p>No point changes. Placement and participant name changes are still included.</p>}</> : <p className="small">Save your draft to review the official school point changes.</p>}
+        {preview && !stale && !dirty ? <>{preview.changes.map(change => <p key={change.schoolId}><span>{schools.find(s => s._id === change.schoolId)?.name ?? "Removed school"}</span><strong>{change.oldPoints} → {change.newPoints} <small>({change.delta >= 0 ? "+" : ""}{change.delta})</small></strong></p>)}{!preview.changes.length && <p>No point changes. Placement and participant name changes are still included.</p>}</> : <p className="small">Save your draft to review the official school point changes.</p>}
       </section>
       {canPublish && isCorrection && <details className="event-extra"><summary>Revoke official results</summary><p className="small">Remove this event’s published points from the scoreboard. Audit history is kept. Enter a correction reason above.</p><button className="button secondary" disabled={Boolean(busy) || stale || !reason.trim()} onClick={() => setConfirmation("revoke")}>Revoke official results</button></details>}
       {error && <p className="error" role="alert">{error}</p>}{notice && <p className="success" role="status">{notice}</p>}

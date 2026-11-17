@@ -28,7 +28,7 @@ describe("public result surfaces", () => {
       entries: [{ schoolId: "school", schoolName: "School A", points: 10, placement: 1, entryLabel: "Legacy Team" }],
     }];
     state.queries["categories:listCurrent"] = [{ _id: "category", name: "Category" }];
-    state.queries["schools:listActive"] = [{ _id: "school", name: "School A" }];
+    state.queries["schools:listPublic"] = [{ _id: "school", name: "School A" }];
 
     const html = renderToStaticMarkup(<Results editionId="edition" />);
 

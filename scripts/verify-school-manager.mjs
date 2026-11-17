@@ -37,9 +37,6 @@ try {
   await page.getByRole("searchbox", { name: "Search schools" }).fill("no-match-school-test");
   await expect(page.getByRole("heading", { name: "No matching schools" })).toBeVisible();
   await page.getByRole("button", { name: "Clear filters" }).click();
-  await page.getByRole("combobox", { name: /^Status/ }).selectOption("archived");
-  await expect(page.locator('.school-item .pill').filter({ hasText: /^Active$/ })).toHaveCount(0);
-  await page.getByRole("button", { name: "Clear filters" }).click();
   await page.getByRole("combobox", { name: /^Sort by/ }).selectOption("za");
   await page.getByRole("button", { name: "Clear filters" }).click();
   const first = page.locator('.school-item').first();
@@ -63,7 +60,7 @@ try {
     await expect(dialog).not.toBeVisible();
     await expect(toggle).toBeFocused();
   }
-  report.checks.push("Required-name validation, search/reset, status filter, sorting, edit population, cancel/reset, details and Delete confirmation/Escape/focus return; no school mutations performed.");
+  report.checks.push("Required-name validation, search/reset, sorting, edit population, cancel/reset, details and Delete confirmation/Escape/focus return; no school mutations performed.");
   assert.deepEqual(report.errors, []);
 } catch (error) { report.failure = error.stack; process.exitCode = 1; }
 finally {

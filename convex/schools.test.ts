@@ -20,8 +20,8 @@ async function setup() {
   });
   const editionId = await superAdmin.mutation(api.editions.initialize, { name: "School deletion tests", year: 2026 });
   const categories = await t.query(api.categories.listCurrent, { editionId });
-  const a = await editor.mutation(api.schools.save, { editionId, name: "Alpha", code: "A" });
-  const b = await editor.mutation(api.schools.save, { editionId, name: "Beta", code: "B" });
+  const a = await editor.mutation(api.schools.save, { editionId, name: "Alpha" });
+  const b = await editor.mutation(api.schools.save, { editionId, name: "Beta" });
   const eventId = await editor.mutation(api.events.save, { editionId, title: "Deletion event", categoryId: categories[0]._id, participatingSchoolIds: [a, b] });
   async function school(id: Id<"schools"> = a) { return (await t.run(ctx => ctx.db.get(id)))!; }
   async function remove(id: Id<"schools"> = a, expectedUpdatedAt?: number) {
@@ -46,7 +46,7 @@ describe("school deletion", () => {
     expect(await s.t.run(ctx => ctx.db.query("resultEntries").withIndex("by_event_school", q => q.eq("eventId", s.eventId).eq("schoolId", s.b)).collect())).toHaveLength(1);
     expect(await s.t.run(ctx => ctx.db.get(revisionId))).not.toBeNull();
     expect(await s.t.run(ctx => ctx.db.get(s.eventId))).toMatchObject({ participatingSchoolIds: [s.b] });
-    const gamma = await s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Gamma", code: "C" });
+    const gamma = await s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Gamma" });
     await s.superAdmin.mutation(api.schools.remove, { editionId: s.editionId, schoolId: gamma, expectedUpdatedAt: (await s.school(gamma)).updatedAt });
     expect(await s.t.run(ctx => ctx.db.get(gamma))).toBeNull();
     expect((await s.editor.query(api.schools.listAdmin, { editionId: s.editionId })).map(row => row.name)).toEqual(["Beta"]);
@@ -94,7 +94,7 @@ describe("school deletion", () => {
   it("keeps the remaining scoreboard and historical results unchanged after deleting an unrelated school", async () => {
     const s = await setup();
     await s.publish([{ schoolId: s.a, points: 7 }, { schoolId: s.b, points: 3 }]);
-    const extra = await s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Gamma", code: "C" });
+    const extra = await s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Gamma" });
     await s.remove(extra);
     expect(await s.t.run(ctx => ctx.db.get(extra))).toBeNull();
     expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).map(row => [row.name, row.points])).toEqual([["Alpha", 7], ["Beta", 3]]);
@@ -104,7 +104,7 @@ describe("school deletion", () => {
   it("rejects a stale delete after another organizer edits the school", async () => {
     const s = await setup();
     const stale = await s.school();
-    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Alpha changed", code: "A", status: "active" });
+    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Alpha changed" });
     await expect(s.remove(s.a, stale.updatedAt)).rejects.toThrow("STALE_SCHOOL");
     expect(await s.t.run(ctx => ctx.db.get(s.a))).toMatchObject({ name: "Alpha changed" });
   });

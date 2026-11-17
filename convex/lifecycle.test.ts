@@ -19,8 +19,8 @@ async function setup() {
   });
   const editionId = await superAdmin.mutation(api.editions.initialize, { name: "Verification edition", year: 2026 });
   const categories = await t.query(api.categories.listCurrent, { editionId });
-  const a = await editor.mutation(api.schools.save, { editionId, name: "Verification A", code: "A" });
-  const b = await editor.mutation(api.schools.save, { editionId, name: "Verification B", code: "B" });
+  const a = await editor.mutation(api.schools.save, { editionId, name: "Verification A" });
+  const b = await editor.mutation(api.schools.save, { editionId, name: "Verification B" });
   const eventId = await editor.mutation(api.events.save, { editionId, title: "Verification quiz", categoryId: categories[1]._id, participatingSchoolIds: [a, b] });
   return { t, superAdmin, editor, regular, revoked, editionId, categories, a, b, eventId };
 }
@@ -30,11 +30,10 @@ async function publishResults(s: Setup, eventId: Id<"events">, entries: { school
   const preview = await s.editor.query(api.results.preview, { eventId, draftRevisionId: draft });
   await s.superAdmin.mutation(api.results.publish, { eventId, draftRevisionId: draft, expectedActiveRevisionId: preview.expectedActiveRevisionId, expectedDraftVersion: preview.expectedDraftVersion });
 }
-async function expectArchiveRefused(s: Setup, schoolId: Id<"schools">) {
+async function expectDeleteRefused(s: Setup, schoolId: Id<"schools">) {
   const before = await s.t.run(ctx => ctx.db.get(schoolId));
-  expect(before?.status).toBe("active");
-  await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, id: schoolId, name: before!.name, code: before!.code, status: "archived" })).rejects.toThrow("published results");
-  expect(await s.t.run(ctx => ctx.db.get(schoolId))).toMatchObject({ status: "active", updatedAt: before!.updatedAt });
+  await expect(s.editor.mutation(api.schools.remove, { editionId: s.editionId, schoolId, expectedUpdatedAt: before!.updatedAt })).rejects.toThrow(/published results or scoreboard history/);
+  expect(await s.t.run(ctx => ctx.db.get(schoolId))).toMatchObject({ updatedAt: before!.updatedAt });
 }
 
 describe("Convex scoring and management integration", () => {
@@ -99,11 +98,10 @@ describe("Convex scoring and management integration", () => {
     const s = await setup();
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "  " })).rejects.toThrow();
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "verification a" })).rejects.toThrow();
-    await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Other", code: "a" })).rejects.toThrow();
     for (const points of [-1, 1.5]) await expect(s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points }] })).rejects.toThrow();
     const foreign = await s.t.run(async ctx => {
       const editionId = await ctx.db.insert("editions", { name: "Other edition", slug: "other", year: 2027, timezone: "Asia/Kolkata", status: "draft", isCurrent: false, createdAt: 1, updatedAt: 1 });
-      return ctx.db.insert("schools", { editionId, name: "Foreign", status: "active", createdAt: 1, updatedAt: 1 });
+      return ctx.db.insert("schools", { editionId, name: "Foreign", createdAt: 1, updatedAt: 1 });
     });
     await expect(s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: foreign, points: 5 }] })).rejects.toThrow("Invalid school");
   });
@@ -157,24 +155,6 @@ describe("Convex scoring and management integration", () => {
     const correctionPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: correction });
     await expect(s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: correction, expectedActiveRevisionId: correctionPreview.expectedActiveRevisionId, expectedDraftVersion: correctionPreview.expectedDraftVersion })).rejects.toThrow("Correction reason required");
     expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).find(row => row.id === s.a)?.points).toBe(5);
-  });
-
-  it("rejects publishing a draft after a school is archived and preserves official results and totals", async () => {
-    const s = await setup();
-    const original = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 10 }] });
-    const originalPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: original });
-    await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: original, expectedActiveRevisionId: originalPreview.expectedActiveRevisionId, expectedDraftVersion: originalPreview.expectedDraftVersion });
-    const correction = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, reason: "Add a late school", entries: [{ schoolId: s.a, points: 10 }, { schoolId: s.b, points: 6 }] });
-    const correctionPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: correction });
-    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.b, name: "Verification B", code: "B", status: "archived" });
-    await expect(s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: correction, expectedActiveRevisionId: correctionPreview.expectedActiveRevisionId, expectedDraftVersion: correctionPreview.expectedDraftVersion })).rejects.toThrow("archived");
-    expect((await s.t.query(api.results.getPublishedByEvent, { eventId: s.eventId })).map(row => [row.schoolId, row.points])).toEqual([[s.a, 10]]);
-    expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).map(row => [row.id, row.points])).toEqual([[s.a, 10]]);
-    expect(await s.t.run(async ctx => ctx.db.query("schoolCategoryTotals").withIndex("by_edition_school", q => q.eq("editionId", s.editionId).eq("schoolId", s.b)).first())).toBeNull();
-    const admin = await s.superAdmin.query(api.results.getAdminByEvent, { eventId: s.eventId });
-    expect(admin.event.activePublishedRevisionId).toBe(original);
-    expect(admin.revisions.find(revision => revision._id === original)?.status).toBe("published");
-    expect(admin.draft?.status).toBe("draft");
   });
 
   it("rejects publishing a draft after a school is removed from event participation and preserves official results", async () => {
@@ -241,30 +221,28 @@ describe("Convex scoring and management integration", () => {
     expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([]);
   });
 
-  it("rejects archiving a school with published points and preserves its standings", async () => {
+  it("rejects deleting a school with published points and preserves its standings", async () => {
     const s = await setup();
     await publishResults(s, s.eventId, [{ schoolId: s.a, points: 10 }, { schoolId: s.b, points: 6 }]);
-    const before = await s.t.run(ctx => ctx.db.get(s.a));
-    await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Verification A", code: "A", status: "archived" })).rejects.toThrow("published results");
-    expect(await s.t.run(ctx => ctx.db.get(s.a))).toMatchObject({ status: "active", updatedAt: before!.updatedAt });
+    await expectDeleteRefused(s, s.a);
     expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).find(row => row.id === s.a)?.points).toBe(10);
   });
 
-  it("treats a zero-point active published entry as published history", async () => {
+  it("treats a zero-point published entry as published history", async () => {
     const s = await setup();
     await publishResults(s, s.eventId, [{ schoolId: s.a, points: 0 }]);
-    await expectArchiveRefused(s, s.a);
+    await expectDeleteRefused(s, s.a);
   });
 
-  it("rejects archiving when a later event contains published participation", async () => {
+  it("rejects deleting when a later event contains published participation", async () => {
     const s = await setup();
     const second = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Second scored event", categoryId: s.categories[2]._id });
     await publishResults(s, s.eventId, [{ schoolId: s.b, points: 5 }]);
     await publishResults(s, second, [{ schoolId: s.a, points: 0 }]);
-    await expectArchiveRefused(s, s.a);
+    await expectDeleteRefused(s, s.a);
   });
 
-  it("rejects archiving a school whose published participation was superseded", async () => {
+  it("rejects deleting a school whose published participation was superseded", async () => {
     const s = await setup();
     const original = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5 }] });
     const originalPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: original });
@@ -275,10 +253,10 @@ describe("Convex scoring and management integration", () => {
     const revisions = (await s.editor.query(api.results.getAdminByEvent, { eventId: s.eventId })).revisions;
     expect(revisions.find(revision => revision._id === original)?.status).toBe("superseded");
     expect((await s.t.query(api.results.getPublishedByEvent, { eventId: s.eventId })).some(row => row.schoolId === s.a)).toBe(false);
-    await expectArchiveRefused(s, s.a);
+    await expectDeleteRefused(s, s.a);
   });
 
-  it("rejects archiving a school whose published participation was revoked", async () => {
+  it("rejects deleting a school whose published participation was revoked", async () => {
     const s = await setup();
     const draft = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5 }] });
     const preview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: draft });
@@ -287,36 +265,30 @@ describe("Convex scoring and management integration", () => {
     const revisions = (await s.editor.query(api.results.getAdminByEvent, { eventId: s.eventId })).revisions;
     expect(revisions.find(revision => revision._id === draft)?.status).toBe("revoked");
     expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).find(row => row.id === s.a)?.points).toBe(0);
-    await expectArchiveRefused(s, s.a);
+    await expectDeleteRefused(s, s.a);
   });
 
-  it("archives a school without published history", async () => {
+  it("deletes a school without published history", async () => {
     const s = await setup();
-    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.b, name: "Verification B", code: "B", status: "archived" });
-    expect(await s.t.run(ctx => ctx.db.get(s.b))).toMatchObject({ status: "archived" });
-  });
-
-  it("restores an archived school without published history", async () => {
-    const s = await setup();
-    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.b, name: "Verification B", code: "B", status: "archived" });
-    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.b, name: "Verification B", code: "B", status: "active" });
-    expect(await s.t.run(ctx => ctx.db.get(s.b))).toMatchObject({ status: "active" });
+    const before = await s.t.run(ctx => ctx.db.get(s.b));
+    await s.editor.mutation(api.schools.remove, { editionId: s.editionId, schoolId: s.b, expectedUpdatedAt: before!.updatedAt });
+    expect(await s.t.run(ctx => ctx.db.get(s.b))).toBeNull();
   });
 
   it("does not block editing school details when published history exists", async () => {
     const s = await setup();
     await publishResults(s, s.eventId, [{ schoolId: s.a, points: 3 }]);
-    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Verification A renamed", code: "A2" });
-    expect(await s.t.run(ctx => ctx.db.get(s.a))).toMatchObject({ name: "Verification A renamed", code: "A2", status: "active" });
+    await s.editor.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Verification A renamed" });
+    expect(await s.t.run(ctx => ctx.db.get(s.a))).toMatchObject({ name: "Verification A renamed" });
     expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).find(row => row.id === s.a)?.points).toBe(3);
   });
 
-  it("rejects unauthorized archive attempts without modifying the school", async () => {
+  it("rejects unauthorized school edits without modifying the school", async () => {
     const s = await setup();
     await publishResults(s, s.eventId, [{ schoolId: s.a, points: 4 }]);
     for (const caller of [s.t, s.regular, s.revoked]) {
-      await expect(caller.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Verification A", code: "A", status: "archived" })).rejects.toThrow();
+      await expect(caller.mutation(api.schools.save, { editionId: s.editionId, id: s.a, name: "Forbidden rename" })).rejects.toThrow();
     }
-    expect(await s.t.run(ctx => ctx.db.get(s.a))).toMatchObject({ status: "active", name: "Verification A" });
+    expect(await s.t.run(ctx => ctx.db.get(s.a))).toMatchObject({ name: "Verification A" });
   });
 });

@@ -12,7 +12,7 @@
 .school-item-top { display:flex; justify-content:space-between; gap:20px; align-items:start; }
 .school-item-top>div:first-child { min-width:0; }
 .school-item h3 { margin:0; font-size:18px; overflow-wrap:anywhere; }
-.school-code { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:8px 0 0; }
+
 .school-points { flex-shrink:0; text-align:right; display:flex; flex-direction:column; font-variant-numeric:tabular-nums; }
 .school-points strong { font-size:24px; line-height:1.2; color:var(--ink); }
 .school-points span { font-size:11px; color:var(--muted); }

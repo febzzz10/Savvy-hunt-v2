@@ -67,7 +67,7 @@ export const save = mutation({
       if (new Set(args.participatingSchoolIds).size !== args.participatingSchoolIds.length) throw new Error("Duplicate participating school");
       for (const schoolId of args.participatingSchoolIds) {
         const school = await ctx.db.get(schoolId);
-        if (!school || school.editionId !== args.editionId || school.status !== "active") throw new Error("Invalid participating school");
+        if (!school || school.editionId !== args.editionId) throw new Error("Invalid participating school");
       }
     }
     const duplicate = await ctx.db.query("events").withIndex("by_edition_slug", q => q.eq("editionId", args.editionId).eq("slug", slug)).unique();

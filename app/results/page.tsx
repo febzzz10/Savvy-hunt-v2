@@ -13,7 +13,7 @@ export default function Page() { return <><Nav /><main id="main-content" tabInde
 export function Results({ editionId }: { editionId: string }) {
   const results = useQuery(ref<{ editionId: string; limit: number }, Result[]>("results:listRecentPublished"), { editionId, limit: 50 });
   const categories = useQuery(ref<{ editionId: string }, Category[]>("categories:listCurrent"), { editionId });
-  const schools = useQuery(ref<{ editionId: string }, School[]>("schools:listActive"), { editionId });
+  const schools = useQuery(ref<{ editionId: string }, School[]>("schools:listPublic"), { editionId });
   const [categoryId, setCategory] = useState("all"), [schoolId, setSchool] = useState("all");
   const filtered = results?.filter(result => (categoryId === "all" || result.categoryId === categoryId) && (schoolId === "all" || result.entries.some(entry => entry.schoolId === schoolId)));
   const isFiltered = categoryId !== "all" || schoolId !== "all";

@@ -8,7 +8,7 @@ const entry=v.object({schoolId:v.id("schools"),points:v.number(),placement:v.opt
 async function rows(ctx: QueryCtx | MutationCtx,revisionId:Id<"resultRevisions">){return ctx.db.query("resultEntries").withIndex("by_revision",q=>q.eq("revisionId",revisionId)).collect()}
 export const getPublishedByEvent=query({args:{eventId:v.id("events")},handler:async(ctx,{eventId})=>{
   const event=await ctx.db.get(eventId);if(!event?.activePublishedRevisionId)return [];
-  return Promise.all((await rows(ctx,event.activePublishedRevisionId)).map(async r=>({schoolId:r.schoolId,schoolName:(await ctx.db.get(r.schoolId))?.name??"Archived school",points:r.points,placement:r.placement,sortOrder:r.sortOrder})));
+  return Promise.all((await rows(ctx,event.activePublishedRevisionId)).map(async r=>({schoolId:r.schoolId,schoolName:(await ctx.db.get(r.schoolId))?.name??"Removed school",points:r.points,placement:r.placement,sortOrder:r.sortOrder})));
 }});
 export const listRecentPublished = query({
   args: { editionId: v.id("editions"), limit: v.number() },
@@ -38,7 +38,7 @@ export const listRecentPublished = query({
       const publicEntries = [];
       for (const row of entries) {
         if (row.eventId !== event._id) continue;
-        if (!schools.has(row.schoolId)) schools.set(row.schoolId, (await ctx.db.get(row.schoolId))?.name ?? "Archived school");
+        if (!schools.has(row.schoolId)) schools.set(row.schoolId, (await ctx.db.get(row.schoolId))?.name ?? "Removed school");
         publicEntries.push({ schoolId: row.schoolId, schoolName: schools.get(row.schoolId)!, points: row.points,
           ...(row.placement === undefined ? {} : { placement: row.placement }),
           ...(row.namePublishingApproved && row.displayParticipantName ? { participantName: row.displayParticipantName } : {}),
@@ -56,8 +56,7 @@ export const getAdminByEvent=query({args:{eventId:v.id("events")},handler:async(
 export const saveDraft=mutation({args:{eventId:v.id("events"),entries:v.array(entry),reason:v.optional(v.string()),expectedDraftVersion:v.optional(v.number())},returns:v.id("resultRevisions"),handler:async(ctx,args)=>{
   const admin=await requireAdmin(ctx),event=await ctx.db.get(args.eventId);if(!event)throw new Error("Event missing");
   if(args.entries.length>200)throw new Error("Too many entries");
-  const officialRows=event.activePublishedRevisionId?await rows(ctx,event.activePublishedRevisionId):[];
-  for(const item of args.entries){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId||school.status!=="active"&&!officialRows.some(row=>row.schoolId===item.schoolId))throw new Error("Invalid school");if(event.participatingSchoolIds?.length&&!event.participatingSchoolIds.includes(item.schoolId))throw new Error("School is not assigned to this event");if(!Number.isSafeInteger(item.points)||item.points<0)throw new Error("Invalid points");if(item.placement!==undefined&&(!Number.isSafeInteger(item.placement)||item.placement<1))throw new Error("Invalid placement")}
+  for(const item of args.entries){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId)throw new Error("Invalid school");if(event.participatingSchoolIds?.length&&!event.participatingSchoolIds.includes(item.schoolId))throw new Error("School is not assigned to this event");if(!Number.isSafeInteger(item.points)||item.points<0)throw new Error("Invalid points");if(item.placement!==undefined&&(!Number.isSafeInteger(item.placement)||item.placement<1))throw new Error("Invalid placement")}
   const revisions=await ctx.db.query("resultRevisions").withIndex("by_event",q=>q.eq("eventId",args.eventId)).collect();
   let draft=revisions.find(r=>r.status==="draft");const now=Date.now();
   if(!draft){const id=await ctx.db.insert("resultRevisions",{eventId:args.eventId,revisionNumber:Math.max(0,...revisions.map(r=>r.revisionNumber))+1,status:"draft",draftVersion:1,correctionOfRevisionId:event.activePublishedRevisionId,changeReason:args.reason?.trim(),createdBy:admin.authUserId,createdAt:now});draft=(await ctx.db.get(id))!}
@@ -81,7 +80,7 @@ export const publish=mutation({args:{eventId:v.id("events"),draftRevisionId:v.id
   const old=event.activePublishedRevisionId?await rows(ctx,event.activePublishedRevisionId):[],next=await rows(ctx,draft._id);
   if(!next.length)throw new Error("Cannot publish empty results");
   contributions(next);
-  for(const item of next){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId)throw new Error("Invalid school in draft");if(event.participatingSchoolIds?.length&&!event.participatingSchoolIds.includes(item.schoolId))throw new Error("School is no longer participating");if(school.status!=="active")throw new Error("School is archived")}
+  for(const item of next){const school=await ctx.db.get(item.schoolId);if(!school||school.editionId!==event.editionId)throw new Error("Invalid school in draft");if(event.participatingSchoolIds?.length&&!event.participatingSchoolIds.includes(item.schoolId))throw new Error("School is no longer participating")}
   if(event.activePublishedRevisionId&&sameEntries(old,next))return {status:"unchanged" as const};
   const now=Date.now();
   for(const [schoolId,delta] of deltas(old,next)){

@@ -10,7 +10,7 @@ The package and public product are **Savvy Hunt**, a school competition platform
 
 Implemented routes include `/`, `/scoreboard`, `/scoreboard/[slug]`, `/schedule`, `/events/[slug]`, `/results`, `/snapshots` and `/about`. Public pages subscribe to the current Convex edition. Homepage includes hero, live/next/result summaries, leading schools, event updates, recent achievement cards, announcements and approved snapshots with honest loading/empty states.
 
-Admin routes include overview, schools, events, per-event result editor, scoreboard contribution drilldown, announcements, gallery, settings, admins, audit, login, setup and request-access. Schools support archive/restore; events support status/participation edits; results support drafts, previews, publication, correction and revocation. Gallery supports sync, pending/approved/rejected review, private preview, explicit consent, metadata, ordering and hide.
+Admin routes include overview, schools, events, per-event result editor, scoreboard contribution drilldown, announcements, gallery, settings, admins, audit, login, setup and request-access. Schools support create, rename and guarded deletion; events support status/participation edits; results support drafts, previews, publication, correction and revocation. Gallery supports sync, pending/approved/rejected review, private preview, explicit consent, metadata, ordering and hide.
 
 Not implemented as current workflows: website photo uploads, runtime Google OAuth writes, public admin self-enrollment or an ordinary browser first-admin bootstrap. `galleryUploads` persists only for historical records. No separate `hooks/` directory, Server Actions business layer, custom Next configuration, Vercel configuration file or CI workflow was found. Deployment procedure is documentation/manual configuration.
 
@@ -28,7 +28,7 @@ Unresolved externally: actual production deployment/domain, official event conte
 ## 4. Product decisions
 
 - Edition initialization creates Category I, II, III, IV, V and Common Category, with `Asia/Kolkata` timezone. One current edition is resolved via `isCurrent`; no full edition lifecycle UI is established by initialization alone (`convex/editions.ts`).
-- Schools earn manually entered nonnegative integer points; there is no encoded automatic placement-to-points schedule. Overall standings sum category totals including Common once. Active schools only are publicly ranked; equal totals share competition rank and names break display-order ties (`convex/lib/scoring.ts`, `convex/scoreboard.ts`).
+- Schools earn manually entered nonnegative integer points; there is no encoded automatic placement-to-points schedule. Overall standings sum category totals including Common once. All schools are publicly ranked; equal totals share competition rank and names break display-order ties (`convex/lib/scoring.ts`, `convex/scoreboard.ts`).
 - Event status (upcoming/live/completed/postponed/cancelled) is organizer-controlled and distinct from result publication. Events carry no date/time fields; schedules order by creation time and public availability is not inferred from the clock.
 - Official results are versioned publications. Draft corrections coexist with the official revision. Corrections require reasons when replacing an active publication; revocation retains publication history.
 - Explicit placements drive achievement winners, including tied placements and zero-point placed entries. Names are public only when `namePublishingApproved` is true; the current draft mutation accepts school/points/placement/entryLabel, not participant names.
@@ -45,7 +45,7 @@ Current presentation includes responsive shared navigation, mobile navigation/up
 
 | Entities | Relationships and role |
 |---|---|
-| editions, categories, schools | Edition-scoped competition configuration and roster; schools archive only without published participation history |
+| editions, categories, schools | Edition-scoped competition configuration and roster; schools delete only without published participation history |
 | events | Edition/category, optional participating schools, status and active published revision pointer; no date/time fields |
 | resultRevisions, resultEntries | Event revision history and ordered school point/placement rows; repeated schools supported |
 | schoolCategoryTotals | Materialized edition/school/category scores changed by publication deltas |
@@ -57,10 +57,10 @@ Current presentation includes responsive shared navigation, mobile navigation/up
 
 Key backend behaviors:
 
-- `results.saveDraft`: validates at most 200 entries, safe integer points/placements, edition and participation; checks expected version when replacing a draft. Previously official archived schools can remain in correction drafts, but publication requires every school to still be active. Public queries do not expose drafts.
-- `results.preview`: supplies active revision/draft expectations and per-school deltas. `publish` rejects stale revisions/drafts, archived schools and empty results; it returns already_published/unchanged where appropriate, updates totals transactionally and supersedes the previous revision. `revoke` subtracts contributions, marks the revision revoked, removes the active pointer and audits a mandatory reason.
+- `results.saveDraft`: validates at most 200 entries, safe integer points/placements, edition and participation; checks expected version when replacing a draft. Public queries do not expose drafts.
+- `results.preview`: supplies active revision/draft expectations and per-school deltas. `publish` rejects stale revisions/drafts and empty results; it returns already_published/unchanged where appropriate, updates totals transactionally and supersedes the previous revision. `revoke` subtracts contributions, marks the revision revoked, removes the active pointer and audits a mandatory reason.
 - `events.save`: validates length limits, slug uniqueness, category/school edition and active participation. Historical publication permanently locks category. Optional expected category/update timestamps protect current form submissions; these checks are not universally mandatory API arguments.
-- `schools.save`: validates names/codes, uppercases codes and enforces edition-local uniqueness. Archiving is blocked when any published participation history exists; otherwise it affects public standings without deleting official entries.
+- `schools.save`: validates names and enforces edition-local uniqueness. `schools.remove` refuses deletion when the school has any `schoolCategoryTotals` row (published, superseded, revoked or zero-point history) and strips it from event participation otherwise.
 - `admins.bootstrap`: internal owner-only first admin, closed by any existing admin/bootstrap marker. `sealBootstrap` closes legacy installations without granting access. `admins.save` prevents removing the caller's own super-admin privileges. Audit pagination is super-admin-only.
 - `announcements.save` returns content to draft; `setStatus` explicitly publishes/hides. `siteSettings.update` requires super admin.
 - Gallery cron runs every two minutes. Sync uses run state, paginated Drive reads, scheduled continuations and reconciliation. New files become pending; changed/missing/moved files lose verification/consent as appropriate. Approval checks reviewed version/checksum, approved-folder presence and duplicate approved entries, then internally rechecks authorization/state.

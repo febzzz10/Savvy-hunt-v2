@@ -11,7 +11,7 @@ type GallerySummary = {
   pending: number;
   recent: Array<{ _id: string; altText: string; filename?: string; approvalStatus: string; availability?: "present" | "missing"; createdAt: number; previewable: boolean }>;
 };
-type School = { _id: string; status: "active" | "archived" };
+type School = { _id: string };
 
 export default function Page() {
   return <><span className="eyebrow">Organizer workspace</span><h1>Overview</h1><Load>{edition => <Overview editionId={edition._id} />}</Load></>;
@@ -24,7 +24,6 @@ function Overview({ editionId }: { editionId: string }) {
 
   if (!schools || !events || !gallery) return <Skeleton label="Loading the organizer overview…" />;
 
-  const activeSchools = schools.filter(school => school.status === "active").length;
   const live = events.filter(event => event.status === "live");
   const drafts = events.filter(event => event.hasDraftResults).sort((a, b) => b.updatedAt - a.updatedAt);
   const next = events.filter(event => event.status === "live" || event.status === "upcoming").sort((a, b) => Number(b.status === "live") - Number(a.status === "live") || a.createdAt - b.createdAt).slice(0, 4);
@@ -38,7 +37,7 @@ function Overview({ editionId }: { editionId: string }) {
     </div>
 
     <section className="admin-stats" aria-label="Workspace summary">
-      <Link className="admin-stat" href="/admin/schools"><span>Schools</span><strong>{activeSchools}</strong><small>{schools.length - activeSchools} archived</small></Link>
+      <Link className="admin-stat" href="/admin/schools"><span>Schools</span><strong>{schools.length}</strong><small>In this edition</small></Link>
       <Link className="admin-stat" href="/admin/events"><span>Events</span><strong>{events.length}</strong><small>{live.length} live now</small></Link>
       <Link className="admin-stat" href="/admin/events"><span>Result drafts</span><strong>{drafts.length}</strong><small>{drafts.length ? "Awaiting publication" : "All clear"}</small></Link>
       <Link className="admin-stat" href="/admin/gallery"><span>Photos</span><strong>{gallery.total}</strong><small>{gallery.pending} awaiting review</small></Link>
