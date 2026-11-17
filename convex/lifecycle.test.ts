@@ -21,7 +21,7 @@ async function setup() {
   const categories = await t.query(api.categories.listCurrent, { editionId });
   const a = await editor.mutation(api.schools.save, { editionId, name: "Verification A", code: "A" });
   const b = await editor.mutation(api.schools.save, { editionId, name: "Verification B", code: "B" });
-  const eventId = await editor.mutation(api.events.save, { editionId, title: "Verification quiz", categoryId: categories[1]._id, startsAt: 1_800_000_000_000, participatingSchoolIds: [a, b] });
+  const eventId = await editor.mutation(api.events.save, { editionId, title: "Verification quiz", categoryId: categories[1]._id, participatingSchoolIds: [a, b] });
   return { t, superAdmin, editor, regular, revoked, editionId, categories, a, b, eventId };
 }
 type Setup = Awaited<ReturnType<typeof setup>>;
@@ -40,7 +40,7 @@ async function expectArchiveRefused(s: Setup, schoolId: Id<"schools">) {
 describe("Convex scoring and management integration", () => {
   it("changes event status deliberately without implicitly publishing results", async()=>{
     const s=await setup();
-    for(const status of ["live","completed"] as const){await s.editor.mutation(api.events.save,{editionId:s.editionId,id:s.eventId,title:"Verification quiz",categoryId:s.categories[1]._id,startsAt:1_800_000_000_000,status});const events=await s.t.query(api.events.listPublic,{editionId:s.editionId});expect(events.find(event=>event._id===s.eventId)?.status).toBe(status);expect(events.find(event=>event._id===s.eventId)?.hasPublishedResults).toBe(false)}
+    for(const status of ["live","completed"] as const){await s.editor.mutation(api.events.save,{editionId:s.editionId,id:s.eventId,title:"Verification quiz",categoryId:s.categories[1]._id,status});const events=await s.t.query(api.events.listPublic,{editionId:s.editionId});expect(events.find(event=>event._id===s.eventId)?.status).toBe(status);expect(events.find(event=>event._id===s.eventId)?.hasPublishedResults).toBe(false)}
   });
   it("preserves draft isolation, publishes once, corrects by delta, revokes once, and preserves audit", async () => {
     const s = await setup();
@@ -67,7 +67,7 @@ describe("Convex scoring and management integration", () => {
     const audit = await s.superAdmin.query(api.admins.listAudit, {});
     expect(audit.filter(row => row.action === "results.publish")).toHaveLength(2);
     expect(audit.filter(row => row.action === "results.revoke")).toHaveLength(1);
-    await expect(s.editor.mutation(api.events.save,{editionId:s.editionId,id:s.eventId,title:"Verification quiz",categoryId:s.categories[0]._id,startsAt:1_800_000_000_000})).rejects.toThrow("Cannot change category after publication");
+    await expect(s.editor.mutation(api.events.save,{editionId:s.editionId,id:s.eventId,title:"Verification quiz",categoryId:s.categories[0]._id})).rejects.toThrow("Cannot change category after publication");
   });
 
   it("rejects unauthorized callers for every administrative operation and protects admin reads", async () => {
@@ -77,7 +77,7 @@ describe("Convex scoring and management integration", () => {
     const announcement = await s.editor.mutation(api.announcements.save, {editionId:s.editionId,title:"Private draft",body:"PRIVATE"});
     for (const caller of [s.t, s.regular, s.revoked]) {
       await expect(caller.mutation(api.schools.save, { editionId: s.editionId, name: "Forbidden" })).rejects.toThrow();
-      await expect(caller.mutation(api.events.save, { editionId: s.editionId, categoryId: s.categories[0]._id, title: "Forbidden", startsAt: 1 })).rejects.toThrow();
+      await expect(caller.mutation(api.events.save, { editionId: s.editionId, categoryId: s.categories[0]._id, title: "Forbidden" })).rejects.toThrow();
       await expect(caller.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [] })).rejects.toThrow();
       await expect(caller.query(api.results.getAdminByEvent, { eventId: s.eventId })).rejects.toThrow();
       await expect(caller.query(api.admins.listAudit, {})).rejects.toThrow();
@@ -100,7 +100,6 @@ describe("Convex scoring and management integration", () => {
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "  " })).rejects.toThrow();
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "verification a" })).rejects.toThrow();
     await expect(s.editor.mutation(api.schools.save, { editionId: s.editionId, name: "Other", code: "a" })).rejects.toThrow();
-    await expect(s.editor.mutation(api.events.save,{editionId:s.editionId,title:"Invalid end",categoryId:s.categories[0]._id,startsAt:1,endsAt:Number.POSITIVE_INFINITY})).rejects.toThrow("Invalid schedule");
     for (const points of [-1, 1.5]) await expect(s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points }] })).rejects.toThrow();
     const foreign = await s.t.run(async ctx => {
       const editionId = await ctx.db.insert("editions", { name: "Other edition", slug: "other", year: 2027, timezone: "Asia/Kolkata", status: "draft", isCurrent: false, createdAt: 1, updatedAt: 1 });
@@ -125,7 +124,7 @@ describe("Convex scoring and management integration", () => {
 
   it("counts Common Category once and preserves ties and multiple legitimate entries", async () => {
     const s = await setup();
-    const commonEvent = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Common verification", categoryId: s.categories[5]._id, startsAt: 1 });
+    const commonEvent = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Common verification", categoryId: s.categories[5]._id });
     const draft = await s.editor.mutation(api.results.saveDraft, { eventId: commonEvent, entries: [{ schoolId: s.a, points: 3 }, { schoolId: s.a, points: 2 }, { schoolId: s.b, points: 5 }] });
     await s.superAdmin.mutation(api.results.publish, { eventId: commonEvent, draftRevisionId: draft, expectedActiveRevisionId: null, expectedDraftVersion: 1 });
     expect((await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId })).map(row => [row.points, row.rank])).toEqual([[5, 1], [5, 1]]);
@@ -137,7 +136,7 @@ describe("Convex scoring and management integration", () => {
     const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 4 }, { schoolId: s.b, points: 1 }] });
     const firstPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: first });
     await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: first, expectedActiveRevisionId: firstPreview.expectedActiveRevisionId, expectedDraftVersion: firstPreview.expectedDraftVersion });
-    const second = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Second category event", categoryId: s.categories[2]._id, startsAt: 2_000_000_000_000 });
+    const second = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Second category event", categoryId: s.categories[2]._id });
     const secondDraft = await s.editor.mutation(api.results.saveDraft, { eventId: second, entries: [{ schoolId: s.a, points: 6 }] });
     const secondPreview = await s.editor.query(api.results.preview, { eventId: second, draftRevisionId: secondDraft });
     await s.superAdmin.mutation(api.results.publish, { eventId: second, draftRevisionId: secondDraft, expectedActiveRevisionId: secondPreview.expectedActiveRevisionId, expectedDraftVersion: secondPreview.expectedDraftVersion });
@@ -185,7 +184,7 @@ describe("Convex scoring and management integration", () => {
     await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: original, expectedActiveRevisionId: originalPreview.expectedActiveRevisionId, expectedDraftVersion: originalPreview.expectedDraftVersion });
     const correction = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, reason: "Add a late school", entries: [{ schoolId: s.a, points: 10 }, { schoolId: s.b, points: 6 }] });
     const correctionPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: correction });
-    await s.editor.mutation(api.events.save, { editionId: s.editionId, id: s.eventId, title: "Verification quiz", categoryId: s.categories[1]._id, startsAt: 1_800_000_000_000, participatingSchoolIds: [s.a] });
+    await s.editor.mutation(api.events.save, { editionId: s.editionId, id: s.eventId, title: "Verification quiz", categoryId: s.categories[1]._id, participatingSchoolIds: [s.a] });
     await expect(s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: correction, expectedActiveRevisionId: correctionPreview.expectedActiveRevisionId, expectedDraftVersion: correctionPreview.expectedDraftVersion })).rejects.toThrow("no longer participating");
     expect((await s.t.query(api.results.getPublishedByEvent, { eventId: s.eventId })).map(row => [row.schoolId, row.points])).toEqual([[s.a, 10]]);
     const overall = await s.t.query(api.scoreboard.getOverall, { editionId: s.editionId });
@@ -259,7 +258,7 @@ describe("Convex scoring and management integration", () => {
 
   it("rejects archiving when a later event contains published participation", async () => {
     const s = await setup();
-    const second = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Second scored event", categoryId: s.categories[2]._id, startsAt: 2_000_000_000_000 });
+    const second = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Second scored event", categoryId: s.categories[2]._id });
     await publishResults(s, s.eventId, [{ schoolId: s.b, points: 5 }]);
     await publishResults(s, second, [{ schoolId: s.a, points: 0 }]);
     await expectArchiveRefused(s, s.a);

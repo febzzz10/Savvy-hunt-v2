@@ -15,7 +15,7 @@ export const getCategory=query({args:{editionId:v.id("editions"),categoryId:v.id
 }});
 export const getContributionBreakdown=query({args:{schoolId:v.id("schools")},handler:async(ctx,{schoolId})=>{
   await requireAdmin(ctx);const school=await ctx.db.get(schoolId);if(!school)throw new Error("School missing");
-  const events=await ctx.db.query("events").withIndex("by_edition_start",q=>q.eq("editionId",school.editionId)).collect();
+  const events=await ctx.db.query("events").withIndex("by_edition_created",q=>q.eq("editionId",school.editionId)).collect();
   const rows=[];
   for(const event of events){if(!event.activePublishedRevisionId)continue;const entries=await ctx.db.query("resultEntries").withIndex("by_event_school",q=>q.eq("eventId",event._id).eq("schoolId",schoolId)).collect();const points=entries.filter(entry=>entry.revisionId===event.activePublishedRevisionId).reduce((sum,entry)=>sum+entry.points,0);if(points)rows.push({eventId:event._id,eventTitle:event.title,categoryId:event.categoryId,points})}
   return rows;

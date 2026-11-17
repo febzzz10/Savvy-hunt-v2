@@ -11,7 +11,7 @@ it("publishes tied winners with manual points and corrects their aggregate exact
   const editionId = await admin.mutation(api.editions.initialize, { name: "Winners test", year: 2026 });
   const [category] = await admin.query(api.categories.listCurrent, { editionId });
   const schools = await Promise.all(["A", "B", "C", "D"].map(name => admin.mutation(api.schools.save, { editionId, name })));
-  const eventId = await admin.mutation(api.events.save, { editionId, categoryId: category._id, title: "Tie test", startsAt: 1800000000000, participatingSchoolIds: schools });
+  const eventId = await admin.mutation(api.events.save, { editionId, categoryId: category._id, title: "Tie test", participatingSchoolIds: schools });
   const entries = schools.map((schoolId, index) => ({ schoolId, placement: [1, 1, 2, 3][index], points: [13, 13, 8, 4][index], entryLabel: `Team ${index + 1}` }));
   const draftRevisionId = await admin.mutation(api.results.saveDraft, { eventId, entries });
   expect(await t.query(api.results.getPublishedByEvent, { eventId })).toEqual([]);
@@ -37,7 +37,7 @@ it("persists participant names, enforces approval, preserves legacy labels, and 
   const editionId = await admin.mutation(api.editions.initialize, { name: "Names test", year: 2026 });
   const [category] = await admin.query(api.categories.listCurrent, { editionId });
   const [schoolA, schoolB] = await Promise.all(["A", "B"].map(name => admin.mutation(api.schools.save, { editionId, name })));
-  const eventId = await admin.mutation(api.events.save, { editionId, categoryId: category._id, title: "Names test event", startsAt: 1800000000000, participatingSchoolIds: [schoolA, schoolB] });
+  const eventId = await admin.mutation(api.events.save, { editionId, categoryId: category._id, title: "Names test event", participatingSchoolIds: [schoolA, schoolB] });
   const entries = [
     { schoolId: schoolA, placement: 1, points: 10, entryLabel: "Legacy A", displayParticipantName: "  Asha  ", namePublishingApproved: true },
     { schoolId: schoolB, placement: 2, points: 5, entryLabel: "Legacy B", displayParticipantName: "   ", namePublishingApproved: true },

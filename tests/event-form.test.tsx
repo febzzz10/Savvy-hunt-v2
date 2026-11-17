@@ -10,7 +10,7 @@ const editionId = "edition" as Id<"editions">;
 const categories = ["a", "b", "c"].map((key, index): Doc<"categories"> => ({ _id: `category-${key}` as Id<"categories">, _creationTime: 1, editionId, name: `Category ${key.toUpperCase()}`, slug: key, sortOrder: index, isActive: true }));
 const event: EventRecord = {
   _id: "event" as Id<"events">, _creationTime: 1, editionId, categoryId: categories[1]._id, title: "Existing event", slug: "existing-event",
-  startsAt: 1800000000000, status: "upcoming", resultStatus: "none", isFeatured: false, createdBy: "organizer", createdAt: 1, updatedAt: 1,
+  status: "upcoming", resultStatus: "none", isFeatured: false, createdBy: "organizer", createdAt: 1, updatedAt: 1,
   hasPublicationHistory: false, hasDraftResults: false, publicationState: "unpublished", categoryName: "Category B",
 };
 const props = { editionId, categories, schools: [], onSaved: vi.fn(), onDirtyChange: vi.fn(), onBusyChange: vi.fn() };

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Icon } from "./ui";
-export type ProgrammeEvent = { _id: string; title: string; slug: string; startsAt: number; categoryId: string; venue?: string; status: string; hasPublishedResults: boolean };
+export type ProgrammeEvent = { _id: string; title: string; slug: string; categoryId: string; venue?: string; status: string; hasPublishedResults: boolean };
 export type Standing = { id: string; name: string; points: number; rank: number; categoryPoints?: Record<string, number> };
 export function dateLabel(value: number) { return new Date(value).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }); }
 export function timeLabel(value: number) { return new Date(value).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit" }); }
@@ -9,7 +9,6 @@ export function SectionHeading({ number, title, href, action }: { number: string
 }
 export function Programme({ events, categories }: { events: ProgrammeEvent[]; categories?: { _id: string; name: string }[] }) {
   return <div className="programme">{events.map(event => <Link className="programme-row" href={`/events/${event.slug}`} key={event._id}>
-    <time dateTime={new Date(event.startsAt).toISOString()}><strong>{dateLabel(event.startsAt)}</strong><span>{timeLabel(event.startsAt)} IST</span></time>
     <div><span className="eyebrow">{categories?.find(item => item._id === event.categoryId)?.name ?? "Event"}</span><h3>{event.title}</h3>{event.status === "completed" && <span className="muted small">{event.hasPublishedResults ? "Official results published" : "Results pending"}</span>}</div>
     <span className="programme-venue">{event.venue || "Venue to be announced"}</span><span className="pill" data-status={event.status}>{event.status}</span><span className="row-arrow" aria-hidden="true">↗</span>
   </Link>)}</div>;

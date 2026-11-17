@@ -29,7 +29,7 @@ export const remove=mutation({args:{editionId:v.id("editions"),schoolId:v.id("sc
   if(school.updatedAt!==args.expectedUpdatedAt)throw new ConvexError("STALE_SCHOOL");
   // Totals rows are created on first publication and retained through correction and revoke.
   if(await ctx.db.query("schoolCategoryTotals").withIndex("by_edition_school",q=>q.eq("editionId",args.editionId).eq("schoolId",school._id)).first())throw new Error(PUBLISHED_HISTORY);
-  const events=await ctx.db.query("events").withIndex("by_edition_start",q=>q.eq("editionId",args.editionId)).collect(),draftEntries=[],draftRevisions=new Set<Id<"resultRevisions">>();
+  const events=await ctx.db.query("events").withIndex("by_edition_created",q=>q.eq("editionId",args.editionId)).collect(),draftEntries=[],draftRevisions=new Set<Id<"resultRevisions">>();
   for(const event of events){
     for(const entry of await ctx.db.query("resultEntries").withIndex("by_event_school",q=>q.eq("eventId",event._id).eq("schoolId",school._id)).collect()){
       const revision=await ctx.db.get(entry.revisionId);

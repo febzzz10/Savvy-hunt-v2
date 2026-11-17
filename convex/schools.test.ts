@@ -22,7 +22,7 @@ async function setup() {
   const categories = await t.query(api.categories.listCurrent, { editionId });
   const a = await editor.mutation(api.schools.save, { editionId, name: "Alpha", code: "A" });
   const b = await editor.mutation(api.schools.save, { editionId, name: "Beta", code: "B" });
-  const eventId = await editor.mutation(api.events.save, { editionId, title: "Deletion event", categoryId: categories[0]._id, startsAt: 1_800_000_000_000, participatingSchoolIds: [a, b] });
+  const eventId = await editor.mutation(api.events.save, { editionId, title: "Deletion event", categoryId: categories[0]._id, participatingSchoolIds: [a, b] });
   async function school(id: Id<"schools"> = a) { return (await t.run(ctx => ctx.db.get(id)))!; }
   async function remove(id: Id<"schools"> = a, expectedUpdatedAt?: number) {
     return editor.mutation(api.schools.remove, { editionId, schoolId: id, expectedUpdatedAt: expectedUpdatedAt ?? (await school(id)).updatedAt });
@@ -55,7 +55,7 @@ describe("school deletion", () => {
 
   it("removes an emptied draft revision and resets the event when no publication exists", async () => {
     const s = await setup();
-    const eventId = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Solo event", categoryId: s.categories[1]._id, startsAt: 1_800_000_100_000, participatingSchoolIds: [s.a] });
+    const eventId = await s.editor.mutation(api.events.save, { editionId: s.editionId, title: "Solo event", categoryId: s.categories[1]._id, participatingSchoolIds: [s.a] });
     const revisionId = await s.editor.mutation(api.results.saveDraft, { eventId, entries: [{ schoolId: s.a, points: 8 }] });
     await s.remove();
     expect(await s.t.run(ctx => ctx.db.get(revisionId))).toBeNull();

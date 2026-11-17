@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ProgrammeEvent } from "../editorial";
-import { dateLabel, timeLabel } from "../editorial";
 import { Icon } from "../ui";
 import "./mobile-updates.css";
 
@@ -21,7 +20,7 @@ export function MobileUpdates({ events, results, categories }: {
     <Link className="mobile-update-card mobile-update-next" href={next ? `/events/${next.slug}` : "/schedule"}>
       <span className="mobile-update-label"><Icon name="clock" /> NEXT UP</span>
       <span className="mobile-update-arrow" aria-hidden="true"><svg className="icon" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
-      <div className="mobile-update-content"><span className="mobile-update-tile" aria-hidden="true"><Icon name="calendar" /></span><div className="mobile-update-copy"><strong>{events === undefined ? "Loading the programme…" : next?.title || "Schedule to be announced"}</strong>{next && <span>{[category(next.categoryId), `${dateLabel(next.startsAt)} · ${timeLabel(next.startsAt)} IST`].filter(Boolean).join(" · ")}</span>}</div></div>
+      <div className="mobile-update-content"><span className="mobile-update-tile" aria-hidden="true"><Icon name="calendar" /></span><div className="mobile-update-copy"><strong>{events === undefined ? "Loading the programme…" : next?.title || "Schedule to be announced"}</strong>{next && <span>{category(next.categoryId) ?? next.venue ?? "Venue to be announced"}</span>}</div></div>
     </Link>
     <Link className="mobile-update-card mobile-update-results" href={result ? `/events/${result.eventSlug}` : "/results"}>
       <span className="mobile-update-label"><Icon name="trophy" /> LATEST RESULTS</span>

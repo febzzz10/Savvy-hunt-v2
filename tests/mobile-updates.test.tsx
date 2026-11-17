@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MobileUpdates } from "../components/home/mobile-updates";
-const next = { _id: "next", title: "Test upcoming event", slug: "test-next", status: "upcoming", categoryId: "category", startsAt: 0, hasPublishedResults: false };
+const next = { _id: "next", title: "Test upcoming event", slug: "test-next", status: "upcoming", categoryId: "category", hasPublishedResults: false };
 describe("mobile homepage updates", () => {
   it("distinguishes loading from confirmed empty data without a live badge or published claim", () => {
     const loading = renderToStaticMarkup(<MobileUpdates />);

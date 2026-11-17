@@ -57,7 +57,7 @@ async function saveEvent(venue) {
   await admin.refresh();
   await admin.client.mutation(api.events.save, {
     id: event._id, editionId: event.editionId, categoryId: event.categoryId,
-    title: event.title, startsAt: event.startsAt, endsAt: event.endsAt,
+    title: event.title,
     participatingSchoolIds: event.participatingSchoolIds, description: event.description,
     status: event.status, venue,
   });

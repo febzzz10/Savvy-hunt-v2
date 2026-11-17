@@ -8,8 +8,6 @@ export type EventRecord = FunctionReturnType<typeof api.events.listAdmin>[number
 export const statuses = ["upcoming", "live", "completed", "postponed", "cancelled"] as const;
 export type EventStatus = typeof statuses[number];
 export const statusLabel = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
-export const localDate = (value: number) => new Date(value + 330 * 60_000).toISOString().slice(0, 16);
-export const eventDate = (value: number) => new Date(value).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
 
 export function EventPublicationStatus({ event }: { event: Pick<EventRecord, "publicationState" | "hasDraftResults"> }) {
   const labels = { unpublished: "Unpublished", draft: "Draft", published: "Published", revoked: "Revoked" };

@@ -7,7 +7,7 @@ import type { EventRecord } from "../components/admin/events/shared";
 const editionId = "edition" as Id<"editions">;
 const event: EventRecord = {
   _id: "event" as Id<"events">, _creationTime: 1, editionId, categoryId: "category" as Id<"categories">, title: "Existing event", slug: "existing-event",
-  startsAt: 1800000000000, status: "upcoming", resultStatus: "none", isFeatured: false, createdBy: "organizer", createdAt: 1, updatedAt: 1,
+  status: "upcoming", resultStatus: "none", isFeatured: false, createdBy: "organizer", createdAt: 1, updatedAt: 1,
   hasPublicationHistory: false, hasDraftResults: false, publicationState: "unpublished", categoryName: "Category B",
 };
 const noop = () => {};

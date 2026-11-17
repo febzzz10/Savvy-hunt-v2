@@ -5,7 +5,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { friendlyResultsError } from "@/lib/results-editor";
-import { localDate, statuses, statusLabel, useUnsavedChanges, type EventRecord, type EventStatus } from "./shared";
+import { statuses, statusLabel, useUnsavedChanges, type EventRecord, type EventStatus } from "./shared";
 
 export function EventForm({ editionId, categories, schools, event, latest, onSaved, onCancel, onDirtyChange, onBusyChange }: {
   editionId: Id<"editions">; categories: Doc<"categories">[]; schools: Doc<"schools">[];
@@ -13,7 +13,7 @@ export function EventForm({ editionId, categories, schools, event, latest, onSav
   onDirtyChange: (dirty: boolean) => void; onBusyChange: (busy: boolean) => void;
 }) {
   const save = useMutation(api.events.save);
-  const [initial] = useState(() => ({ title: event?.title ?? "", categoryId: event?.categoryId ?? "", date: event ? localDate(event.startsAt) : "", end: event?.endsAt ? localDate(event.endsAt) : "", venue: event?.venue ?? "", description: event?.description ?? "", status: event?.status ?? "upcoming", participants: event?.participatingSchoolIds ?? [] }));
+  const [initial] = useState(() => ({ title: event?.title ?? "", categoryId: event?.categoryId ?? "", venue: event?.venue ?? "", description: event?.description ?? "", status: event?.status ?? "upcoming", participants: event?.participatingSchoolIds ?? [] }));
   const [values, setValues] = useState(initial);
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const lock = useRef(false);
@@ -25,17 +25,15 @@ export function EventForm({ editionId, categories, schools, event, latest, onSav
   const categoryId = categoryLocked && event ? event.categoryId : values.categoryId;
   const categoryHelpId = useId();
   useUnsavedChanges(dirty);
-  const field = (name: "title" | "categoryId" | "date" | "end" | "venue" | "description", value: string) => setValues(current => ({ ...current, [name]: value }));
+  const field = (name: "title" | "categoryId" | "venue" | "description", value: string) => setValues(current => ({ ...current, [name]: value }));
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (lock.current || stale) return;
-    const startsAt = Date.parse(`${values.date}:00+05:30`), endsAt = values.end ? Date.parse(`${values.end}:00+05:30`) : undefined;
     if (!values.title.trim()) { setError("Enter an event title."); return; }
-    if (!Number.isFinite(startsAt) || (endsAt !== undefined && (!Number.isFinite(endsAt) || endsAt <= startsAt))) { setError("End time must be after the start time."); return; }
     if (event && event.status !== values.status && !confirm(`Change this event to ${statusLabel(values.status)}? The public schedule will update immediately.`)) return;
     lock.current = true; setBusy(true); setError("");
     try {
-      await save({ editionId, id: event?._id, title: values.title.trim(), categoryId: categoryId as Id<"categories">, expectedCategoryId: event?.categoryId, expectedUpdatedAt: event?.updatedAt, startsAt, endsAt, venue: values.venue, description: values.description, status: values.status as EventStatus, participatingSchoolIds: !values.participants.length && !event?.participatingSchoolIds?.length ? undefined : values.participants });
+      await save({ editionId, id: event?._id, title: values.title.trim(), categoryId: categoryId as Id<"categories">, expectedCategoryId: event?.categoryId, expectedUpdatedAt: event?.updatedAt, venue: values.venue, description: values.description, status: values.status as EventStatus, participatingSchoolIds: !values.participants.length && !event?.participatingSchoolIds?.length ? undefined : values.participants });
       onSaved();
     } catch (cause) { setError(friendlyResultsError(cause)); }
     finally { lock.current = false; setBusy(false); }
@@ -45,8 +43,6 @@ export function EventForm({ editionId, categories, schools, event, latest, onSav
     <fieldset disabled={busy} className="event-fields">
       <label className="field"><span>Event title *</span><input autoFocus={Boolean(event)} required maxLength={160} value={values.title} onChange={e => field("title", e.target.value)} placeholder="Enter event title" /></label>
       <label className="field"><span>Category *</span><select required disabled={categoryLocked || stale} aria-describedby={categoryLocked ? categoryHelpId : undefined} value={categoryId} onChange={e => field("categoryId", e.target.value)}><option value="">Select category</option>{event && !categories.some(category => category._id === event.categoryId) && <option value={event.categoryId}>{event.categoryName}</option>}{categories.map(category => <option key={category._id} value={category._id} disabled={!category.isActive && category._id !== event?.categoryId}>{category.name}</option>)}</select>{categoryLocked && <small id={categoryHelpId}>Category cannot be changed because this event has publication history.</small>}</label>
-      <label className="field"><span>Starts at * · Asia/Kolkata</span><input required type="datetime-local" value={values.date} onChange={e => field("date", e.target.value)} /></label>
-      <label className="field"><span>Ends at · Asia/Kolkata (optional)</span><input type="datetime-local" min={values.date} value={values.end} onChange={e => field("end", e.target.value)} /></label>
       <label className="field"><span>Venue</span><input maxLength={200} value={values.venue} onChange={e => field("venue", e.target.value)} placeholder="Hall, stage or classroom" /></label>
       <label className="field"><span>Status</span><select value={values.status} onChange={e => setValues({ ...values, status: e.target.value as EventRecord["status"] })}>{statuses.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>
       <details className="event-extra" open={event ? true : undefined}><summary>Description & participating schools</summary>

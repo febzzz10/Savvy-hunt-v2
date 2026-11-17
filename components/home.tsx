@@ -10,7 +10,7 @@ import "./home-sections.css";
 import { useQuery } from "convex/react";
 import { Load, ref } from "./data";
 import { GalleryPhoto } from "./gallery-photo";
-import { Programme, SectionHeading, dateLabel, timeLabel, type ProgrammeEvent, type Standing } from "./editorial";
+import { Programme, SectionHeading, dateLabel, type ProgrammeEvent, type Standing } from "./editorial";
 import { EmptyState, Icon, Skeleton } from "./ui";
 type Announcement = { _id: string; title: string; body: string; publishedAt?: number };
 type Photo = { _id: string; altText: string; caption?: string };
@@ -32,7 +32,7 @@ function HomeData({ editionId }: { editionId: string }) {
     <HeroSection />
     <nav className="quick-access" aria-label="Event at a glance">
       <Link href="/schedule"><Icon name="clock" /><strong>Live now</strong><span>{live === undefined ? "Checking event statusâ€¦" : live.length ? live.map(event => event.title).join(" Â· ") : "No event is live right now"}</span></Link>
-      <Link href={next ? `/events/${next.slug}` : "/schedule"}><Icon name="calendar" /><strong>Next up</strong><span>{events === undefined ? "Loading the programmeâ€¦" : next ? `${dateLabel(next.startsAt)} Â· ${timeLabel(next.startsAt)} IST` : "Schedule to be announced"}</span></Link>
+      <Link href={next ? `/events/${next.slug}` : "/schedule"}><Icon name="calendar" /><strong>Next up</strong><span>{events === undefined ? "Loading the programmeâ€¦" : next ? next.title : "Schedule to be announced"}</span></Link>
       <Link href="/results"><Icon name="trophy" /><strong>Latest results</strong><span>{results === undefined ? "Checking official resultsâ€¦" : results[0]?.eventTitle || "Official results pending"}</span></Link>
     </nav>
     <MobileUpdates events={events} results={results} categories={categories} />

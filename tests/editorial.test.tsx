@@ -41,7 +41,7 @@ describe("editorial data presentation", () => {
   });
   it("does not treat a completed event as a published result", () => {
     const html = renderToStaticMarkup(<Programme events={[{
-      _id: "test", title: "Test event", slug: "test", startsAt: 0,
+      _id: "test", title: "Test event", slug: "test",
       categoryId: "category", status: "completed", hasPublishedResults: false,
     }]} />);
     expect(html).toContain("Results pending");

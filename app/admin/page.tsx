@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { Load, ref } from "@/components/data";
 import { GalleryPhoto } from "@/components/gallery-photo";
 import { Skeleton } from "@/components/ui";
-import { eventDate, statusLabel, type EventRecord } from "@/components/admin/events/shared";
+import { statusLabel, type EventRecord } from "@/components/admin/events/shared";
 
 type GallerySummary = {
   total: number;
@@ -27,7 +27,7 @@ function Overview({ editionId }: { editionId: string }) {
   const activeSchools = schools.filter(school => school.status === "active").length;
   const live = events.filter(event => event.status === "live");
   const drafts = events.filter(event => event.hasDraftResults).sort((a, b) => b.updatedAt - a.updatedAt);
-  const next = events.filter(event => event.status === "live" || event.status === "upcoming").sort((a, b) => Number(b.status === "live") - Number(a.status === "live") || a.startsAt - b.startsAt).slice(0, 4);
+  const next = events.filter(event => event.status === "live" || event.status === "upcoming").sort((a, b) => Number(b.status === "live") - Number(a.status === "live") || a.createdAt - b.createdAt).slice(0, 4);
 
   return <>
     <p className="admin-lede">The programme, official results, and publication queue at a glance.</p>
@@ -58,7 +58,7 @@ function Overview({ editionId }: { editionId: string }) {
       <section className="admin-panel" aria-labelledby="programme-title">
         <header className="admin-panel-heading"><h2 id="programme-title">Live &amp; next</h2><Link className="text-link" href="/admin/events">All events</Link></header>
         {next.map(event => <Link className="admin-list-row" key={event._id} href={`/admin/events/${event._id}/results`}>
-          <span><strong>{event.title}</strong><small>{eventDate(event.startsAt)} IST</small></span>
+          <span><strong>{event.title}</strong><small>{event.categoryName}</small></span>
           <span className="pill" data-status={event.status}>{statusLabel(event.status)}</span>
         </Link>)}
         {!next.length && <p className="admin-empty">No live or upcoming events. Create the first event to start the programme.</p>}

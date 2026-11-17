@@ -11,7 +11,7 @@ async function setup() {
   const editionId = await admin.mutation(api.editions.initialize, { name: "Event category tests", year: 2026 });
   const categories = await admin.query(api.categories.listCurrent, { editionId });
   const schoolId = await admin.mutation(api.schools.save, { editionId, name: "Test school" });
-  const input = { editionId, categoryId: categories[0]._id, title: "Category test event", startsAt: 1800000000000 };
+  const input = { editionId, categoryId: categories[0]._id, title: "Category test event" };
   const eventId = await admin.mutation(api.events.save, input);
   async function event() { return (await admin.query(api.events.listAdmin, { editionId })).find(row => row._id === eventId)!; }
   async function draft(points = 7, reason?: string) {

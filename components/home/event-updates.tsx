@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { timeLabel, type ProgrammeEvent } from "../editorial";
+import type { ProgrammeEvent } from "../editorial";
 import { Icon, Skeleton } from "../ui";
 import "./event-updates.css";
 
@@ -9,7 +9,7 @@ export function EventUpdates({ events, categories }: {
 }) {
   const priority = (event: ProgrammeEvent) => event.status === "live" ? 0 : event.status === "upcoming" ? 1 : 2;
   const updates = events?.filter(event => event.status === "live" || event.status === "upcoming" || event.hasPublishedResults)
-    .sort((a, b) => priority(a) - priority(b) || a.startsAt - b.startsAt).slice(0, 3);
+    .sort((a, b) => priority(a) - priority(b)).slice(0, 3);
 
   return <section className="home-updates" aria-labelledby="home-updates-title">
     <div className="event-schedule-panel">
@@ -23,7 +23,7 @@ export function EventUpdates({ events, categories }: {
           return <li key={event._id}><Link className="event-schedule-row" href={`/events/${event.slug}`}>
             <div className="event-schedule-info">
               <div className="event-schedule-title"><Icon name="trophy" /><h3>{event.title}</h3></div>
-              <p className="event-schedule-meta">{category && <><span>{category}</span><span aria-hidden="true"> · </span></>}<span>{timeLabel(event.startsAt)} IST</span></p>
+              <p className="event-schedule-meta">{category && <span>{category}</span>}</p>
               <p className="event-schedule-venue"><Icon name="pin" /><span>{event.venue || "Venue to be announced"}</span></p>
               <div className="event-schedule-status">
                 {event.status === "live" && <span className="pill" data-status="live">Live Now</span>}

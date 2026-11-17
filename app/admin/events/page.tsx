@@ -12,7 +12,7 @@ import { EmptyState, Icon, Skeleton } from "@/components/ui";
 import { EventForm } from "@/components/admin/events/event-form";
 import { DeleteEventDialog } from "@/components/admin/events/delete-dialog";
 import { WinnersDialog } from "@/components/admin/events/winners-dialog";
-import { EventDialog, EventPublicationStatus, eventDate, localDate, statuses, statusLabel, type EventRecord, type EventStatus } from "@/components/admin/events/shared";
+import { EventDialog, EventPublicationStatus, statuses, statusLabel, type EventRecord, type EventStatus } from "@/components/admin/events/shared";
 import { friendlyResultsError } from "@/lib/results-editor";
 
 export default function Page() { return <Load>{edition => <Manager editionId={edition._id} />}</Load>; }
@@ -27,7 +27,7 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
   const [editing, setEditing] = useState<EventRecord>();
   const [formVersion, setFormVersion] = useState(0), [dirty, setDirty] = useState(false), [formBusy, setFormBusy] = useState(false);
   const [resultEvent, setResultEvent] = useState<Id<"events">>();
-  const [search, setSearch] = useState(""), [status, setStatus] = useState(""), [category, setCategory] = useState(""), [date, setDate] = useState(""), [sort, setSort] = useState("programme");
+  const [search, setSearch] = useState(""), [status, setStatus] = useState(""), [category, setCategory] = useState(""), [sort, setSort] = useState("programme");
   const [notice, setNotice] = useState(""), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const [transition, setTransition] = useState<{ event: EventRecord; status: EventRecord["status"] }>();
   const [deleting, setDeleting] = useState<EventRecord>(), [deleteBusy, setDeleteBusy] = useState(false), [deleteError, setDeleteError] = useState("");
@@ -44,7 +44,7 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
     if (!current || current.updatedAt !== transition.event.updatedAt) { setError("This event changed in another session. Close this dialog and select the status again."); return; }
     lock.current = true; setBusy(true); setError("");
     try {
-      await save({ editionId, id: current._id, title: current.title, categoryId: current.categoryId, expectedCategoryId: current.categoryId, expectedUpdatedAt: current.updatedAt, participatingSchoolIds: current.participatingSchoolIds, startsAt: current.startsAt, endsAt: current.endsAt, venue: current.venue, description: current.description, status: transition.status as EventStatus });
+      await save({ editionId, id: current._id, title: current.title, categoryId: current.categoryId, expectedCategoryId: current.categoryId, expectedUpdatedAt: current.updatedAt, participatingSchoolIds: current.participatingSchoolIds, venue: current.venue, description: current.description, status: transition.status as EventStatus });
       setNotice(`${current.title} is now ${statusLabel(transition.status)}.`); setTransition(undefined);
     } catch (cause) { setError(friendlyResultsError(cause)); }
     finally { lock.current = false; setBusy(false); }
@@ -59,9 +59,9 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
     } catch (cause) { setDeleteError(friendlyResultsError(cause)); }
     finally { deleteLock.current = false; setDeleteBusy(false); }
   }
-  function clear() { setSearch(""); setStatus(""); setCategory(""); setDate(""); setSort("programme"); }
-  if (!categories || !schools || !events || !self) return <><h1>Event manager</h1><Skeleton label="Loading events and schools…" /></>;
-  const filtered = events.filter(event => (!search.trim() || `${event.title} ${event.venue ?? ""}`.toLowerCase().includes(search.trim().toLowerCase())) && (!status || event.status === status) && (!category || event.categoryId === category) && (!date || localDate(event.startsAt).startsWith(date))).sort((a, b) => sort === "updated" ? b.updatedAt - a.updatedAt : sort === "latest" ? b.startsAt - a.startsAt : sort === "programme" ? Number(b.status === "live") - Number(a.status === "live") || Number(b.status === "upcoming") - Number(a.status === "upcoming") || a.startsAt - b.startsAt : a.startsAt - b.startsAt);
+  function clear() { setSearch(""); setStatus(""); setCategory(""); setSort("programme"); }
+  if (!categories || !schools || !events || !self) return <><h1>Event manager</h1><Skeleton label="Loading events and schools�?�" /></>;
+  const filtered = events.filter(event => (!search.trim() || `${event.title} ${event.venue ?? ""}`.toLowerCase().includes(search.trim().toLowerCase())) && (!status || event.status === status) && (!category || event.categoryId === category)).sort((a, b) => sort === "updated" ? b.updatedAt - a.updatedAt : Number(b.status === "live") - Number(a.status === "live") || Number(b.status === "upcoming") - Number(a.status === "upcoming") || a.createdAt - b.createdAt);
   return <div className="event-manager">
     <header className="event-manager-heading"><div><Link className="text-link" href="/admin">← Back to dashboard</Link><h1>Event manager</h1><p className="muted">Manage the programme and publish official event results.</p></div><button className="button secondary" disabled={formBusy} onClick={() => edit()}>+ Create event</button></header>
     {notice && <p className="event-notice" role="status">{notice}</p>}
@@ -73,15 +73,14 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
           <label className="field event-search"><span>Search events</span><input type="search" placeholder="Event title or venue" value={search} onChange={e => setSearch(e.target.value)} /></label>
           <label className="field"><span>Status</span><select value={status} onChange={e => setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>
           <label className="field"><span>Category</span><select value={category} onChange={e => setCategory(e.target.value)}><option value="">All categories</option>{categories.map(value => <option key={value._id} value={value._id}>{value.name}</option>)}</select></label>
-          <label className="field"><span>Date · IST</span><input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
-          <label className="field"><span>Sort by</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="programme">Live & upcoming first</option><option value="soonest">Start date: earliest</option><option value="latest">Start date: latest</option><option value="updated">Recently updated</option></select></label>
+          <label className="field"><span>Sort by</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="programme">Live & upcoming first</option><option value="updated">Recently updated</option></select></label>
         </div>
-        <div className="event-feed-summary"><span role="status">Showing {filtered.length} of {events.length} events</span>{(search || status || category || date || sort !== "programme") && <button className="text-link" onClick={clear}>Clear filters</button>}</div>
+        <div className="event-feed-summary"><span role="status">Showing {filtered.length} of {events.length} events</span>{(search || status || category || sort !== "programme") && <button className="text-link" onClick={clear}>Clear filters</button>}</div>
         {!filtered.length && <EmptyState title={events.length ? "No matching events" : "The programme starts here"}>{events.length ? "Adjust your filters or clear them to see the full programme." : "Create your first event using the panel alongside this feed."}</EmptyState>}
         {filtered.map(event => <article className="event-feed-item" key={event._id}>
           <div className="event-item-title"><h3>{event.title}</h3><span className="pill" data-status={event.status}>{statusLabel(event.status)}</span></div>
           <p className="event-category">{event.categoryName} <EventPublicationStatus event={event} /></p>
-          <div className="event-metadata"><span><Icon name="calendar" /> {eventDate(event.startsAt)} IST</span><span><Icon name="pin" /> {event.venue || "Venue to be announced"}</span></div>
+          <div className="event-metadata"><span><Icon name="pin" /> {event.venue || "Venue to be announced"}</span></div>
           <p className="small event-participants">{event.participatingSchoolIds?.length ? `${event.participatingSchoolIds.length} participating schools · ${event.participatingSchoolIds.map(id => schools.find(s => s._id === id)?.name ?? "Archived school").join(", ")}` : "Open to all active schools"}</p>
           {event.activePublishedRevisionId ? <PublishedPreview eventId={event._id} /> : <p className="small">{event.publicationState === "revoked" ? "Official results withdrawn. Publication history is retained." : event.publicationState === "draft" ? "Draft results are private." : "Results have never been published."}</p>}
           <div className="event-item-actions"><button className="button" onClick={() => setResultEvent(event._id)}><Icon name="trophy" /> {event.activePublishedRevisionId ? "Manage winners" : "Enter winners"}</button><button className="button secondary" disabled={formBusy} onClick={() => edit(event)}>Edit event</button><button className="button secondary" disabled={formBusy || deleteBusy} onClick={() => { setError(""); setDeleteError(""); setDeleting(event); }}><Icon name="trash" /> Delete</button><label className="event-status-control"><span className="sr-only">Status for {event.title}</span><select value={event.status} disabled={busy} onChange={e => { setError(""); setTransition({ event, status: e.target.value as EventRecord["status"] }); }}>{statuses.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label>{event.activePublishedRevisionId && <Link className="text-link" href={`/events/${event.slug}`}>View results <Icon name="arrow" /></Link>}</div>

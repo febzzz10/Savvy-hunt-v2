@@ -81,7 +81,8 @@ try {
   await admin.getByLabel("Event title *", { exact: true }).fill(`Verification Quiz ${stamp}`);
   const categories = await client.query(api.categories.listCurrent, { editionId });
   await admin.getByLabel(/Category \*/).selectOption(categories[1]._id);
-  await admin.getByLabel(/Starts at/).fill("2026-11-01T10:00");
+
+
   await admin.locator(".event-form details").first().evaluate(details => { details.open = true; });
   await admin.getByLabel(schoolA, { exact: true }).check(); await admin.getByLabel(schoolB, { exact: true }).check();
   await admin.getByRole("button", { name: "Create event", exact: true }).click();
@@ -163,7 +164,7 @@ try {
   record("Revocation propagated; disconnected browser recovered to current totals");
   stage = "live concurrent publication and stale preview checks";
   await authenticate();
-  const raceEvent = await client.mutation(api.events.save, { editionId, categoryId: categories[1]._id, title: `Verification concurrency ${stamp}`, startsAt: Date.now() });
+  const raceEvent = await client.mutation(api.events.save, { editionId, categoryId: categories[1]._id, title: `Verification concurrency ${stamp}` });
   const raceDraft = await client.mutation(api.results.saveDraft, { eventId: raceEvent, entries: [{ schoolId: a, points: 4 }] });
   const raceArgs = { eventId: raceEvent, draftRevisionId: raceDraft, expectedActiveRevisionId: null, expectedDraftVersion: 1 };
   const outcomes = await Promise.all([client.mutation(api.results.publish, raceArgs), client.mutation(api.results.publish, raceArgs)]);

@@ -26,7 +26,7 @@ export const listRecentPublished = query({
     const published = [];
     // Preserve latest-publication ordering, including corrections. Only hydrate
     // entries and schools for the events actually returned to the homepage.
-    for await (const event of ctx.db.query("events").withIndex("by_edition_start", q => q.eq("editionId", args.editionId))) {
+    for await (const event of ctx.db.query("events").withIndex("by_edition_created", q => q.eq("editionId", args.editionId))) {
       if (!event.activePublishedRevisionId) continue;
       const revision = await ctx.db.get(event.activePublishedRevisionId);
       if (!revision || revision.eventId !== event._id || revision.status !== "published" || revision.publishedAt === undefined) continue;

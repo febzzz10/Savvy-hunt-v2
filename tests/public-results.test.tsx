@@ -44,7 +44,6 @@ describe("public result surfaces", () => {
       title: "Official event",
       slug: "event",
       status: "completed",
-      startsAt: 1800000000000,
       categoryId: "category",
       hasPublishedResults: true,
     };

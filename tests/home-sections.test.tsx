@@ -11,7 +11,7 @@ function setup() {
   data.calls = [];
   data.queries = { "siteSettings:getPublic": null, "scoreboard:getOverall": [], "events:listPublic": [], "categories:listCurrent": [], "announcements:listPublic": [], "gallery:listApproved": [], "results:listRecentPublished": [] };
 }
-const event = (id: string, status: string, published = false) => ({ _id: id, slug: id, title: id, status, hasPublishedResults: published, startsAt: 0, categoryId: "category", venue: "Test venue" });
+const event = (id: string, status: string, published = false) => ({ _id: id, slug: id, title: id, status, hasPublishedResults: published, categoryId: "category", venue: "Test venue" });
 describe("homepage stacked sections", () => {
   it("requests three recent results and renders every returned event as a card", () => {
     setup();

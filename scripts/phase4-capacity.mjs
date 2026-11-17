@@ -26,7 +26,7 @@ try {
   const stamp = Date.now();
   schoolName = `Phase 4 capacity school ${stamp}`;
   schoolId = await admin.client.mutation(api.schools.save, { editionId: edition._id, name: schoolName });
-  eventId = await admin.client.mutation(api.events.save, { editionId: edition._id, title: `Phase 4 capacity event ${stamp}`, categoryId: categories[1]._id, startsAt: stamp, participatingSchoolIds: [schoolId] });
+  eventId = await admin.client.mutation(api.events.save, { editionId: edition._id, title: `Phase 4 capacity event ${stamp}`, categoryId: categories[1]._id, participatingSchoolIds: [schoolId] });
   for (const target of [...new Set([Math.min(50, total), Math.min(200, total), total])]) {
     const start = performance.now();
     while (clients.length < target) {
@@ -88,7 +88,7 @@ finally {
     if (eventId) {
       const data = await admin.client.query(api.results.getAdminByEvent, { eventId });
       if (data.event.activePublishedRevisionId) await admin.client.mutation(api.results.revoke, { eventId, expectedActiveRevisionId: data.event.activePublishedRevisionId, reason: "Phase 4 capacity failure cleanup" });
-      await admin.client.mutation(api.events.save, { editionId: edition._id, id: eventId, title: data.event.title, categoryId: data.event.categoryId, startsAt: data.event.startsAt, status: "cancelled" });
+      await admin.client.mutation(api.events.save, { editionId: edition._id, id: eventId, title: data.event.title, categoryId: data.event.categoryId, status: "cancelled" });
     }
     if (schoolId) {
       try {
