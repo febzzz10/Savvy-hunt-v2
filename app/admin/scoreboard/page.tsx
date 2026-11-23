@@ -24,7 +24,7 @@ function Inspector({ editionId }: { editionId: string }) {
   return <div className="scoreboard-inspector">
     <p>Review official totals and inspect the published events contributing to each school’s score.</p>
     <section className="scoreboard-summary card" aria-label="Scoreboard summary">
-      <div><span className="eyebrow">Schools ranked</span><strong>{standings?.length ?? "—"}</strong><p className="small">Active schools in this edition</p></div>
+      <div><span className="eyebrow">Schools ranked</span><strong>{standings?.length ?? "—"}</strong><p className="small">Schools in this edition</p></div>
       <div><span className="eyebrow">Points awarded</span><strong>{standings ? totalPoints : "—"}</strong><p className="small">Official total in this view</p></div>
       <div><span className="eyebrow">Current leader</span><strong>{standings?.[0]?.name ?? "No results yet"}</strong><p className="small">{standings?.[0] ? `${standings[0].points} points` : "Publish results to begin"}</p></div>
     </section>

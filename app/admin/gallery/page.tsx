@@ -24,18 +24,20 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
     catch (cause) { setError(errorText(cause)); } finally { setSyncBusy(false); }
   }
   return <>
-    <div className="gallery-intro">
-      <p>Add photos directly to the shared Google Drive gallery folder. Photos are checked every 2 minutes and remain pending until an administrator reviews and confirms publication consent.</p>
+    <div className="gallery-layout">
+      <div className="gallery-main">
+        <p>Add photos directly to the shared Google Drive gallery folder. Photos are checked every 2 minutes and remain pending until an administrator reviews and confirms publication consent.</p>
+        <div className="gallery-toolbar">
+          <div className="actions" role="group" aria-label="Gallery views">{(["pending", "approved", "rejected"] as const).map(tab => <button key={tab} className={`button${view === tab ? "" : " secondary"}`} aria-pressed={view === tab} onClick={() => setView(tab)}>{tab[0].toUpperCase() + tab.slice(1)}</button>)}</div>
+          <p className="small">Review consent before publishing. Hidden photos stay in the library but do not appear publicly.</p>
+        </div>
+      </div>
       <section className="gallery-sync card">
         <div><span className="eyebrow">Drive gallery</span><strong>{state?.running ? "Sync in progress" : state?.finishedAt ? "Last sync complete" : "Waiting for first sync"}</strong></div>
         <p className="small">{state?.finishedAt ? `${new Date(state.finishedAt).toLocaleString()} · ${state.imported} imported · ${state.checked} checked` : "Photos are imported automatically from Google Drive."}</p>
         {state?.lastError && <p className="error" role="alert">Drive sync failed: {state.lastError}</p>}
         <button className="button secondary" disabled={syncBusy || state?.running} onClick={() => void syncNow()}>{state?.running ? "Syncing Drive…" : syncBusy ? "Starting sync…" : "Sync Now"}</button>
       </section>
-    </div>
-    <div className="gallery-toolbar">
-      <div className="actions" role="group" aria-label="Gallery views">{(["pending", "approved", "rejected"] as const).map(tab => <button key={tab} className={`button${view === tab ? "" : " secondary"}`} aria-pressed={view === tab} onClick={() => setView(tab)}>{tab[0].toUpperCase() + tab.slice(1)}</button>)}</div>
-      <p className="small">Review consent before publishing. Hidden photos stay in the library but do not appear publicly.</p>
     </div>
     {error && <p className="error" role="alert">{error}</p>}{notice && <p className="success" role="status" aria-live="polite">{notice}</p>}
     <PhotoList key={view} editionId={editionId} view={view} report={report} fail={fail} />

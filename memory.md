@@ -51,7 +51,7 @@ Current presentation includes responsive shared navigation, mobile navigation/up
 | schoolCategoryTotals | Materialized edition/school/category scores changed by publication deltas |
 | galleryItems, gallerySyncState | Drive identity/checksums, moderation/consent/version and synchronization lifecycle |
 | galleryUploads | Retained historical upload intents; no current upload writers |
-| announcements, siteSettings | Published/draft/hidden messages and editable public title/about/contact content |
+| announcements, siteSettings | Published/draft announcements (legacy `hidden` rows await deletion) and editable public title/about/contact content |
 | admins, adminBootstrapState | Active issuer-scoped role allowlist and durable one-time provisioning marker |
 | auditLogs | Actor/action/entity/time and optional reason/before/after; actual fields populated vary by operation |
 
@@ -62,7 +62,7 @@ Key backend behaviors:
 - `events.save`: validates length limits, slug uniqueness, category/school edition and active participation. Historical publication permanently locks category. Optional expected category/update timestamps protect current form submissions; these checks are not universally mandatory API arguments.
 - `schools.save`: validates names and enforces edition-local uniqueness. `schools.remove` refuses deletion when the school has any `schoolCategoryTotals` row (published, superseded, revoked or zero-point history) and strips it from event participation otherwise.
 - `admins.bootstrap`: internal owner-only first admin, closed by any existing admin/bootstrap marker. `sealBootstrap` closes legacy installations without granting access. `admins.save` prevents removing the caller's own super-admin privileges. Audit pagination is super-admin-only.
-- `announcements.save` returns content to draft; `setStatus` explicitly publishes/hides. `siteSettings.update` requires super admin.
+- `announcements.save` returns content to draft; `announcements.publish` publishes and `announcements.remove` permanently deletes with an audit record. `siteSettings.update` requires super admin.
 - Gallery cron runs every two minutes. Sync uses run state, paginated Drive reads, scheduled continuations and reconciliation. New files become pending; changed/missing/moved files lose verification/consent as appropriate. Approval checks reviewed version/checksum, approved-folder presence and duplicate approved entries, then internally rechecks authorization/state.
 - The image GET route checks approved metadata (or authenticated admin preview), folder/type/size, metadata checksum, downloaded-byte checksum and final public approval state. Success uses private/no-store, nosniff and sandbox headers. Invalid/withdrawn media is refused rather than served from an unchecked Drive URL.
 

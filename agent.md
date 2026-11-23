@@ -95,7 +95,7 @@ Clerk's `convex` JWT template/audience connects to `convex/auth.config.ts` using
 - Schools are deleted, not archived. Deletion is refused once the school has any published participation history in `schoolCategoryTotals` — active, superseded, revoked, or zero-point — so official history stays visible in the scoreboard. Renaming a school with published history is allowed. School names are unique per edition.
 - Winners use explicit placements, never infer placements from points or completed status. Participant names appear publicly only when publication-approved; current result draft inputs do not expose a participant-name publishing workflow.
 - New Drive photos are pending without consent. Approval binds consent to reviewed checksum/version and verifies the approved folder. Changed bytes, removal or movement withdraw publication verification. Preserve duplicate prevention, stale-review checks, moderation audit and hide semantics. Supported formats are JPEG/PNG/WebP/GIF/AVIF up to 15 MB. The app never uploads or moves Drive files.
-- Announcement saves produce drafts; publish/hide is explicit. Public queries must not leak drafts, private moderation records or staff identity data.
+- Announcement saves produce drafts; publishing is explicit and removing an announcement is permanent, with an audit record retained. Public queries must not leak drafts, private moderation records or staff identity data.
 
 ## 9. Testing and verification
 

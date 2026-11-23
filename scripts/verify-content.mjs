@@ -18,8 +18,9 @@ try{
   const title=`Verification announcement ${Date.now()}`;
   const id=await client.mutation(api.announcements.save,{editionId,title,body:"Live operational verification"});
   assert.ok(!(await anonymous.query(api.announcements.listPublic,{editionId})).some(item=>item._id===id));
-  await client.mutation(api.announcements.setStatus,{id,status:"published"});await page.getByRole("heading",{name:title,exact:true}).waitFor();
-  await client.mutation(api.announcements.setStatus,{id,status:"hidden"});await page.getByRole("heading",{name:title,exact:true}).waitFor({state:"detached"});record("Announcement draft hidden; publish and hide propagated to public home without refresh");
+  await client.mutation(api.announcements.publish,{id});await page.getByRole("heading",{name:title,exact:true}).waitFor();
+  await client.mutation(api.announcements.remove,{id});await page.getByRole("heading",{name:title,exact:true}).waitFor({state:"detached"});record("Announcement published then deleted; both changes propagated to public home without refresh");
+  assert.ok(!(await client.query(api.announcements.listAdmin,{editionId})).some(item=>item._id===id));
   settings=await client.query(api.siteSettings.getPublic,{editionId});
   const tagline=`Verification About ${Date.now()}`;await page.goto("http://localhost:3000/about");
   await client.mutation(api.siteSettings.update,{editionId,eventTitle:settings.eventTitle,tagline,contactInfo:settings.contactInfo});await page.getByText(tagline,{exact:true}).waitFor();record("About content update propagated without refresh");

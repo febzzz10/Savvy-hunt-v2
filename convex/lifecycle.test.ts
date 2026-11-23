@@ -88,7 +88,8 @@ describe("Convex scoring and management integration", () => {
       await expect(caller.mutation(api.siteSettings.update, {editionId:s.editionId,eventTitle:"Forbidden"})).rejects.toThrow();
       await expect(caller.mutation(api.gallery.hide, {itemId:photo})).rejects.toThrow();
       await expect(caller.action(api.gallery.approve, {itemId:photo,consentConfirmed:true})).rejects.toThrow();
-      await expect(caller.mutation(api.announcements.setStatus, {id:announcement,status:"published"})).rejects.toThrow();
+      await expect(caller.mutation(api.announcements.publish, {id:announcement})).rejects.toThrow();
+      await expect(caller.mutation(api.announcements.remove, {id:announcement})).rejects.toThrow();
     }
     expect(await s.t.query(api.gallery.listApproved,{editionId:s.editionId})).toEqual([]);
     expect(await s.t.query(api.announcements.listPublic,{editionId:s.editionId})).toEqual([]);

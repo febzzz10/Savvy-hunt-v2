@@ -20,8 +20,11 @@ body:has(.admin-frame)>.footer{display:none}
 .admin-signout{padding:0;border:0;background:none;color:var(--accent);font-size:12px;font-weight:650;min-height:44px}
 .admin-public-link{display:inline-flex;align-items:center;min-height:44px;color:var(--muted);font-size:12px;text-decoration:none}
 .admin-public-link:hover,.admin-signout:hover{color:var(--accent-hover);text-decoration:underline}
-.admin-shell{padding-top:34px;padding-bottom:80px}
+.admin-shell{padding-top:34px;padding-bottom:56px}
 .admin-shell>h1{margin-top:0}
+/* Marketing pages give every section a 64px rhythm; admin layouts own their spacing via grid gaps. */
+.admin-shell section{margin:0}
+.admin-shell .empty-state,.admin-shell .skeleton{margin:0}
 .admin-message{max-width:680px;padding:34px;background:var(--panel);border:1px solid var(--edge);border-radius:20px}
 .admin-message p{color:var(--muted);max-width:55ch}
 .admin-loading{padding-top:12px}
@@ -35,7 +38,7 @@ body:has(.admin-frame)>.footer{display:none}
 .admin-nav{gap:16px}
 .admin-nav-link{min-height:46px}
 .admin-rail-footer{margin-top:4px}
-.admin-shell{padding:26px 20px 64px}
+.admin-shell{padding:24px 20px 48px}
 }
 @media(max-width:374px){
 .admin-rail{padding-inline:14px}
@@ -44,8 +47,8 @@ body:has(.admin-frame)>.footer{display:none}
 }
 
 .admin-lede{color:var(--muted);max-width:62ch;margin:4px 0 0}
-.admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 30px}
-.admin-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 24px}
+.admin-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:24px}
 .admin-stat{display:block;padding:20px;background:var(--panel);border:1px solid var(--edge);border-radius:16px;text-decoration:none}
 .admin-stat:hover{border-color:#b8c8b1}
 .admin-stat span{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -76,4 +79,4 @@ body:has(.admin-frame)>.footer{display:none}
 .pill[data-status=pending]{color:#7a5716;background:#fff4dd}
 .pill[data-status=rejected],.pill[data-status=hidden]{color:#9f342d;background:#fceae7}
 @media(max-width:1023px){.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-dashboard-grid{grid-template-columns:1fr}.admin-panel-wide{grid-column:auto}}
-@media(max-width:767px){.admin-stats{gap:10px}.admin-stat{padding:16px}.admin-stat strong{font-size:28px}.admin-photo-list{grid-template-columns:1fr}.admin-panel{padding:18px}.admin-actions .button{flex:1 1 auto}}
+@media(max-width:767px){.admin-stats{gap:10px}.admin-stat{padding:16px}.admin-stat strong{font-size:28px}.admin-photo-list{grid-template-columns:1fr}.admin-panel{padding:18px}.admin-actions .button{flex:1 1 100%}}

@@ -70,18 +70,18 @@ try {
     await page.getByRole("navigation", { name: "Public navigation" }).getByRole("link", { name: "SAVVY HUNT", exact: true }).click();
     await page.waitForURL(`${baseURL}/`);
     await connected();
-    await staff.client.mutation(live.api.announcements.setStatus, { id: announcementId, status: "published" });
+    await staff.client.mutation(live.api.announcements.publish, { id: announcementId });
     await page.getByRole("heading", { name: title, exact: true }).waitFor();
-    await staff.client.mutation(live.api.announcements.setStatus, { id: announcementId, status: "hidden" });
+    await staff.client.mutation(live.api.announcements.remove, { id: announcementId });
     await page.getByRole("heading", { name: title, exact: true }).waitFor({ state: "detached" });
-    result.checks.push("Real development publication and hiding update an open Convex subscription without refresh");
+    result.checks.push("Real development publication and deletion update an open Convex subscription without refresh");
   }
   assert.deepEqual(result.pageErrors, []);
   assert.deepEqual(result.consoleErrors.filter(text => /hydrat|React error|server rendered|didn't match/i.test(text)), []);
 } catch (error) { result.failure = error.message; process.exitCode = 1; }
 finally {
   if (staff) {
-    if (announcementId) { await staff.refresh(); await staff.client.mutation(live.api.announcements.setStatus, { id: announcementId, status: "hidden" }); }
+    if (announcementId) { await staff.refresh(); await staff.client.mutation(live.api.announcements.remove, { id: announcementId }).catch(() => undefined); }
     await staff.close();
   }
   await browser.close();

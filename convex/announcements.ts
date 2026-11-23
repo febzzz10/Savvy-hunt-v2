@@ -14,8 +14,14 @@ export const save = mutation({ args: { editionId: v.id("editions"), id: v.option
   await ctx.db.insert("auditLogs", { editionId: args.editionId, actorAuthUserId: admin.authUserId, action: "announcement.save", entityType: "announcement", entityId: id, summary: title, createdAt: now });
   return id;
 } });
-export const setStatus = mutation({ args: { id: v.id("announcements"), status: v.union(v.literal("published"), v.literal("hidden")) }, handler: async (ctx, args) => {
-  const admin = await requireAdmin(ctx), item = await ctx.db.get(args.id); if (!item) throw new Error("Announcement missing");
-  const now = Date.now(); await ctx.db.patch(item._id, { status: args.status, publishedAt: args.status === "published" ? now : item.publishedAt, updatedAt: now });
-  await ctx.db.insert("auditLogs", { editionId: item.editionId, actorAuthUserId: admin.authUserId, action: `announcement.${args.status}`, entityType: "announcement", entityId: item._id, summary: item.title, createdAt: now });
+export const publish = mutation({ args: { id: v.id("announcements") }, handler: async (ctx, { id }) => {
+  const admin = await requireAdmin(ctx), item = await ctx.db.get(id); if (!item) throw new Error("Announcement missing");
+  const now = Date.now(); await ctx.db.patch(item._id, { status: "published", publishedAt: now, updatedAt: now });
+  await ctx.db.insert("auditLogs", { editionId: item.editionId, actorAuthUserId: admin.authUserId, action: "announcement.published", entityType: "announcement", entityId: item._id, summary: item.title, createdAt: now });
+} });
+export const remove = mutation({ args: { id: v.id("announcements") }, handler: async (ctx, { id }) => {
+  const admin = await requireAdmin(ctx), item = await ctx.db.get(id); if (!item) throw new Error("Announcement missing");
+  const now = Date.now(); await ctx.db.delete(item._id);
+  await ctx.db.insert("auditLogs", { editionId: item.editionId, actorAuthUserId: admin.authUserId, action: "announcement.delete", entityType: "announcement", entityId: item._id, summary: item.title, createdAt: now });
+  return { status: "deleted" as const };
 } });

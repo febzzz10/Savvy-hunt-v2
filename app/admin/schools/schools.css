@@ -1,6 +1,6 @@
 ﻿.admin-shell:has(.school-manager) { max-width:1440px; }
-.school-heading { margin:12px 0 28px; }
-.school-heading h1 { margin:8px 0 12px; }
+.school-heading { margin:0 0 24px; }
+.school-heading h1 { margin:0 0 6px; }
 .school-heading p { margin:0; }
 .school-form-panel { position:sticky; top:24px; }
 .school-form-panel[data-mode="edit"] { border-color:var(--accent); box-shadow:inset 0 3px var(--accent); }
