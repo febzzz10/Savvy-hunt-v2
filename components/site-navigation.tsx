@@ -48,6 +48,6 @@ export function SiteNavigation({ links, admin = false, identity, children }: { l
       </div>
     </nav>
     {!admin && <MobileNavigation links={links} />}
-    <div className="header-meta"><ConnectionStatus compact={home} />{identity && <span className="staff-identity">{identity}</span>}</div>
+    <div className="header-meta"><ConnectionStatus compact={!admin} />{identity && <span className="staff-identity">{identity}</span>}</div>
   </header>;
 }

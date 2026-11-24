@@ -10,7 +10,7 @@ import "./home-sections.css";
 import { useQuery } from "convex/react";
 import { Load, ref } from "./data";
 import { GalleryPhoto } from "./gallery-photo";
-import { Programme, SectionHeading, dateLabel, type ProgrammeEvent, type Standing } from "./editorial";
+import { Programme, SectionHeading, timeLabel, type ProgrammeEvent, type Standing } from "./editorial";
 import { EmptyState, Icon, Skeleton } from "./ui";
 type Announcement = { _id: string; title: string; body: string; publishedAt?: number };
 type Photo = { _id: string; altText: string; caption?: string };
@@ -50,9 +50,9 @@ function HomeData({ editionId }: { editionId: string }) {
       </section>
     </div>
     {!!live?.length && <section><SectionHeading number="In progress" title="Happening now" href="/schedule" action="Full schedule" /><Programme events={live} categories={categories} /></section>}
-    <div className={announcements?.length ? "editorial-columns" : ""}>
-      <section><SectionHeading number="From the results desk" title="The latest achievements" />{results === undefined ? <Skeleton label="Loading official results…" /> : results.length ? <AchievementCards results={results} categories={categories} /> : <EmptyState title="The results desk is ready" icon="trophy" href="/schedule">Official results will appear here once published.</EmptyState>}<div className="home-section-action home-results-action"><Link className="button secondary home-editorial-cta" href="/results">View All Results <Icon name="arrow" /></Link></div></section>
-      {!!announcements?.length && <section><SectionHeading number="From the organizers" title="Notice board" />{announcements.slice(0, 3).map(item => <article className="notice" key={item._id}>{item.publishedAt && <span className="eyebrow">{dateLabel(item.publishedAt)}</span>}<h3>{item.title}</h3><p>{item.body}</p></article>)}</section>}
+    <div className="results-stack">
+      <section className="results-section"><SectionHeading number="From the results desk" title="The latest achievements" />{results === undefined ? <Skeleton label="Loading official results…" /> : results.length ? <AchievementCards results={results} categories={categories} /> : <EmptyState title="The results desk is ready" icon="trophy" href="/schedule">Official results will appear here once published.</EmptyState>}<div className="home-section-action home-results-action"><Link className="button secondary home-editorial-cta" href="/results">View All Results <Icon name="arrow" /></Link></div></section>
+      {!!announcements?.length && <section className="notice-section"><SectionHeading number="From the organizers" title="Notice board" />{announcements.slice(0, 3).map(item => <article className="notice" id={`announcement-${item._id}`} key={item._id}>{item.publishedAt && <span className="eyebrow">{timeLabel(item.publishedAt)}</span>}<h3>{item.title}</h3><p>{item.body}</p></article>)}</section>}
     </div>
   </>;
 }
