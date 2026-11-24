@@ -2,7 +2,7 @@
 @theme inline { --font-sans:var(--font-dm),Arial,sans-serif; --font-display:var(--font-editorial),Georgia,serif; }
 :root{color-scheme:light;--canvas:#fafaf6;--panel:#fff;--wash:#f3f6ef;--sage:#e5eddf;--ink:#1f2a23;--muted:#606f62;--edge:#dee5da;--accent:#32643b;--accent-hover:#285130;--terra:#d96b4e;--gold:#c59439;--radius-card:18px;--radius-control:12px}
 *{box-sizing:border-box}
-body{margin:0;background:var(--canvas);color:var(--ink);font:16px/1.6 var(--font-dm),Arial,sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+body{margin:0;background:radial-gradient(900px 600px at 0% 0%,rgba(194,214,184,.45),transparent 70%),radial-gradient(800px 560px at 100% 8%,rgba(236,208,138,.30),transparent 70%),radial-gradient(1000px 700px at 50% 100%,rgba(194,214,184,.35),transparent 70%),var(--canvas);background-repeat:no-repeat;color:var(--ink);font:16px/1.6 var(--font-dm),Arial,sans-serif;min-height:100dvh;display:flex;flex-direction:column}
 a{color:inherit;text-underline-offset:4px}
 button,input,select,textarea{font:inherit}button{cursor:pointer}button,input,select{min-height:44px}button:disabled{opacity:.55;cursor:not-allowed}
 input,select,textarea{width:100%;min-width:0;padding:11px 14px;border:1px solid var(--edge);border-radius:var(--radius-control);background:var(--panel);color:var(--ink)}
@@ -136,3 +136,15 @@ section{margin:48px 0}.shell{padding:26px 20px 48px}h1{font-size:2.75rem}.nav{pa
 }
 @media(max-width:374px){.shell{padding-inline:16px}.masthead-copy{padding-inline:18px}.hero-actions .button{width:100%}.gallery-grid{grid-template-columns:1fr}.filter-summary{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* viewport-fit=cover (layout.tsx) extends the page under the notch; keep content inside the safe area. */
+body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+
+/* Announcement notification (Dynaura); global because the Toaster lives in the root providers. */
+.dynaura-island{box-shadow:0 12px 32px rgb(31 42 35 / .20),0 0 0 1px rgb(31 42 35 / .07)}
+.announcement-toast-mark{display:grid;place-items:center;width:24px;height:24px;margin:-4px;border-radius:7px;background:#32643b;color:#fff;font:700 10px/1 var(--font-editorial),Georgia,serif;letter-spacing:.02em}
+.announcement-toast{display:flex;flex-direction:column;gap:4px;font-family:var(--font-dm),Arial,sans-serif}
+.announcement-toast-brand{font-size:12px;font-weight:600;color:var(--dynaura-muted)}
+.announcement-toast-body{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:14px;line-height:1.45;color:var(--dynaura-fg)}
+/* Desktop: keep the 20px side margin but start below the site header (Dynaura uses one offset for both axes). */
+@media(min-width:768px){html .dynaura-root[data-y="top"]{top:calc(84px + env(safe-area-inset-top,0px))}}

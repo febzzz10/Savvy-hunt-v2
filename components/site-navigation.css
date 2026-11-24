@@ -14,15 +14,15 @@
 .responsive-navigation.admin-header .nav-links { gap:14px; }
 .connection-compact-label { display:none; }
 @media (max-width:767px) {
-  .responsive-navigation.site-header.home-header {
+  .responsive-navigation.site-header:not(.admin-header) {
     display:grid;
     grid-template-columns:auto minmax(0,1fr);
     align-items:center;
     column-gap:12px;
     padding:12px 20px;
   }
-  .responsive-navigation.site-header.home-header .nav { display:contents; }
-  .responsive-navigation.site-header.home-header .header-meta {
+  .responsive-navigation.site-header:not(.admin-header) .nav { display:contents; }
+  .responsive-navigation.site-header:not(.admin-header) .header-meta {
     position:static;
     min-width:0;
     margin:0;
@@ -30,10 +30,10 @@
     justify-content:flex-end;
     flex-wrap:nowrap;
   }
-  .responsive-navigation.site-header.home-header .connection-status { min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.25; }
+  .responsive-navigation.site-header:not(.admin-header) .connection-status { min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.25; }
 }
 @media (max-width:399px) {
-  .responsive-navigation.site-header.home-header .connection-full-label {
+  .responsive-navigation.site-header:not(.admin-header) .connection-full-label {
     position:absolute;
     width:1px;
     height:1px;
@@ -44,7 +44,7 @@
     white-space:nowrap;
     border:0;
   }
-  .responsive-navigation.site-header.home-header .connection-compact-label { display:inline; }
+  .responsive-navigation.site-header:not(.admin-header) .connection-compact-label { display:inline; }
 }
 @media (max-width:959px) {
   .responsive-navigation.site-header .nav { flex-wrap:wrap; padding:16px 20px 8px; gap:12px; }

@@ -29,17 +29,39 @@ describe("homepage stacked sections", () => {
     expect(html).toContain("No event updates yet"); expect(html).toContain("Memories in the making");
     expect(html).not.toContain('class="points"');
   });
-  it("uses official publication flags, caps cards and retains tied third ranks", () => {
+  it("uses official publication flags, caps cards", () => {
     setup(); data.queries["events:listPublic"] = [event("draft", "completed"), event("published", "completed", true), event("next", "upcoming"), event("live", "live"), event("later", "upcoming")];
     data.queries["scoreboard:getOverall"] = [{ id: "a", name: "A", rank: 1, points: 30 }, { id: "b", name: "B", rank: 2, points: 20 }, { id: "c", name: "C", rank: 3, points: 10 }, { id: "d", name: "D", rank: 3, points: 10 }];
     const html = renderToStaticMarkup(<HomeContent />);
     const updates = html.split('class="event-schedule-list"')[1].split('</ul>')[0];
     expect(updates.match(/class="event-schedule-row"/g)).toHaveLength(3);
     expect(updates).not.toContain('href="/events/draft"'); expect(updates).not.toContain("Results Published");
-    expect(html.match(/rank 3, 10 points/g)).toHaveLength(2); expect(html.match(/tie-label/g)).toHaveLength(2);
+    expect(html.match(/school-podium-card/g)).toHaveLength(3); expect(html.match(/rank 3, 10 points/g)).toHaveLength(1);
     data.queries["events:listPublic"] = [event("published", "completed", true)];
     const published = renderToStaticMarkup(<HomeContent />);
     expect(published).toContain("Results Published"); expect(published).toContain('href="/events/published"');
+  });
+  it("keeps tied second places on one row of three cards ordered 2-1-3", () => {
+    setup(); data.queries["events:listPublic"] = [event("published", "completed", true)];
+    data.queries["scoreboard:getOverall"] = [{ id: "a", name: "A", rank: 1, points: 30 }, { id: "b", name: "B", rank: 2, points: 20 }, { id: "c", name: "C", rank: 2, points: 20 }];
+    const html = renderToStaticMarkup(<HomeContent />);
+    expect(html.match(/class="school-podium-place"/g)).toHaveLength(3);
+    expect(html.match(/school-podium-card/g)).toHaveLength(3);
+    expect(html.match(/tie-label/g)).toHaveLength(2);
+    expect([...html.matchAll(/data-rank="(\d)" data-tier="(\d)"/g)].map(m => `${m[1]}${m[2]}`)).toEqual(["22", "11", "23"]);
+  });
+  it("stacks achievements, the results button and the notice board as sibling sections", () => {
+    setup();
+    data.queries["results:listRecentPublished"] = [{ eventId: "e", eventSlug: "e", eventTitle: "Event", categoryId: "arts", publishedAt: 1800000000000, entries: [] }];
+    data.queries["announcements:listPublic"] = [{ _id: "n1", title: "Notice", body: "Body", publishedAt: 1800000000000 }];
+    const html = renderToStaticMarkup(<HomeContent />);
+    expect(html).not.toContain("editorial-columns");
+    const stack = html.split('class="results-stack"')[1];
+    expect(stack.indexOf("The latest achievements")).toBeLessThan(stack.indexOf("View All Results"));
+    expect(stack.indexOf("View All Results")).toBeLessThan(stack.indexOf("Notice board"));
+    expect(stack.match(/class="notice-section"/g)).toHaveLength(1);
+    data.queries["announcements:listPublic"] = [];
+    expect(renderToStaticMarkup(<HomeContent />)).not.toContain("notice-section");
   });
   it("shows three proxy-backed approved query images and updates when query data changes", () => {
     setup(); data.queries["gallery:listApproved"] = [1, 2, 3, 4].map(id => ({ _id: `photo-${id}`, altText: `Approved photo ${id}` }));

@@ -25,13 +25,13 @@
   .home-header { position:relative; }.home-header .nav { padding:14px 22px; gap:12px; min-height:70px; }.home-header .nav .brand { margin-right:auto; }
   .home-header .menu-toggle { border:0; background:transparent; padding:8px 0 8px 8px; min-height:40px; color:var(--ink); }.home-header .menu-toggle svg { width:24px; height:24px; }
   .home-header .header-meta { position:absolute; top:24px; left:43%; right:58px; padding:0; }.home-header .connection-status { font-size:10px; line-height:1.25; }.home-header .connection-status.disconnected { background:var(--canvas); padding:3px; }
-  .festival-hero { margin-inline:-20px; padding:33px 22px 42px; min-height:594px; }
+  .festival-hero { margin-inline:-20px; padding:33px 22px 42px; min-height:0; }
   .festival-copy { max-width:none; }.festival-eyebrow { font-size:10px; letter-spacing:.13em; margin-bottom:20px; }
   .festival-hero h1 { font-size:92px; line-height:.82; letter-spacing:-.055em; }
   .festival-underline { width:208px; height:27px; margin-top:6px; margin-bottom:9px; }
   .festival-tagline { font-size:18px; margin-bottom:16px; line-height:1.4; max-width:250px; }
   .festival-description { max-width:252px; font-size:13px; line-height:1.6; }
-  .festival-actions { flex-direction:column; align-items:flex-start; gap:7px; margin-top:124px; }.festival-actions .button { font-size:12px; min-height:49px; padding:12px 18px; gap:14px; }.festival-actions .secondary { min-width:218px; }
+  .festival-actions { flex-direction:column; align-items:flex-start; gap:7px; margin-top:28px; }.festival-actions .button { font-size:12px; min-height:49px; padding:12px 18px; gap:14px; }.festival-actions .secondary { min-width:218px; }
   .festival-scene { width:300px; right:-20px; top:28px; }
   .festival-trophy { width:220px; right:-82px; top:166px; }
   .festival-brush { width:170px; right:-58px; top:300px; opacity:.65; }

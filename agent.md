@@ -63,7 +63,17 @@ flowchart LR
 
 The current foundation is nature-inspired ivory/sage/green, with Fraunces display type and DM Sans body text. `app/globals.css` is authoritative: canvas `#fafaf6`, ink `#1f2a23`, accent `#32643b`, sage `#e5eddf`, terracotta `#d96b4e`, gold `#c59439`; card/control radii are 18px/12px. Feature styles refine this foundation.
 
-Preserve this visual identity and existing typography, spacing, navigation, hero, podium and achievement designs. The older cobalt/Archivo editorial report is historical, not a mandate to restore that palette. Do not redesign unrelated sections, introduce generic decorative cards/gradients, change colors without request, or add unnecessary animation/dependencies. Keep changes targeted and consistent across public/admin pages. Check desktop, tablet and mobile; preserve touch targets, table/form usability and mobile navigation without horizontal overflow.
+Preserve this visual identity and existing typography, spacing, navigation, hero, podium and achievement designs. The older cobalt/Archivo editorial report is historical, not a mandate to restore that palette. Do not redesign unrelated sections, introduce generic decorative cards or further gradients, change colors without request, or add unnecessary animation/dependencies. Keep changes targeted and consistent across public/admin pages. Check desktop, tablet and mobile; preserve touch targets, table/form usability and mobile navigation without horizontal overflow.
+
+Established presentation decisions (2026-11-24, uncommitted on `fix/notice-board-readability` until merged; verified by lint/tests only, not on real devices):
+
+- The site background is a soft layered sage/gold radial gradient over the ivory canvas (`body` in `app/globals.css`); cards and panels stay white. The three mobile home update cards use matching tinted gradients (`components/home/mobile-updates.css`). These were requested; do not add further gradients unasked.
+- Home "Leading Schools" podium: at most three cards on ONE row, visually 2-1-3 (centre largest). Slots follow data order (`rows[0]` centre), not rank number, so ties (1, 2, 2) still give three cards. Mobile tier offsets plus min-heights must sum to the same total so card bottoms align (`components/home-sections.css`, `components/home/school-podium.tsx`).
+- Home results area is `.results-stack`: "The latest achievements", the View All Results button, then the Notice board as a separate sibling section, never a side column. Notice cards show the publication time only (12-hour, no IST, via `timeLabel`), with an accent bar and clearer type hierarchy.
+- Mobile update cards: icon tiles share one size/left edge, arrow targets are 44px, focus-visible outline, reduced-motion respected.
+- Public (non-admin) headers use the home-style mobile header: "Live updates connected" sits right-aligned on the brand row (`components/site-navigation.css`; `ConnectionStatus compact={!admin}`).
+- Admin photo thumbnails: a failed image shows a fixed 56px "Unavailable" square, never wrapped text (`components/admin/admin-shell.css`).
+- `<body>` has `suppressHydrationWarning` only to silence browser-extension (Grammarly) attribute injection; real hydration mismatches elsewhere still surface.
 
 ## 6. Backend and database rules
 
