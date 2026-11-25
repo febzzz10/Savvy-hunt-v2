@@ -19,6 +19,8 @@ describe("school manager", () => {
     expect(filterSchools(schools, "BE", "az").map(s => s.name)).toEqual(["Beta"]);
     expect(filterSchools(schools, "", "updated").map(s => s.name)).toEqual(["Beta", "Alpha"]);
     expect(filterSchools(schools, "", "za").map(s => s.name)).toEqual(["Beta", "Alpha"]);
+    expect(filterSchools(schools, "", "points", new Map([["two", 5], ["one", 9]])).map(s => s.name)).toEqual(["Alpha", "Beta"]);
+    expect(filterSchools(schools, "", "points", new Map()).map(s => s.name)).toEqual(["Alpha", "Beta"]);
     expect(schools[0].name).toBe("Alpha");
   });
   it("turns backend failures into actionable messages without exposing internals", () => {

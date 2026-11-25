@@ -74,7 +74,8 @@ export const save = mutation({
     if (duplicate && duplicate._id !== args.id) throw new Error("Event title already exists");
     let id = args.id;
     if (id && old) {
-      if (old.activePublishedRevisionId && args.participatingSchoolIds) {
+      // An empty list means "open to all schools", matching results.saveDraft/publish.
+      if (old.activePublishedRevisionId && args.participatingSchoolIds?.length) {
         const entries = await ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", old.activePublishedRevisionId!)).collect();
         if (entries.some(entry => !args.participatingSchoolIds!.includes(entry.schoolId))) throw new Error("Cannot remove a school from published results");
       }

@@ -11,7 +11,7 @@ export function DeleteAnnouncementDialog({ title, busy, error, onCancel, onConfi
     </div>
     <footer className="event-dialog-footer actions">
       <button className="button secondary" disabled={busy} onClick={onCancel}>Cancel</button>
-      <button className="button" disabled={busy} onClick={onConfirm}>{busy ? "Deleting…" : "Delete Announcement"}</button>
+      <button className="button danger" disabled={busy} onClick={onConfirm}>{busy ? "Deleting…" : "Delete Announcement"}</button>
     </footer>
   </EventDialog>;
 }

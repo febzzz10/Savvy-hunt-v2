@@ -2,9 +2,11 @@
 import { use, useRef, useState } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { Load, mut, ref } from "@/components/data";
+import { Skeleton } from "@/components/ui";
 import { EventPublicationStatus, useUnsavedChanges } from "@/components/admin/events/shared";
 import { ResultFields } from "@/components/admin/events/results-fields";
 import { draftRowsFromEditor, editorRowsFromDraft, friendlyResultsError, normalizeEditorRows, participantNameChange, publishGate, sameResultRows, validateDraftRows, type DraftRow, type EditorRow } from "@/lib/results-editor";
+import { AdminPageHeader } from "@/components/admin/admin-ui";
 import "./results.css";
 
 type AdminEvent = { title: string; editionId: string; updatedAt: number; participatingSchoolIds?: string[]; activePublishedRevisionId?: string };
@@ -19,14 +21,14 @@ const entries = (rows: DraftRow[]) => editorRowsFromDraft(rows);
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  return <><h1>Event results</h1><Load>{edition => <Editor eventId={id} editionId={edition._id} />}</Load></>;
+  return <><AdminPageHeader title="Event results" description="Enter manual points, review the score impact, then publish official results." back={{ href: "/admin/events", label: "Event manager" }} /><Load>{edition => <Editor eventId={id} editionId={edition._id} />}</Load></>;
 }
 
 function Editor({ eventId, editionId }: { eventId: string; editionId: string }) {
   const data = useQuery(ref<{ eventId: string }, AdminResult>("results:getAdminByEvent"), { eventId });
   const schools = useQuery(ref<{ editionId: string }, School[]>("schools:listAdmin"), { editionId });
   const self = useQuery(ref<Record<string, never>, { role: string } | null>("admins:getSelf"), {});
-  if (!data || !schools || !self) return <p>Loading result editor…</p>;
+  if (!data || !schools || !self) return <Skeleton label="Loading result editor…" />;
   return <EditorForm eventId={eventId} live={data} schools={schools} canPublish={self.role === "super_admin"} />;
 }
 
@@ -119,7 +121,7 @@ function EditorForm({ eventId, live, schools, canPublish }: { eventId: string; l
       </> : <p>Save a draft to see the publication preview.</p>}
       {canPublish ? <><button className="button" disabled={Boolean(busy) || stale || !gate.ready} onClick={() => perform("publish")}>{busy === "publish" ? "Publishing…" : isCorrection ? "Publish correction" : "Publish official results"}</button>{!gate.ready && <p role="status">{stale ? "Load the latest results to continue." : gate.message}</p>}</> : <p>A super admin must publish official results.</p>}
     </section>
-    {canPublish && isCorrection && <section className="card result-publication"><h3>Revoke official results</h3><p>Revoking removes these points from the public scoreboard. The revision history and audit log are kept.</p><button className="button secondary" disabled={Boolean(busy) || stale || !reason.trim()} onClick={() => perform("revoke")}>Revoke official result</button></section>}
+    {canPublish && isCorrection && <section className="card result-publication"><h3>Revoke official results</h3><p>Revoking removes these points from the public scoreboard. The revision history and audit log are kept.</p><button className="button secondary danger" disabled={Boolean(busy) || stale || !reason.trim()} onClick={() => perform("revoke")}>Revoke official result</button></section>}
     {error && <p className="error" role="alert">{error}</p>}{notice && <p className="success" role="status">{notice}</p>}
   </div>;
 }

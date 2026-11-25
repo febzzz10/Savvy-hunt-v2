@@ -63,6 +63,16 @@ describe("event category and publication history", () => {
     expect((await s.t.query(api.scoreboard.getCategory, { editionId: s.editionId, categoryId: s.input.categoryId }))[0].points).toBe(7);
   });
 
+  it("treats an empty participant list as open to all schools when updating a published event", async () => {
+    const s = await setup();
+    await s.admin.mutation(api.events.save, { ...s.input, id: s.eventId, participatingSchoolIds: [] });
+    await s.publish();
+    await s.admin.mutation(api.events.save, { ...s.input, id: s.eventId, status: "completed", participatingSchoolIds: [] });
+    expect(await s.event()).toMatchObject({ status: "completed", publicationState: "published" });
+    const other = await s.admin.mutation(api.schools.save, { editionId: s.editionId, name: "Other school" });
+    await expect(s.admin.mutation(api.events.save, { ...s.input, id: s.eventId, participatingSchoolIds: [other] })).rejects.toThrow("Cannot remove a school from published results");
+  });
+
   it("identifies revoked events, retains the category lock and allows editing permitted details", async () => {
     const s = await setup();
     const revision = await s.publish();
