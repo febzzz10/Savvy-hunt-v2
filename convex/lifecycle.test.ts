@@ -114,7 +114,7 @@ describe("Convex scoring and management integration", () => {
     await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, expectedDraftVersion: stale.expectedDraftVersion, entries: [{ schoolId: s.a, points: 7 }] });
     await expect(s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: draft, expectedActiveRevisionId: null, expectedDraftVersion: stale.expectedDraftVersion })).rejects.toThrow("STALE_DRAFT");
     const current = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: draft });
-    await s.t.run(async ctx => { const row = await ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", draft)).first(); await ctx.db.patch(row!._id, { remarks: "PRIVATE_NOTE", displayParticipantName: "PRIVATE_NAME", namePublishingApproved: false }); });
+    await s.t.run(async ctx => { const row = await ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", draft)).first(); await ctx.db.patch(row!._id, { remarks: "PRIVATE_NOTE", displayParticipantName: "PRIVATE_NAME" }); });
     await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: draft, expectedActiveRevisionId: null, expectedDraftVersion: current.expectedDraftVersion });
     const publicRows = await s.t.query(api.results.getPublishedByEvent, { eventId: s.eventId });
     expect(JSON.stringify(publicRows)).not.toContain("PRIVATE");
@@ -180,10 +180,10 @@ describe("Convex scoring and management integration", () => {
 
   it("returns unchanged without creating a duplicate publication when a correction matches the published revision", async () => {
     const s = await setup();
-    const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5, placement: 1, entryLabel: "Solo" }] });
+    const first = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5, placement: 1 }] });
     const firstPreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: first });
     await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: first, expectedActiveRevisionId: firstPreview.expectedActiveRevisionId, expectedDraftVersion: firstPreview.expectedDraftVersion });
-    const duplicate = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, reason: "No actual change", entries: [{ schoolId: s.a, points: 5, placement: 1, entryLabel: "Solo" }] });
+    const duplicate = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, reason: "No actual change", entries: [{ schoolId: s.a, points: 5, placement: 1 }] });
     const duplicatePreview = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: duplicate });
     const result = await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: duplicate, expectedActiveRevisionId: duplicatePreview.expectedActiveRevisionId, expectedDraftVersion: duplicatePreview.expectedDraftVersion });
     expect(result).toEqual({ status: "unchanged" });

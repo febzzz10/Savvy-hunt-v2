@@ -1,4 +1,6 @@
+const issuer = process.env.CLERK_JWT_ISSUER_DOMAIN;
+if (!issuer) throw new Error("CLERK_JWT_ISSUER_DOMAIN is required");
 const authConfig = {
-  providers: [{ domain: process.env.CLERK_JWT_ISSUER_DOMAIN!, applicationID: "convex" }],
+  providers: [{ domain: issuer, applicationID: "convex" }],
 };
 export default authConfig;

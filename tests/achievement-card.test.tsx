@@ -34,7 +34,7 @@ describe("official winners card", () => {
   });
 
   it("never renders legacy entry labels or points", () => {
-    const html = renderToStaticMarkup(<AchievementCard result={result([{ schoolId: "school", schoolName: "School A", placement: 1, participantName: "Asha", points: 424242, entryLabel: "Legacy Team" } as AchievementResult["entries"][number]])} />);
+    const html = renderToStaticMarkup(<AchievementCard result={result([{ schoolId: "school", schoolName: "School A", placement: 1, participantName: "Asha", points: 424242 }])} />);
     expect(html).not.toContain("Legacy Team");
     expect(html).not.toContain("424242");
   });

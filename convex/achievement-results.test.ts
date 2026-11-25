@@ -14,7 +14,7 @@ describe("homepage official achievements", () => {
       const schoolId = await ctx.db.insert("schools", { editionId, name: "Official School", createdAt: 1, updatedAt: 1 });
       const eventId = await ctx.db.insert("events", { editionId, categoryId, title: "Official Event", slug: "official-event", status: "completed", resultStatus: "draft", isFeatured: false, createdBy: "test", createdAt: 1, updatedAt: 1 });
       const revisionId = await ctx.db.insert("resultRevisions", { eventId, revisionNumber: 1, status: "draft", createdBy: "test", createdAt: 1 });
-      const entryId = await ctx.db.insert("resultEntries", { eventId, revisionId, schoolId, placement: 1, points: 10, displayParticipantName: "Private name", namePublishingApproved: false, entryLabel: "Team A", sortOrder: 0 });
+      const entryId = await ctx.db.insert("resultEntries", { eventId, revisionId, schoolId, placement: 1, points: 10, sortOrder: 0 });
       return { editionId, eventId, revisionId, schoolId, entryId };
     });
     const read = () => t.query(api.results.listRecentPublished, { editionId: fixture.editionId, limit: 3 });
@@ -31,12 +31,11 @@ describe("homepage official achievements", () => {
     expect(JSON.stringify(official)).not.toContain("Private name");
     expect(JSON.stringify(official)).not.toContain("Team A");
     const publishedRows = await t.query(api.results.getPublishedByEvent, { eventId: fixture.eventId });
-    expect(publishedRows[0]).not.toHaveProperty("entryLabel");
     expect(JSON.stringify(publishedRows)).not.toContain("Private name");
     expect(JSON.stringify(publishedRows)).not.toContain("Team A");
     const correction = await t.run(async ctx => {
       const revisionId = await ctx.db.insert("resultRevisions", { eventId: fixture.eventId, revisionNumber: 2, status: "draft", createdBy: "test", createdAt: 20 });
-      await ctx.db.insert("resultEntries", { eventId: fixture.eventId, revisionId, schoolId: fixture.schoolId, placement: 2, points: 6, sortOrder: 0, displayParticipantName: "Approved name", namePublishingApproved: true });
+      await ctx.db.insert("resultEntries", { eventId: fixture.eventId, revisionId, schoolId: fixture.schoolId, placement: 2, points: 6, sortOrder: 0, displayParticipantName: "Approved name" });
       return revisionId;
     });
     expect((await read())[0].entries[0].points).toBe(10);

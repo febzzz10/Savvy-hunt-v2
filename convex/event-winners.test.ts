@@ -12,7 +12,7 @@ it("publishes tied winners with manual points and corrects their aggregate exact
   const [category] = await admin.query(api.categories.listCurrent, { editionId });
   const schools = await Promise.all(["A", "B", "C", "D"].map(name => admin.mutation(api.schools.save, { editionId, name })));
   const eventId = await admin.mutation(api.events.save, { editionId, categoryId: category._id, title: "Tie test", participatingSchoolIds: schools });
-  const entries = schools.map((schoolId, index) => ({ schoolId, placement: [1, 1, 2, 3][index], points: [13, 13, 8, 4][index], entryLabel: `Team ${index + 1}` }));
+  const entries = schools.map((schoolId, index) => ({ schoolId, placement: [1, 1, 2, 3][index], points: [13, 13, 8, 4][index] }));
   const draftRevisionId = await admin.mutation(api.results.saveDraft, { eventId, entries });
   expect(await t.query(api.results.getPublishedByEvent, { eventId })).toEqual([]);
   const preview = await admin.query(api.results.preview, { eventId, draftRevisionId });
@@ -39,16 +39,14 @@ it("persists participant names, enforces approval, preserves legacy labels, and 
   const [schoolA, schoolB] = await Promise.all(["A", "B"].map(name => admin.mutation(api.schools.save, { editionId, name })));
   const eventId = await admin.mutation(api.events.save, { editionId, categoryId: category._id, title: "Names test event", participatingSchoolIds: [schoolA, schoolB] });
   const entries = [
-    { schoolId: schoolA, placement: 1, points: 10, entryLabel: "Legacy A", displayParticipantName: "  Asha  ", namePublishingApproved: true },
-    { schoolId: schoolB, placement: 2, points: 5, entryLabel: "Legacy B", displayParticipantName: "   ", namePublishingApproved: true },
+    { schoolId: schoolA, placement: 1, points: 10, displayParticipantName: "  Asha  " },
+    { schoolId: schoolB, placement: 2, points: 5, displayParticipantName: "   " },
   ];
   const draftRevisionId = await admin.mutation(api.results.saveDraft, { eventId, entries });
   const draft = await admin.query(api.results.getAdminByEvent, { eventId });
   const draftBySchool = new Map(draft.draftEntries.map(row => [row.schoolId, row]));
-  expect(draftBySchool.get(schoolA)).toMatchObject({ displayParticipantName: "Asha", namePublishingApproved: true, entryLabel: "Legacy A" });
+  expect(draftBySchool.get(schoolA)).toMatchObject({ displayParticipantName: "Asha" });
   expect(draftBySchool.get(schoolB)?.displayParticipantName).toBeUndefined();
-  expect(draftBySchool.get(schoolB)?.namePublishingApproved).toBe(false);
-  expect(draftBySchool.get(schoolB)?.entryLabel).toBe("Legacy B");
 
   const firstPreview = await admin.query(api.results.preview, { eventId, draftRevisionId });
   await admin.mutation(api.results.publish, { eventId, draftRevisionId, expectedActiveRevisionId: firstPreview.expectedActiveRevisionId, expectedDraftVersion: firstPreview.expectedDraftVersion });
@@ -71,18 +69,7 @@ it("persists participant names, enforces approval, preserves legacy labels, and 
   expect(correction).toEqual({ status: "published" });
   const corrected = await t.query(api.results.listRecentPublished, { editionId, limit: 10 });
   expect(corrected.find(result => result.eventId === eventId)?.entries.find(entry => entry.schoolId === schoolA)).toMatchObject({ participantName: "Asha B" });
-  const afterCorrection = await admin.query(api.results.getAdminByEvent, { eventId });
-  expect(afterCorrection.officialEntries.find(row => row.schoolId === schoolA)?.entryLabel).toBe("Legacy A");
+  await admin.query(api.results.getAdminByEvent, { eventId });
 
-  const approvalRevisionId = await admin.mutation(api.results.saveDraft, {
-    eventId,
-    reason: "Withdraw public name approval",
-    expectedDraftVersion: 2,
-    entries: [{ ...entries[0], displayParticipantName: "Asha B", namePublishingApproved: false }, entries[1]],
-  });
-  const approvalPreview = await admin.query(api.results.preview, { eventId, draftRevisionId: approvalRevisionId });
-  const approval = await admin.mutation(api.results.publish, { eventId, draftRevisionId: approvalRevisionId, expectedActiveRevisionId: approvalPreview.expectedActiveRevisionId, expectedDraftVersion: approvalPreview.expectedDraftVersion });
-  expect(approval).toEqual({ status: "published" });
-  const afterApproval = await t.query(api.results.listRecentPublished, { editionId, limit: 10 });
-  expect(JSON.stringify(afterApproval.find(result => result.eventId === eventId))).not.toContain("Asha B");
+
 });

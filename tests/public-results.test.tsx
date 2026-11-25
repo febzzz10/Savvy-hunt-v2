@@ -25,7 +25,7 @@ describe("public result surfaces", () => {
       eventSlug: "event",
       categoryId: "category",
       publishedAt: 1800000000000,
-      entries: [{ schoolId: "school", schoolName: "School A", points: 10, placement: 1, entryLabel: "Legacy Team" }],
+      entries: [{ schoolId: "school", schoolName: "School A", points: 10, placement: 1 }],
     }];
     state.queries["categories:listCurrent"] = [{ _id: "category", name: "Category" }];
     state.queries["schools:listPublic"] = [{ _id: "school", name: "School A" }];
@@ -48,7 +48,7 @@ describe("public result surfaces", () => {
       hasPublishedResults: true,
     };
     state.queries["results:getPublishedByEvent"] = [
-      { schoolId: "school", schoolName: "School A", points: 10, placement: 1, entryLabel: "Legacy Team" },
+      { schoolId: "school", schoolName: "School A", points: 10, placement: 1 },
     ];
 
     const html = renderToStaticMarkup(<EventDetail slug="event" />);

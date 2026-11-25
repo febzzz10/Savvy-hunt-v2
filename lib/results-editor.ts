@@ -1,7 +1,7 @@
-export type EditorRow = { schoolId: string; points: number; placement?: number; entryLabel?: string; displayParticipantName?: string; namePublishingApproved?: boolean };
-export type DraftRow = { key: string; schoolId: string; points: string; placement: string; entryLabel: string; displayParticipantName: string; namePublishingApproved: boolean };
+export type EditorRow = { schoolId: string; points: number; placement?: number; displayParticipantName?: string };
+export type DraftRow = { key: string; schoolId: string; points: string; placement: string; displayParticipantName: string };
 
-const rowKey = (row: EditorRow) => `${row.schoolId}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.entryLabel ?? "").trim()}\u0000${(row.displayParticipantName ?? "").trim()}\u0000${row.namePublishingApproved ? "1" : "0"}`;
+const rowKey = (row: EditorRow) => `${row.schoolId}\u0000${row.points}\u0000${row.placement ?? ""}\u0000${(row.displayParticipantName ?? "").trim()}`;
 
 export function sameResultRows(left: EditorRow[], right: EditorRow[]) {
   if (left.length !== right.length) return false;
@@ -12,17 +12,14 @@ export function sameResultRows(left: EditorRow[], right: EditorRow[]) {
 export function normalizeEditorRows(rows: EditorRow[]): EditorRow[] {
   return rows.map(row => ({
     ...row,
-    entryLabel: row.entryLabel?.trim() || undefined,
     displayParticipantName: row.displayParticipantName?.trim() || undefined,
-    namePublishingApproved: Boolean(row.displayParticipantName?.trim() && row.namePublishingApproved),
   }));
 }
 
 export function draftRowsFromEditor(rows: EditorRow[], prefix = "row"): DraftRow[] {
   return rows.map((row, index) => ({
     key: `${prefix}-${index}`, schoolId: row.schoolId, points: String(row.points), placement: row.placement ? String(row.placement) : "",
-    entryLabel: row.entryLabel ?? "", displayParticipantName: row.displayParticipantName ?? "",
-    namePublishingApproved: Boolean(row.displayParticipantName?.trim() && row.namePublishingApproved),
+    displayParticipantName: row.displayParticipantName ?? "",
   }));
 }
 
@@ -31,14 +28,12 @@ export function editorRowsFromDraft(rows: DraftRow[]): EditorRow[] {
     schoolId: row.schoolId,
     points: row.points.trim() ? Number(row.points) : Number.NaN,
     placement: row.placement.trim() ? Number(row.placement) : undefined,
-    entryLabel: row.entryLabel,
     displayParticipantName: row.displayParticipantName,
-    namePublishingApproved: row.namePublishingApproved,
   })));
 }
 
 export function participantNameChange(row: DraftRow, value: string): DraftRow {
-  return { ...row, displayParticipantName: value, namePublishingApproved: row.displayParticipantName.trim() === value.trim() ? row.namePublishingApproved : false };
+  return { ...row, displayParticipantName: value };
 }
 
 export function validateDraftRows(rows: DraftRow[], options: { eligibleSchoolIds?: Set<string>; initialRows?: EditorRow[] } = {}) {
@@ -52,7 +47,7 @@ export function validateDraftRows(rows: DraftRow[], options: { eligibleSchoolIds
     if (!row.schoolId || (options.eligibleSchoolIds && !options.eligibleSchoolIds.has(row.schoolId))) return "Choose an eligible school for every entry.";
     if (row.points.trim() === "" || !Number.isSafeInteger(Number(row.points)) || Number(row.points) < 0) return "Enter nonnegative whole-number manual points for every entry.";
     if (row.placement.trim() && (!Number.isSafeInteger(Number(row.placement)) || Number(row.placement) < 1)) return "Placements must be positive whole numbers.";
-    if (row.namePublishingApproved && !row.displayParticipantName.trim()) return "Enter a participant name before approving it for public display.";
+
     if (seen.has(row.schoolId) && (initialCounts.get(row.schoolId) ?? 0) < (counts.get(row.schoolId) ?? 0)) return "A school is selected more than once. Use a different school for each winner.";
     seen.add(row.schoolId);
   }

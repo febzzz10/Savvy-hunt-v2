@@ -8,7 +8,6 @@
 .result-editor .winner-entry { display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:0 16px; padding:16px; }
 .result-editor .winner-entry .field { margin:0 0 12px; min-width:0; }
 .result-editor .winner-entry .winner-name,
-.result-editor .winner-entry .winner-entry-label,
 .result-editor .winner-entry .winner-placement { grid-column:1 / -1; }
 .result-editor .winner-entry .field small { display:block; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.4; }
 .result-editor .winner-entry > .button { grid-column:1 / -1; justify-self:start; }

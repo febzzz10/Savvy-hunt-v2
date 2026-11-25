@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { draftRowsFromEditor, editorRowsFromDraft, friendlyResultsError, participantNameChange, publishGate, sameResultRows, validateDraftRows, type DraftRow, type EditorRow } from "../lib/results-editor";
+import { draftRowsFromEditor, editorRowsFromDraft, friendlyResultsError, publishGate, sameResultRows, validateDraftRows, type DraftRow, type EditorRow } from "../lib/results-editor";
 
 const row = (overrides: Partial<EditorRow> = {}): EditorRow => ({ schoolId: "school-a", points: 5, ...overrides });
-const draft = (overrides: Partial<DraftRow> = {}): DraftRow => ({ key: "row-0", schoolId: "school-a", points: "5", placement: "", entryLabel: "", displayParticipantName: "", namePublishingApproved: false, ...overrides });
+const draft = (overrides: Partial<DraftRow> = {}): DraftRow => ({ key: "row-0", schoolId: "school-a", points: "5", placement: "", displayParticipantName: "", ...overrides });
 
 function gate(overrides: Partial<Parameters<typeof publishGate>[0]> = {}) {
   return publishGate({
@@ -20,23 +20,18 @@ function gate(overrides: Partial<Parameters<typeof publishGate>[0]> = {}) {
 
 describe("results editor draft conversion", () => {
   it("round-trips rows while trimming labels and resetting unapproved names", () => {
-    const converted = draftRowsFromEditor([row({ points: 0, placement: 1, entryLabel: " Solo ", displayParticipantName: "  ", namePublishingApproved: true })]);
-    expect(converted[0]).toMatchObject({ points: "0", placement: "1", entryLabel: " Solo ", displayParticipantName: "  " });
-    expect(editorRowsFromDraft(converted)[0]).toMatchObject({ points: 0, placement: 1, entryLabel: "Solo", displayParticipantName: undefined, namePublishingApproved: false });
+    const converted = draftRowsFromEditor([row({ points: 0, placement: 1, displayParticipantName: "  " })]);
+    expect(converted[0]).toMatchObject({ points: "0", placement: "1", displayParticipantName: "  " });
+    expect(editorRowsFromDraft(converted)[0]).toMatchObject({ points: 0, placement: 1, displayParticipantName: undefined });
   });
 
-  it("clears public approval when the participant name changes", () => {
-    const approved = draft({ displayParticipantName: "Asha", namePublishingApproved: true });
-    expect(participantNameChange(approved, "Asha ").namePublishingApproved).toBe(true);
-    expect(participantNameChange(approved, "Asha B").namePublishingApproved).toBe(false);
-  });
 
   it("rejects invalid points, placements, schools, and empty approved names", () => {
     expect(validateDraftRows([draft({ points: "" })])).toMatch(/manual points/i);
     expect(validateDraftRows([draft({ points: "1.5" })])).toMatch(/manual points/i);
     expect(validateDraftRows([draft({ placement: "0" })])).toMatch(/placements/i);
     expect(validateDraftRows([draft({ schoolId: "" })])).toMatch(/eligible school/i);
-    expect(validateDraftRows([draft({ namePublishingApproved: true })])).toMatch(/participant name/i);
+
   });
 
   it("keeps existing multi-entry schools editable but blocks new duplicates", () => {
@@ -85,48 +80,31 @@ describe("results editor publish gate", () => {
     expect(result.message).toMatch(/save your result changes/i);
   });
 
-  it("detects unchanged results by points, placement and entry label", () => {
-    const original = [row({ points: 5, placement: 1, entryLabel: "Solo" })];
-    expect(sameResultRows(original, [row({ points: 5, placement: 1, entryLabel: "Solo" })])).toBe(true);
-    expect(sameResultRows(original, [row({ points: 6, placement: 1, entryLabel: "Solo" })])).toBe(false);
-    expect(sameResultRows(original, [row({ points: 5, placement: 2, entryLabel: "Solo" })])).toBe(false);
-    expect(sameResultRows(original, [row({ points: 5, placement: 1, entryLabel: "Duet" })])).toBe(false);
+  it("detects unchanged results by points and placement", () => {
+    const original = [row({ points: 5, placement: 1 })];
+    expect(sameResultRows(original, [row({ points: 5, placement: 1 })])).toBe(true);
+    expect(sameResultRows(original, [row({ points: 6, placement: 1 })])).toBe(false);
+    expect(sameResultRows(original, [row({ points: 5, placement: 2 })])).toBe(false);
   });
 
-  it("detects participant-name and approval changes, treating undefined and false approval as equivalent", () => {
-    const original = [row({ displayParticipantName: "Asha", namePublishingApproved: true })];
-    expect(sameResultRows(original, [row({ displayParticipantName: "  Asha  ", namePublishingApproved: true })])).toBe(true);
-    expect(sameResultRows(original, [row({ displayParticipantName: "Asha B", namePublishingApproved: true })])).toBe(false);
-    expect(sameResultRows(original, [row({ displayParticipantName: "Asha", namePublishingApproved: false })])).toBe(false);
-    expect(sameResultRows(
-      [row({ displayParticipantName: "Asha", namePublishingApproved: undefined })],
-      [row({ displayParticipantName: "Asha", namePublishingApproved: false })],
-    )).toBe(true);
+  it("detects participant-name changes", () => {
+    const original = [row({ displayParticipantName: "Asha" })];
+    expect(sameResultRows(original, [row({ displayParticipantName: "  Asha  " })])).toBe(true);
+    expect(sameResultRows(original, [row({ displayParticipantName: "Asha B" })])).toBe(false);
   });
 
   it("allows a saved name-only correction to pass the publish gate", () => {
-    const corrected = row({ displayParticipantName: "Asha B", namePublishingApproved: true });
+    const corrected = row({ displayParticipantName: "Asha B" });
     expect(gate({
       isCorrection: true,
       rows: [corrected],
       savedRows: [corrected],
-      officialRows: [row({ displayParticipantName: "Asha", namePublishingApproved: true })],
+      officialRows: [row({ displayParticipantName: "Asha" })],
       reason: "Correct the participant name",
       savedReason: "Correct the participant name",
     })).toEqual({ ready: true, message: "" });
   });
 
-  it("allows a saved approval-only correction to pass the publish gate", () => {
-    const corrected = row({ displayParticipantName: "Asha", namePublishingApproved: true });
-    expect(gate({
-      isCorrection: true,
-      rows: [corrected],
-      savedRows: [corrected],
-      officialRows: [row({ displayParticipantName: "Asha", namePublishingApproved: false })],
-      reason: "Approve the participant name",
-      savedReason: "Approve the participant name",
-    })).toEqual({ ready: true, message: "" });
-  });
 
   it("blocks a correction that matches the published revision", () => {
     const result = gate({

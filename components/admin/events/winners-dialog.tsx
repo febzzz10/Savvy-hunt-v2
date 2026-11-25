@@ -42,7 +42,7 @@ function WinnersEditor({ eventId, live, schools, canPublish, onClose }: { eventI
   const gate = publishGate({ isCorrection, draftExists: Boolean(base.draft), hasPreview: Boolean(preview) && !stale, rows: entries(rows), savedRows: entries(initial), officialRows: base.officialEntries, reason, savedReason: base.draft?.changeReason ?? "" });
   const eligible = schools.filter(s => !base.event.participatingSchoolIds?.length || base.event.participatingSchoolIds.includes(s._id));
   function load(data: Data) { setBase(data); setRows(toRows(data)); nextKey.current = toRows(data).length; setReason(data.draft?.changeReason ?? ""); setConfirmation(null); }
-  function add(placement: string) { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement, entryLabel: "", displayParticipantName: "", namePublishingApproved: false }]); setConfirmation(null); }
+  function add(placement: string) { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement, displayParticipantName: "" }]); setConfirmation(null); }
   function update(key: string, patch: Partial<DraftRow>) { setRows(rows.map(row => row.key === key ? { ...row, ...patch } : row)); setConfirmation(null); }
   function updateName(key: string, value: string) {
     setRows(rows.map(row => row.key === key ? participantNameChange(row, value) : row));

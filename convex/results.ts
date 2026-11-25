@@ -4,7 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin } from "./lib/security";
 import { contributions, deltas, sameEntries } from "./lib/scoring";
-const entry=v.object({schoolId:v.id("schools"),points:v.number(),placement:v.optional(v.number()),entryLabel:v.optional(v.string()),displayParticipantName:v.optional(v.string()),namePublishingApproved:v.optional(v.boolean())});
+const entry=v.object({schoolId:v.id("schools"),points:v.number(),placement:v.optional(v.number()),displayParticipantName:v.optional(v.string())});
 async function rows(ctx: QueryCtx | MutationCtx,revisionId:Id<"resultRevisions">){return ctx.db.query("resultEntries").withIndex("by_revision",q=>q.eq("revisionId",revisionId)).collect()}
 export const getPublishedByEvent=query({args:{eventId:v.id("events")},handler:async(ctx,{eventId})=>{
   const event=await ctx.db.get(eventId);if(!event?.activePublishedRevisionId)return [];
@@ -41,7 +41,7 @@ export const listRecentPublished = query({
         if (!schools.has(row.schoolId)) schools.set(row.schoolId, (await ctx.db.get(row.schoolId))?.name ?? "Removed school");
         publicEntries.push({ schoolId: row.schoolId, schoolName: schools.get(row.schoolId)!, points: row.points,
           ...(row.placement === undefined ? {} : { placement: row.placement }),
-          ...(row.namePublishingApproved && row.displayParticipantName ? { participantName: row.displayParticipantName } : {}),
+          ...(row.displayParticipantName ? { participantName: row.displayParticipantName } : {}),
         });
       }
       return { eventId: event._id, eventTitle: event.title, eventSlug: event.slug, categoryId: event.categoryId, publishedAt, entries: publicEntries };
@@ -61,7 +61,7 @@ export const saveDraft=mutation({args:{eventId:v.id("events"),entries:v.array(en
   let draft=revisions.find(r=>r.status==="draft");const now=Date.now();
   if(!draft){const id=await ctx.db.insert("resultRevisions",{eventId:args.eventId,revisionNumber:Math.max(0,...revisions.map(r=>r.revisionNumber))+1,status:"draft",draftVersion:1,correctionOfRevisionId:event.activePublishedRevisionId,changeReason:args.reason?.trim(),createdBy:admin.authUserId,createdAt:now});draft=(await ctx.db.get(id))!}
   else {if(args.expectedDraftVersion!==(draft.draftVersion??0))throw new Error("STALE_DRAFT");await ctx.db.patch(draft._id,{changeReason:args.reason?.trim(),draftVersion:(draft.draftVersion??0)+1});for(const old of await rows(ctx,draft._id))await ctx.db.delete(old._id)}
-  for(const [sortOrder,item] of args.entries.entries()){const displayParticipantName=item.displayParticipantName?.trim()||undefined;const namePublishingApproved=Boolean(displayParticipantName&&item.namePublishingApproved);await ctx.db.insert("resultEntries",{revisionId:draft._id,eventId:args.eventId,schoolId:item.schoolId,points:item.points,placement:item.placement,entryLabel:item.entryLabel?.trim(),displayParticipantName,namePublishingApproved,sortOrder});}
+  for(const [sortOrder,item] of args.entries.entries()){const displayParticipantName=item.displayParticipantName?.trim()||undefined;await ctx.db.insert("resultEntries",{revisionId:draft._id,eventId:args.eventId,schoolId:item.schoolId,points:item.points,placement:item.placement,displayParticipantName,sortOrder});}
   if(!event.activePublishedRevisionId)await ctx.db.patch(event._id,{resultStatus:"draft",updatedAt:now});
   await ctx.db.insert("auditLogs",{editionId:event.editionId,actorAuthUserId:admin.authUserId,action:"results.saveDraft",entityType:"event",entityId:event._id,summary:`Saved draft revision ${draft.revisionNumber}`,createdAt:now});return draft._id;
 }});

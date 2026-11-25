@@ -61,7 +61,7 @@ function EditorForm({ eventId, live, schools, canPublish }: { eventId: string; l
   }
   function update(key: string, patch: Partial<DraftRow>) { setRows(rows.map(row => row.key === key ? { ...row, ...patch } : row)); }
   function updateName(key: string, value: string) { setRows(rows.map(row => row.key === key ? participantNameChange(row, value) : row)); }
-  function add() { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement: "", entryLabel: "", displayParticipantName: "", namePublishingApproved: false }]); }
+  function add() { setRows([...rows, { key: `new-${nextKey.current++}`, schoolId: "", points: "", placement: "", displayParticipantName: "" }]); }
   function validate() {
     const invalid = validateDraftRows(rows, { eligibleSchoolIds: new Set(eligible.map(school => school._id)), initialRows });
     if (invalid) return invalid;
