@@ -9,10 +9,11 @@ export function validateSchool(values: SchoolValues, schools: School[], editingI
   else if (schools.some(s => s._id !== editingId && s.name.toLowerCase() === name.toLowerCase())) errors.name = "A school with this name already exists.";
   return errors;
 }
-export function filterSchools(schools: School[], search: string, sort: string) {
+export function filterSchools(schools: School[], search: string, sort: string, points?: ReadonlyMap<string, number>) {
   const query = search.trim().toLowerCase();
+  const score = (school: School) => points?.get(school._id) ?? 0;
   return schools.filter(s => s.name.toLowerCase().includes(query)).sort((a, b) =>
-    sort === "updated" ? b.updatedAt - a.updatedAt || a.name.localeCompare(b.name) : sort === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
+    sort === "points" ? score(b) - score(a) || a.name.localeCompare(b.name) : sort === "updated" ? b.updatedAt - a.updatedAt || a.name.localeCompare(b.name) : sort === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 }
 export function schoolError(cause: unknown, action: "save" | "delete" = "save") {
   const message = cause instanceof Error ? cause.message : String(cause);

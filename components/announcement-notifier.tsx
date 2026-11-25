@@ -11,10 +11,17 @@ import { announcementAnchor, announcementPreview, createAnnouncementTracker, typ
 // Device capability probe. A hidden fixed element resolves env(safe-area-inset-top) (needs viewport-fit=cover).
 let probe: HTMLElement | undefined;
 let portraitTopInset: number | undefined;
+let cached: { key: string; mode: NotificationMode } | undefined;
 function readMode(): NotificationMode {
+  // Mobile browsers fire resize continuously while the URL bar collapses during scroll; only re-measure
+  // (getComputedStyle forces a style recalc) when the width or orientation actually changes.
+  const key = `${window.innerWidth}:${window.innerHeight >= window.innerWidth}`;
+  if (cached?.key === key) return cached.mode;
   if (!probe) { probe = document.createElement("div"); probe.setAttribute("aria-hidden", "true"); probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top)"; document.body.appendChild(probe); }
   if (window.innerHeight >= window.innerWidth) portraitTopInset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
-  return detectNotificationMode({ userAgent: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints, width: window.innerWidth, touchFirst: window.matchMedia("(pointer: coarse) and (hover: none)").matches, portraitTopInset });
+  const mode = detectNotificationMode({ userAgent: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints, width: window.innerWidth, touchFirst: window.matchMedia("(pointer: coarse) and (hover: none)").matches, portraitTopInset });
+  cached = { key, mode };
+  return mode;
 }
 function subscribeMode(notify: () => void) {
   window.addEventListener("resize", notify); window.addEventListener("orientationchange", notify);

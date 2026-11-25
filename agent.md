@@ -75,6 +75,14 @@ Established presentation decisions (2026-11-24, uncommitted on `fix/notice-board
 - Admin photo thumbnails: a failed image shows a fixed 56px "Unavailable" square, never wrapped text (`components/admin/admin-shell.css`).
 - `<body>` has `suppressHydrationWarning` only to silence browser-extension (Grammarly) attribute injection; real hydration mismatches elsewhere still surface.
 
+Shared admin patterns (2026-11-26; lint/types/tests/build pass, not browser- or device-verified). Reuse these rather than adding per-page variants:
+
+- `components/admin/admin-ui.tsx`: `AdminPageHeader` (h1, one-line purpose, optional back link and actions; no eyebrow labels), `useFeedback` + `FeedbackToast` (fixed bottom toast; success auto-clears after 6 s, errors persist; live region always mounted), `ConfirmDialog` (built on `EventDialog`; errors render inside the dialog), `Segmented` (single-choice filter with optional counts), `photoStatus` and `adminTime` (Asia/Kolkata).
+- Shared styles live in `components/admin/admin-shell.css`, which every admin page loads: page header, toast, `.button.danger` / `.button.secondary.danger` (error red `#9f342d`, never white on terracotta), `.button.compact`, `.admin-segmented`, `.admin-count`, and all `.event-dialog*` rules (bottom sheet at ≤600px). Do not put shared rules in a module stylesheet.
+- Destructive confirms use the danger button; public-facing actions (photo publish/hide/reject, announcement publish/republish) go through `ConfirmDialog`, not `window.confirm`. `useUnsavedChanges` keeps its synchronous `confirm()` because it must block navigation.
+- Editing state is shown with a full accent border plus tint and an "Editing" pill, not a one-sided bar.
+- Button names and headings that `scripts/verify-*.mjs` select on are kept exactly (for example "Sync Now", "Pending", "Verify and publish", "Create event", "Save draft", "Delete School?", "View details", `Delete <school>`).
+
 ## 6. Backend and database rules
 
 `convex/schema.ts` defines editions, schools, categories, events, resultRevisions, resultEntries, schoolCategoryTotals, galleryItems, historical galleryUploads, gallerySyncState, announcements, admins, adminBootstrapState, auditLogs and siteSettings. See memory for relationships.

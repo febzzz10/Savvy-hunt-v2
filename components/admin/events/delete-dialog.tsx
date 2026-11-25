@@ -13,7 +13,7 @@ export function DeleteEventDialog({ event, busy, error, onCancel, onConfirm }: {
     </div>
     <footer className="event-dialog-footer actions">
       <button className="button secondary" disabled={busy} onClick={onCancel}>Cancel</button>
-      <button className="button" disabled={busy || blocked} onClick={onConfirm}>{busy ? "Deleting…" : "Delete Event"}</button>
+      <button className="button danger" disabled={busy || blocked} onClick={onConfirm}>{busy ? "Deleting…" : "Delete Event"}</button>
     </footer>
   </EventDialog>;
 }

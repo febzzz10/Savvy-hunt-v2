@@ -38,16 +38,17 @@ export function EventForm({ editionId, categories, schools, event, latest, onSav
     } catch (cause) { setError(friendlyResultsError(cause)); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <form className="event-form" onSubmit={submit} aria-busy={busy}>
-    <h2>{event ? "Edit event" : "Create event"}</h2><p className="small">{event ? "Update programme details." : "Add the next event to the programme."}</p>
+  return <form className="event-form" onSubmit={submit} aria-busy={busy} data-mode={event ? "edit" : "create"}>
+    <div className="event-form-head"><h2>{event ? "Edit event" : "Create event"}</h2>{event && <span className="pill" data-status="draft">Editing</span>}</div>
+    <p className="small">{event ? <>Updating <strong>{event.title}</strong>. Changes appear on the public schedule when saved.</> : "Add an event to the programme. It appears on the public schedule when saved."}</p>
     <fieldset disabled={busy} className="event-fields">
       <label className="field"><span>Event title *</span><input autoFocus={Boolean(event)} required maxLength={160} value={values.title} onChange={e => field("title", e.target.value)} placeholder="Enter event title" /></label>
       <label className="field"><span>Category *</span><select required disabled={categoryLocked || stale} aria-describedby={categoryLocked ? categoryHelpId : undefined} value={categoryId} onChange={e => field("categoryId", e.target.value)}><option value="">Select category</option>{event && !categories.some(category => category._id === event.categoryId) && <option value={event.categoryId}>{event.categoryName}</option>}{categories.map(category => <option key={category._id} value={category._id} disabled={!category.isActive && category._id !== event?.categoryId}>{category.name}</option>)}</select>{categoryLocked && <small id={categoryHelpId}>Category cannot be changed because this event has publication history.</small>}</label>
       <label className="field"><span>Venue</span><input maxLength={200} value={values.venue} onChange={e => field("venue", e.target.value)} placeholder="Hall, stage or classroom" /></label>
       <label className="field"><span>Status</span><select value={values.status} onChange={e => setValues({ ...values, status: e.target.value as EventRecord["status"] })}>{statuses.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>
-      <details className="event-extra" open={event ? true : undefined}><summary>Description & participating schools</summary>
+      <details className="event-extra" open={event ? true : undefined}><summary>Description & participating schools<span className="small">{values.participants.length ? `${values.participants.length} selected` : "All schools"}</span></summary>
         <label className="field"><span>Description (optional)</span><textarea maxLength={4000} value={values.description} onChange={e => field("description", e.target.value)} /></label>
-        <fieldset><legend>Participating schools</legend><p className="small">Leave unchecked to include every school.</p><div className="event-school-options">{schools.map(school => <label className="checkbox" key={school._id}><input type="checkbox" checked={values.participants.includes(school._id)} onChange={e => setValues({ ...values, participants: e.target.checked ? [...values.participants, school._id] : values.participants.filter(id => id !== school._id) })} />{school.name}</label>)}</div></fieldset>
+        <fieldset><legend>Participating schools</legend><p className="small">Leave every box unticked to open the event to all schools.</p><div className="event-school-options">{schools.map(school => <label className="checkbox" key={school._id}><input type="checkbox" checked={values.participants.includes(school._id)} onChange={e => setValues({ ...values, participants: e.target.checked ? [...values.participants, school._id] : values.participants.filter(id => id !== school._id) })} />{school.name}</label>)}</div></fieldset>
       </details>
     </fieldset>
     {stale && <p className="error" role="alert">This event changed in another session. Cancel and reopen the editor to load the latest details.</p>}
