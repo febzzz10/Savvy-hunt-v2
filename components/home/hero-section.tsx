@@ -15,7 +15,7 @@ export function HeroSection() {
         <svg className="festival-underline" aria-hidden="true" viewBox="0 0 240 32" fill="none"><path d="M5 26C35 11 65 7 90 6L68 18C89 15 119 6 148 9L124 16C156 13 191 10 235 15" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /><path d="M18 21C67 8 113 9 167 12" stroke="currentColor" strokeWidth="1.5" /></svg>
       </div>
       <p className="festival-tagline">Where Talent Takes<br />Centre Stage.</p>
-      <p className="festival-description">Savvy Hunt 2026 brings MGM School events, official results, live standings, announcements and student achievements together in one place.</p>
+      <p className="festival-description">Savvy Hunt 2026 brings MGM School events, official results, live standings and student achievements together in one place.</p>
       <div className="festival-actions"><Link className="button" href="/scoreboard">Explore Live Scoreboard <Icon name="arrow" /></Link><Link className="button secondary" href="/schedule"><Icon name="calendar" /> View Event Schedule</Link></div>
     </div>
   </section>;
