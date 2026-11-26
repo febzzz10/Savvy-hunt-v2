@@ -6,6 +6,7 @@
 .festival-title-wrap { position:relative; width:fit-content; }
 .festival-hero h1 { font-family:var(--font-hero),Georgia,serif; color:var(--ink); font-size:142px; font-weight:600; line-height:.83; letter-spacing:-.055em; margin:0; }
 .festival-hero h1 span { display:block; }
+.festival-hero h1 .festival-h1-sub { font-family:var(--font-dm),Arial,sans-serif; font-size:17px; line-height:1.45; letter-spacing:.005em; font-weight:600; color:var(--muted); margin-top:22px; max-width:400px; }
 .festival-underline { width:310px; height:36px; display:block; color:var(--accent); margin:6px 0 8px; }
 .festival-tagline { font-size:24px; line-height:1.35; margin:0 0 20px; color:var(--ink); }
 .festival-description { max-width:400px; font-size:15px; line-height:1.65; color:var(--muted); margin:0; }
@@ -28,6 +29,7 @@
   .festival-hero { margin-inline:-20px; padding:33px 22px 42px; min-height:0; }
   .festival-copy { max-width:none; }.festival-eyebrow { font-size:10px; letter-spacing:.13em; margin-bottom:20px; }
   .festival-hero h1 { font-size:92px; line-height:.82; letter-spacing:-.055em; }
+  .festival-hero h1 .festival-h1-sub { font-size:12px; line-height:1.4; margin-top:14px; max-width:270px; }
   .festival-underline { width:208px; height:27px; margin-top:6px; margin-bottom:9px; }
   .festival-tagline { font-size:18px; margin-bottom:16px; line-height:1.4; max-width:250px; }
   .festival-description { max-width:252px; font-size:13px; line-height:1.6; }

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/structured-data";
+import { pageSchema } from "@/lib/structured-data";
 
-export const metadata: Metadata = { title: "Official results", description: "Official Savvy Hunt event results, winners and published points, updated by organizers as each result is confirmed.", alternates: { canonical: "/results" } };
+const META = { title: "Savvy Hunt Results 2026 | MGM School", description: "Official Savvy Hunt 2026 results from MGM School: published placements, winners and points for every completed event." };
+export const metadata: Metadata = { title: { absolute: META.title }, description: META.description, alternates: { canonical: "/results" } };
 
-export default function Layout({ children }: { children: React.ReactNode }) { return children; }
+export default function Layout({ children }: { children: React.ReactNode }) { return <><JsonLd data={pageSchema({ path: "/results", name: META.title, description: META.description, crumbs: [{ name: "Home", path: "/" }, { name: "Results", path: "/results" }] })} />{children}</>; }

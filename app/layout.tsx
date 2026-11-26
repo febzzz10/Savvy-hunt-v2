@@ -7,13 +7,18 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "./providers";
 import type { Metadata, Viewport } from "next";
-import { SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_URL, SITE_YEAR } from "@/lib/site";
+import { HOME_META, siteSchema } from "@/lib/structured-data";
+import { JsonLd } from "@/components/structured-data";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "Savvy Hunt", template: "%s | Savvy Hunt" },
-  description: "School event schedules, official results, live standings, and approved snapshots.",
-  openGraph: { type: "website", siteName: "Savvy Hunt" },
+  title: { default: HOME_META.title, template: `%s | ${SITE_NAME} ${SITE_YEAR}` },
+  description: HOME_META.description,
+  // og:title and og:description are derived per page from the resolved title and description.
+  openGraph: { type: "website", siteName: SITE_NAME },
+  twitter: { card: "summary" },
+  robots: { index: true, follow: true },
 };
 // viewport-fit=cover lets Dynaura place its island inside the iOS safe area; globals.css pads the body to match.
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
-export default function RootLayout({children}:{children:React.ReactNode}){return <ClerkProvider><html lang="en"><body className={`${fraunces.variable} ${dm.variable}`} suppressHydrationWarning><Providers>{children}</Providers><Footer /><Analytics /></body></html></ClerkProvider>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <ClerkProvider><html lang="en"><body className={`${fraunces.variable} ${dm.variable}`} suppressHydrationWarning><JsonLd data={siteSchema()} /><Providers>{children}</Providers><Footer /><Analytics /></body></html></ClerkProvider>}
