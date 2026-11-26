@@ -20,7 +20,6 @@ function HomeData({ editionId }: { editionId: string }) {
   const standings = useQuery(ref<{ editionId: string }, Standing[]>("scoreboard:getOverall"), { editionId });
   const events = useQuery(ref<{ editionId: string }, ProgrammeEvent[]>("events:listPublic"), { editionId });
   const categories = useQuery(ref<{ editionId: string }, { _id: string; name: string }[]>("categories:listCurrent"), { editionId });
-  const announcements = useQuery(ref<{ editionId: string }, Announcement[]>("announcements:listPublic"), { editionId });
   const photos = useQuery(ref<{ editionId: string }, Photo[]>("gallery:listApproved"), { editionId });
   const results = useQuery(ref<{ editionId: string; limit: number }, AchievementResult[]>("results:listRecentPublished"), { editionId, limit: 3 });
   const live = events?.filter(event => event.status === "live");
@@ -52,7 +51,15 @@ function HomeData({ editionId }: { editionId: string }) {
     {!!live?.length && <section><SectionHeading number="In progress" title="Happening now" href="/schedule" action="Full schedule" /><Programme events={live} categories={categories} /></section>}
     <div className="results-stack">
       <section className="results-section"><SectionHeading number="From the results desk" title="The latest achievements" />{results === undefined ? <Skeleton label="Loading official results…" /> : results.length ? <AchievementCards results={results} categories={categories} /> : <EmptyState title="The results desk is ready" icon="trophy" href="/schedule">Official results will appear here once published.</EmptyState>}<div className="home-section-action home-results-action"><Link className="button secondary home-editorial-cta" href="/results">View All Results <Icon name="arrow" /></Link></div></section>
-      {!!announcements?.length && <section className="notice-section"><SectionHeading number="From the organizers" title="Notice board" />{announcements.slice(0, 3).map(item => <article className="notice" id={`announcement-${item._id}`} key={item._id}>{item.publishedAt && <span className="eyebrow">{timeLabel(item.publishedAt)}</span>}<h3>{item.title}</h3><p>{item.body}</p></article>)}</section>}
+      <NoticeBoard editionId={editionId} />
     </div>
   </>;
+}
+
+// Own subscription: a newly published announcement re-renders only this section, not the whole home page,
+// so the publish frame stays light while the notification appears.
+function NoticeBoard({ editionId }: { editionId: string }) {
+  const announcements = useQuery(ref<{ editionId: string }, Announcement[]>("announcements:listPublic"), { editionId });
+  if (!announcements?.length) return null;
+  return <section className="notice-section"><SectionHeading number="From the organizers" title="Notice board" />{announcements.slice(0, 3).map(item => <article className="notice" id={`announcement-${item._id}`} key={item._id}>{item.publishedAt && <span className="eyebrow">{timeLabel(item.publishedAt)}</span>}<h3>{item.title}</h3><p>{item.body}</p></article>)}</section>;
 }

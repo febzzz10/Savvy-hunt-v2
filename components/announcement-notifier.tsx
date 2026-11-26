@@ -30,6 +30,14 @@ function subscribeMode(notify: () => void) {
 // The Toaster renders nothing on the server, so the server snapshot only needs to be stable.
 const serverMode = (): NotificationMode => "desktop";
 
+// Dynaura's show forces synchronous layout (about 100ms of main-thread time on a 6x-throttled phone CPU).
+// Waiting for an idle moment keeps it from stacking on the render of the Convex update that delivered the
+// announcement. Safari has no requestIdleCallback, so it gets a short timeout instead.
+function whenIdle(run: () => void) {
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(run, { timeout: 500 });
+  else setTimeout(run, 60);
+}
+
 const BrandMark = <span className="announcement-toast-mark" aria-hidden="true">SH</span>;
 
 export function showAnnouncementToast(item: PublishedAnnouncement, open: (id: string) => void) {
@@ -54,7 +62,7 @@ export function AnnouncementNotifier() {
   const editionId = edition?._id;
   const items = useQuery(ref<{ editionId: string }, PublishedAnnouncement[]>("announcements:listPublic"), editionId ? { editionId } : "skip");
   const open = useCallback((id: string) => { dynaura.dismiss(`announcement:${id}`); router.push(`/#${announcementAnchor(id)}`); }, [router]);
-  const show = useCallback((item: PublishedAnnouncement) => showAnnouncementToast(item, open), [open]);
+  const show = useCallback((item: PublishedAnnouncement) => whenIdle(() => showAnnouncementToast(item, open)), [open]);
 
   // One tracker for the life of the app: its "seen" memory must survive re-renders.
   const [tracker] = useState(() => createAnnouncementTracker());

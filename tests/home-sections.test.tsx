@@ -60,6 +60,7 @@ describe("homepage stacked sections", () => {
     expect(stack.indexOf("The latest achievements")).toBeLessThan(stack.indexOf("View All Results"));
     expect(stack.indexOf("View All Results")).toBeLessThan(stack.indexOf("Notice board"));
     expect(stack.match(/class="notice-section"/g)).toHaveLength(1);
+    expect(stack).toContain('id="announcement-n1"'); // notification deep-link target
     data.queries["announcements:listPublic"] = [];
     expect(renderToStaticMarkup(<HomeContent />)).not.toContain("notice-section");
   });
