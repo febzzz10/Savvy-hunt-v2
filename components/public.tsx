@@ -12,7 +12,7 @@ type Category = { _id: string; name: string; slug: string };
 type Event = { _id: string; title: string; slug: string; status: string; venue?: string; categoryId: string; description?: string; hasPublishedResults: boolean };
 
 export function Nav() {
-  return <SiteNavigation links={[["/scoreboard", "Scoreboard"], ["/schedule", "Schedule"], ["/results", "Results"], ["/snapshots", "Snapshots"], ["/about", "About"]]} />;
+  return <SiteNavigation links={[["/scoreboard", "Scoreboard"], ["/schedule", "Schedule"], ["/results", "Results"], ["/snapshots", "Snapshots"], ["/team", "Team"], ["/about", "About"]]} />;
 }
 
 export function Board({ slug }: { slug?: string }) { return <Load>{edition => <BoardData editionId={edition._id} slug={slug} />}</Load>; }

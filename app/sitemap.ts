@@ -13,6 +13,7 @@ const staticPages: MetadataRoute.Sitemap = [
   { url: `${SITE_URL}/scoreboard`, changeFrequency: "daily", priority: 0.9 },
   { url: `${SITE_URL}/snapshots`, changeFrequency: "weekly", priority: 0.6 },
   { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.5 },
+  { url: `${SITE_URL}/team`, changeFrequency: "monthly", priority: 0.4 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
