@@ -45,7 +45,7 @@ describe("homepage official achievements", () => {
       await ctx.db.patch(fixture.eventId, { activePublishedRevisionId: correction });
     });
     expect((await read())[0]).toMatchObject({ publishedAt: 30, entries: [{ placement: 2, points: 6, participantName: "Approved name" }] });
-    expect(JSON.stringify(await t.query(api.results.getPublishedByEvent, { eventId: fixture.eventId }))).not.toContain("Approved name");
+    expect(await t.query(api.results.getPublishedByEvent, { eventId: fixture.eventId })).toMatchObject([{ placement: 2, points: 6, participantName: "Approved name" }]);
     await t.run(ctx => ctx.db.patch(correction, { status: "revoked" }));
     expect(await read()).toEqual([]);
   });

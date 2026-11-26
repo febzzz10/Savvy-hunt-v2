@@ -107,7 +107,7 @@ describe("Convex scoring and management integration", () => {
     await expect(s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: foreign, points: 5 }] })).rejects.toThrow("Invalid school");
   });
 
-  it("rejects stale draft publication and preserves private fields", async () => {
+  it("rejects stale draft publication, exposes the published name and keeps remarks private", async () => {
     const s = await setup();
     const draft = await s.editor.mutation(api.results.saveDraft, { eventId: s.eventId, entries: [{ schoolId: s.a, points: 5 }] });
     const stale = await s.editor.query(api.results.preview, { eventId: s.eventId, draftRevisionId: draft });
@@ -117,7 +117,8 @@ describe("Convex scoring and management integration", () => {
     await s.t.run(async ctx => { const row = await ctx.db.query("resultEntries").withIndex("by_revision", q => q.eq("revisionId", draft)).first(); await ctx.db.patch(row!._id, { remarks: "PRIVATE_NOTE", displayParticipantName: "PRIVATE_NAME" }); });
     await s.superAdmin.mutation(api.results.publish, { eventId: s.eventId, draftRevisionId: draft, expectedActiveRevisionId: null, expectedDraftVersion: current.expectedDraftVersion });
     const publicRows = await s.t.query(api.results.getPublishedByEvent, { eventId: s.eventId });
-    expect(JSON.stringify(publicRows)).not.toContain("PRIVATE");
+    expect(JSON.stringify(publicRows)).not.toContain("PRIVATE_NOTE");
+    expect(publicRows[0]).toMatchObject({ participantName: "PRIVATE_NAME" });
     expect(JSON.stringify(await s.t.query(api.events.listPublic, { editionId: s.editionId }))).not.toContain("createdBy");
   });
 

@@ -8,7 +8,7 @@ const entry=v.object({schoolId:v.id("schools"),points:v.number(),placement:v.opt
 async function rows(ctx: QueryCtx | MutationCtx,revisionId:Id<"resultRevisions">){return ctx.db.query("resultEntries").withIndex("by_revision",q=>q.eq("revisionId",revisionId)).collect()}
 export const getPublishedByEvent=query({args:{eventId:v.id("events")},handler:async(ctx,{eventId})=>{
   const event=await ctx.db.get(eventId);if(!event?.activePublishedRevisionId)return [];
-  return Promise.all((await rows(ctx,event.activePublishedRevisionId)).map(async r=>({schoolId:r.schoolId,schoolName:(await ctx.db.get(r.schoolId))?.name??"Removed school",points:r.points,placement:r.placement,sortOrder:r.sortOrder})));
+  return Promise.all((await rows(ctx,event.activePublishedRevisionId)).map(async r=>({schoolId:r.schoolId,schoolName:(await ctx.db.get(r.schoolId))?.name??"Removed school",points:r.points,placement:r.placement,...(r.displayParticipantName?{participantName:r.displayParticipantName}:{}),sortOrder:r.sortOrder})));
 }});
 export const listRecentPublished = query({
   args: { editionId: v.id("editions"), limit: v.number() },
