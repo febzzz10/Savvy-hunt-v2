@@ -9,7 +9,7 @@ export function HeroSection() {
   return <section className={`festival-hero ${display.variable}`} aria-labelledby="festival-title">
     <HeroArtwork />
     <div className="festival-copy">
-      <p className="festival-eyebrow">MGM SCHOOL, KOTTARAKARA</p>
+      <p className="festival-eyebrow">INTER-SCHOOL COMPETITION</p>
       <div className="festival-title-wrap">
         <h1 id="festival-title"><HeroTitle /><span className="sr-only"> &ndash; </span><span className="festival-h1-sub">MGM School Programs &amp; Events 2026</span></h1>
         <svg className="festival-underline" aria-hidden="true" viewBox="0 0 240 32" fill="none"><path d="M5 26C35 11 65 7 90 6L68 18C89 15 119 6 148 9L124 16C156 13 191 10 235 15" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /><path d="M18 21C67 8 113 9 167 12" stroke="currentColor" strokeWidth="1.5" /></svg>
