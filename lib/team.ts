@@ -8,8 +8,8 @@ export const developers: TeamMember[] = [
 ];
 
 export const studentCoordinators: TeamMember[] = [
-  { name: "Kishore V N", role: "Coordinator & Media Club incharge" },
-  { name: "Abel John George", role: "Coordinator" },
+  { name: "Kishore V N", role: "Coordinator & Media Club incharge", photo: "/images/studen_cocc/kicor%202.jpeg" },
+  { name: "Abel John George", role: "Coordinator", photo: "/images/studen_cocc/2person.jpeg" },
 ];
 
 export const jury: string[] = ["Mrs. Beena Jacob", "Mrs. Krishna P Nair", "Mrs. Uma V", "Mrs. Julie Koshy"];
