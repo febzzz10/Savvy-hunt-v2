@@ -14,7 +14,7 @@ const getServerSnapshot = () => false;
 
 export function HeroTitle() {
   const mobile = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const title = <><span>Savvy</span><span>Hunt</span></>;
+  const title = <><span>Savvy</span> <span>Hunt</span></>;
   if (!mobile) return title;
   return <GradientText className="festival-title-gradient"
     colors={["#1f2a23", "#32643b", "#c59439", "#32643b"]}

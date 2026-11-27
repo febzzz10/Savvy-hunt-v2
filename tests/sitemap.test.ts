@@ -29,6 +29,20 @@ describe("Sitemap", () => {
     expect(urls.every(url => url.startsWith(SITE))).toBe(true);
     expect(new Set(urls).size).toBe(urls.length);
   });
+  it("sets lastModified from stored event timestamps only, never from the clock", async () => {
+    mocks.query
+      .mockResolvedValueOnce({ _id: "edition" })
+      .mockResolvedValueOnce([{ slug: "quiz", categoryId: "c1", updatedAt: Date.UTC(2026, 11, 1) }, { slug: "dance", categoryId: "c1", updatedAt: Date.UTC(2026, 11, 5) }, { slug: "legacy", categoryId: "c2" }])
+      .mockResolvedValueOnce([{ _id: "c1", slug: "category-i", isActive: true }, { _id: "c2", slug: "category-ii", isActive: true }]);
+    const pages = await sitemap();
+    const find = (path: string) => pages.find(page => page.url === `${SITE}${path}`);
+    expect(find("/events/quiz")?.lastModified).toEqual(new Date(Date.UTC(2026, 11, 1)));
+    expect(find("/scoreboard/category-i")?.lastModified).toEqual(new Date(Date.UTC(2026, 11, 5)));
+    expect(find("/results")?.lastModified).toEqual(new Date(Date.UTC(2026, 11, 5)));
+    expect(find("/events/legacy")).not.toHaveProperty("lastModified");
+    expect(find("/scoreboard/category-ii")).not.toHaveProperty("lastModified");
+    expect(find("/about")).not.toHaveProperty("lastModified");
+  });
   it("still serves the static pages when the backend fails", async () => {
     mocks.query.mockRejectedValue(new Error("offline"));
     expect((await sitemap()).map(page => page.url)).toContain(`${SITE}/schedule`);

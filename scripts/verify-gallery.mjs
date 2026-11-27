@@ -30,7 +30,7 @@ try {
   const removedUpload = await context.request.post(`${base}/api/admin/gallery/upload`);
   assert.equal(removedUpload.status(), 404); result.checks.push("Removed website upload endpoint returns 404");
   await page.goto(`${base}/snapshots`);
-  await page.getByRole("heading", { name: "Snapshots", exact: true }).waitFor();
+  await page.getByRole("heading", { name: /^Snapshots/ }).waitFor();
   result.checks.push("Public reactive gallery loads");
   await page.goto(`${base}/admin/login`);
   await page.waitForFunction(() => Boolean(window.Clerk?.loaded));

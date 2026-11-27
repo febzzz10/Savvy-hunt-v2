@@ -6,10 +6,11 @@ import { Nav } from "@/components/public";
 import { Load, ref } from "@/components/data";
 import { EmptyState, Skeleton } from "@/components/ui";
 import { dateLabel, timeLabel } from "@/components/editorial";
+import { FaqSection } from "@/components/faq-section";
 type Result = { eventId: string; eventTitle: string; eventSlug: string; categoryId: string; publishedAt: number; entries: Array<{ schoolId: string; schoolName: string; points: number; placement?: number; participantName?: string }> };
 type Category = { _id: string; name: string };
 type School = { _id: string; name: string };
-export default function Page() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><span className="eyebrow">The results desk</span><h1>Official results</h1><p className="muted">Published results and final placements for each event.</p><Load>{edition => <Results editionId={edition._id} />}</Load></main></>; }
+export default function Page() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><span className="eyebrow">The results desk</span><h1>Savvy Hunt Results 2026</h1><p className="muted">Official MGM Savvy Hunt 2026 results from MGM School, Kottarakara: winners, placements and points for each event. See how schools rank on the <Link href="/scoreboard">live scoreboard</Link> or check what is coming up in the <Link href="/schedule">event schedule</Link>.</p><Load>{edition => <Results editionId={edition._id} />}</Load><FaqSection /></main></>; }
 export function Results({ editionId }: { editionId: string }) {
   const results = useQuery(ref<{ editionId: string; limit: number }, Result[]>("results:listRecentPublished"), { editionId, limit: 50 });
   const categories = useQuery(ref<{ editionId: string }, Category[]>("categories:listCurrent"), { editionId });

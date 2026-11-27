@@ -10,7 +10,16 @@ export const SITE_YEAR = "2026";
  */
 export const SCHOOL_NAME = "MGM School";
 export const SCHOOL_LOCATION = "Kottarakara";
+/** The school's own website (owner-supplied 2026-11-28). */
+export const SCHOOL_URL = "https://mgmschool.com/";
 export const SCHOOL_ALTERNATE_NAMES = ["MGM CPS", "MGM School Kottarakara"];
+/**
+ * Event facts the project does not record yet. Leave undefined until the organizers confirm them:
+ * the Event JSON-LD node and the "When is it?" FAQ answer only use a value once it is set here.
+ * Use ISO 8601 (for example "2026-12-12" or "2026-12-12T09:00:00+05:30").
+ */
+export const EVENT_START_DATE: string | undefined = undefined;
+export const EVENT_END_DATE: string | undefined = undefined;
 
 /**
  * Best-effort public Convex read for sitemap and metadata generation.

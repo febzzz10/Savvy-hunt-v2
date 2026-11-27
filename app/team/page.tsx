@@ -5,7 +5,7 @@ import "./team.css";
 
 function Avatar({ member, size }: { member: TeamMember; size: number }) {
   return <span className="team-avatar" style={{ width: size, height: size }}>
-    {member.photo ? <Image src={member.photo} alt="" width={size} height={size} /> : <span aria-hidden="true">{initials(member.name)}</span>}
+    {member.photo ? <Image src={member.photo} alt={`Portrait of ${member.name}${member.role ? `, ${member.role}` : ""}, Savvy Hunt organizing team`} width={size} height={size} /> : <span aria-hidden="true">{initials(member.name)}</span>}
   </span>;
 }
 

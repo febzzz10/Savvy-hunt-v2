@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   title: { default: HOME_META.title, template: `%s | ${SITE_NAME} ${SITE_YEAR}` },
   description: HOME_META.description,
   // og:title and og:description are derived per page from the resolved title and description.
-  openGraph: { type: "website", siteName: SITE_NAME },
-  twitter: { card: "summary" },
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_IN" },
+  twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
 };
 // viewport-fit=cover lets Dynaura place its island inside the iOS safe area; globals.css pads the body to match.

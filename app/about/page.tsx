@@ -12,8 +12,7 @@ function About({ editionId }: { editionId: string }) {
   const photos = useQuery(ref<{ editionId: string }, { _id: string; altText: string; caption?: string; imageVersion?: string }[]>("gallery:listApproved"), { editionId });
   const photo = photos?.[0];
   return <>
-    <span className="eyebrow">Talent, teamwork & school spirit</span><h1>About {settings?.eventTitle || "Savvy Hunt"}</h1>
-    <div className="about-layout"><div><p className="about-intro">A shared space for school events, official results and the moments in between.</p>
+        <div className="about-layout"><div><p className="about-intro">A shared space for school events, official results and the moments in between.</p>
       <section><SectionHeading number="The event" title="A place to come together" />{settings === undefined ? <Skeleton /> : <p>{settings?.tagline || "Savvy Hunt brings the school-event programme together in one place. Discover events, follow participating schools and celebrate achievements as official results are published."}</p>}</section>
       <section><SectionHeading number="The results" title="Every achievement, accounted for" /><p>Standings use published event results. Equal point totals share a rank; draft results do not appear in the public standings.</p><Link className="text-link" href="/scoreboard">Explore the scoreboard <Icon name="arrow" /></Link></section>
     </div><aside className="about-visual">{photo ? <figure><GalleryPhoto id={photo._id} alt={photo.altText} version={photo.imageVersion} />{photo.caption && <figcaption>{photo.caption}</figcaption>}</figure> : <div className="about-note"><span className="icon-disc"><Icon name="calendar" /></span><h2>Your guide to the event</h2><p>Find the next event, check the venue and keep up with organizer announcements.</p><p>All event times are shown in Indian Standard Time (IST). Statuses are updated by the organizers.</p><Link className="text-link" href="/schedule">Explore the schedule <Icon name="arrow" /></Link></div>}</aside></div>
@@ -21,4 +20,4 @@ function About({ editionId }: { editionId: string }) {
     {settings?.contactInfo && <section><SectionHeading number="Event information" title="Get in touch" /><p className="about-intro">{settings.contactInfo}</p></section>}
   </>;
 }
-export default function Page() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><Load>{edition => <About editionId={edition._id} />}</Load></main></>; }
+export default function Page() { return <><Nav /><main id="main-content" tabIndex={-1} className="shell"><span className="eyebrow">Talent, teamwork & school spirit</span><h1>About MGM Savvy Hunt 2026</h1><p className="about-intro">Savvy Hunt 2026 is the inter-school competition hosted by MGM School, Kottarakara, Kerala. Follow the <Link href="/schedule">event schedule</Link>, the <Link href="/scoreboard">live scoreboard</Link> and the official <Link href="/results">results</Link> here.</p><Load>{edition => <About editionId={edition._id} />}</Load></main></>; }

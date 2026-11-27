@@ -5,7 +5,7 @@ import type { Doc } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin, requiredText, slugify } from "./lib/security";
 const eventStatus=v.union(v.literal("upcoming"),v.literal("live"),v.literal("completed"),v.literal("postponed"),v.literal("cancelled"));
-const publicEvent=(event:{_id:unknown;title:string;slug:string;description?:string;venue?:string;status:string;categoryId:unknown;activePublishedRevisionId?:unknown})=>({_id:event._id,title:event.title,slug:event.slug,description:event.description,venue:event.venue,status:event.status,categoryId:event.categoryId,hasPublishedResults:Boolean(event.activePublishedRevisionId)});
+const publicEvent=(event:{_id:unknown;title:string;slug:string;description?:string;venue?:string;status:string;categoryId:unknown;activePublishedRevisionId?:unknown;updatedAt?:number})=>({_id:event._id,updatedAt:event.updatedAt,title:event.title,slug:event.slug,description:event.description,venue:event.venue,status:event.status,categoryId:event.categoryId,hasPublishedResults:Boolean(event.activePublishedRevisionId)});
 // Titles are unique per category, compared case-insensitively after trimming and collapsing whitespace.
 const titleKey=(value:string)=>value.trim().toLowerCase().replace(/\s+/g," ");
 export const listPublic=query({args:{editionId:v.id("editions")},handler:async(ctx,{editionId})=>(await ctx.db.query("events").withIndex("by_edition_created",q=>q.eq("editionId",editionId)).collect()).map(publicEvent)});
