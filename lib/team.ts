@@ -14,7 +14,7 @@ export const studentCoordinators: TeamMember[] = [
 
 export const jury: string[] = ["Mrs. Beena Jacob", "Mrs. Krishna P Nair", "Mrs. Uma V", "Mrs. Julie Koshy"];
 
-export const mediaClub: string[] = ["Alvin Shiju", "Aadinath M", "Kashinath M", "Jyothish J"];
+export const mediaClub: string[] = ["Alvin Shiju", "Aadinath M", "Kashinath M", "Jyothish J", "Gowtham Vijayan"];
 
 export const facultyCoordinators: string[] = [
   "Mrs. Nisha Pillai", "Mrs. Radha Surendran", "Mrs. Thara", "Mrs. Soumya R",
