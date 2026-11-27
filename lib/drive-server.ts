@@ -19,13 +19,20 @@ function b64url(bytes: Uint8Array) {
   for (const byte of bytes) value += String.fromCharCode(byte);
   return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
-export async function driveToken() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!email || !key) throw new DriveError("Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in Convex and the Next.js server environment.");
+// Access tokens are valid for about an hour. Mint one per server instance and reuse it, rather than
+// signing an RSA JWT and calling Google's token endpoint on every gallery request or sync step.
+const TOKEN_REFRESH_MARGIN_MS = 5 * 60_000, DEFAULT_TOKEN_LIFETIME_SECONDS = 3600;
+let cachedToken: { identity: string; token: string; refreshAt: number } | null = null;
+let pendingToken: { identity: string; owner: object; promise: Promise<string> } | null = null;
+/** Forget `token` (or, with no argument, everything: tests and credential changes). Used when Drive rejects it with 401. */
+export function invalidateDriveToken(token?: string) {
+  if (token === undefined) { cachedToken = null; pendingToken = null; }
+  else if (cachedToken?.token === token) cachedToken = null;
+}
+async function mintDriveToken(email: string, key: string) {
   const bytes = Uint8Array.from(atob(key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, "")), c => c.charCodeAt(0));
   const imported = await crypto.subtle.importKey("pkcs8", bytes, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
-  const now = Math.floor(Date.now() / 1000), encoder = new TextEncoder();
+  const requestedAt = Date.now(), now = Math.floor(requestedAt / 1000), encoder = new TextEncoder();
   const header = b64url(encoder.encode(JSON.stringify({ alg: "RS256", typ: "JWT" })));
   const payload = b64url(encoder.encode(JSON.stringify({ iss: email, scope: "https://www.googleapis.com/auth/drive.readonly", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 })));
   const input = `${header}.${payload}`;
@@ -33,13 +40,33 @@ export async function driveToken() {
   const body = new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${input}.${signature}` });
   const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body, cache: "no-store", signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new DriveError(`Google Drive authorization failed (${response.status}). Check the service-account email, private key and Drive API enablement.`);
-  const result = await response.json() as { access_token?: string };
+  const result = await response.json() as { access_token?: string; expires_in?: number };
   if (!result.access_token) throw new DriveError("Google Drive did not return an access token.");
-  return result.access_token;
+  const lifetimeMs = (typeof result.expires_in === "number" && result.expires_in > 0 ? result.expires_in : DEFAULT_TOKEN_LIFETIME_SECONDS) * 1000;
+  return { token: result.access_token, refreshAt: requestedAt + lifetimeMs - Math.min(TOKEN_REFRESH_MARGIN_MS, lifetimeMs / 2) };
+}
+export async function driveToken() {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!email || !key) throw new DriveError("Set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in Convex and the Next.js server environment.");
+  const identity = `${email}\n${key}`; // a token is only reusable for the credentials that minted it
+  if (cachedToken?.identity === identity && Date.now() < cachedToken.refreshAt) return cachedToken.token;
+  if (pendingToken?.identity === identity) return pendingToken.promise;
+  const owner = {};
+  const promise = (async () => {
+    try {
+      const minted = await mintDriveToken(email, key);
+      if (pendingToken?.owner === owner) cachedToken = { identity, ...minted }; // failures and invalidated mints are never cached
+      return minted.token;
+    } finally { if (pendingToken?.owner === owner) pendingToken = null; }
+  })();
+  pendingToken = { identity, owner, promise };
+  return promise;
 }
 export async function driveRequest(token: string, url: string, init: RequestInit = {}, context: DriveErrorDetails = {}) {
   const response = await fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(60_000) });
   if (!response.ok) {
+    if (response.status === 401) invalidateDriveToken(token); // a revoked or rotated credential must not keep being served
     // Only log Google's error code/reason and the Drive resource; never tokens, request bodies or raw responses.
     const error = await response.json().catch(() => ({})) as { error?: { errors?: { reason?: string }[] } };
     const reason = error.error?.errors?.[0]?.reason;

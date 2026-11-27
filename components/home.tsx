@@ -13,7 +13,7 @@ import { GalleryPhoto } from "./gallery-photo";
 import { Programme, SectionHeading, timeLabel, type ProgrammeEvent, type Standing } from "./editorial";
 import { EmptyState, Icon, Skeleton } from "./ui";
 type Announcement = { _id: string; title: string; body: string; publishedAt?: number };
-type Photo = { _id: string; altText: string; caption?: string };
+type Photo = { _id: string; altText: string; caption?: string; imageVersion?: string };
 
 export function HomeContent() { return <Load fallback={<><HeroSection /><Skeleton label="Connecting to live event dataâ€¦" /></>}>{edition => <HomeData editionId={edition._id} />}</Load>; }
 function HomeData({ editionId }: { editionId: string }) {
@@ -45,7 +45,7 @@ function HomeData({ editionId }: { editionId: string }) {
       <EventUpdates events={events} categories={categories} />
       <section className="home-snapshots" aria-labelledby="home-snapshots-title">
         <header className="home-section-heading"><h2 id="home-snapshots-title">Snapshots</h2><p className="muted">Event moments, shared through approved photographs.</p></header>
-        {photos === undefined ? <Skeleton label="Loading approved photographs..." /> : photos.length ? <div className="home-photo-grid">{photos.slice(0, 3).map(photo => <figure key={photo._id}><Link href="/snapshots"><GalleryPhoto id={photo._id} alt={photo.altText} /></Link>{photo.caption && <figcaption>{photo.caption}</figcaption>}</figure>)}</div> : <EmptyState title="Memories in the making" icon="camera">Photos will appear here after they are approved.</EmptyState>}
+        {photos === undefined ? <Skeleton label="Loading approved photographs..." /> : photos.length ? <div className="home-photo-grid">{photos.slice(0, 3).map(photo => <figure key={photo._id}><Link href="/snapshots"><GalleryPhoto id={photo._id} alt={photo.altText} version={photo.imageVersion} /></Link>{photo.caption && <figcaption>{photo.caption}</figcaption>}</figure>)}</div> : <EmptyState title="Memories in the making" icon="camera">Photos will appear here after they are approved.</EmptyState>}
         <div className="home-section-action"><Link className="button secondary" href="/snapshots">Open Gallery <Icon name="arrow" /></Link></div>
       </section>
     </div>

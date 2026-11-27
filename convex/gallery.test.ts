@@ -84,7 +84,7 @@ describe("Drive-only gallery workflow", () => {
     expect(fetcher.mock.calls.every(([url, init]) => String(url).includes("oauth2.googleapis.com") || !init?.method || init.method === "GET")).toBe(true);
     const item = await s.t.run(ctx => ctx.db.get(itemId));
     expect(item).toMatchObject({ approvalStatus: "approved", consentMd5Checksum: checksum, approvedBy: "test|admin", consentConfirmedBy: "test|admin" });
-    expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([{ _id: itemId, altText: "School ceremony" }]);
+    expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([{ _id: itemId, altText: "School ceremony", imageVersion: checksum }]);
     await s.admin.mutation(api.gallery.reject, { itemId, reason: "Consent withdrawn" });
     expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([]);
     await s.admin.action(api.gallerySync.syncNow, { editionId: s.editionId }); await s.t.finishAllScheduledFunctions(() => vi.runAllTimers());
@@ -159,6 +159,28 @@ describe("Drive-only gallery workflow", () => {
       await expect(caller.query(api.gallery.getPreviewItem, { itemId })).rejects.toThrow();
     }
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("treats malformed ids and ids from other tables as a missing photo, not an error, once authorized", async () => {
+    const s = await setup(); vi.stubEnv("GALLERY_PROXY_SECRET", "server-secret");
+    const photo = await addPhoto(s, 1);
+    const otherTable = s.editionId as unknown as string;
+    for (const itemId of ["not-a-real-id", "", "a/b", otherTable]) {
+      expect(await s.t.query(api.gallery.getApprovedItem, { itemId, proxySecret: "server-secret" })).toBeNull();
+      expect(await s.admin.query(api.gallery.getPreviewItem, { itemId })).toBeNull();
+    }
+    expect(await s.t.query(api.gallery.getApprovedItem, { itemId: photo, proxySecret: "server-secret" })).toEqual({ driveFileId: "drive_photo_000000000000001", verifiedMd5Checksum: checksum });
+    expect(await s.admin.query(api.gallery.getPreviewItem, { itemId: photo })).toMatchObject({ verifiedMd5Checksum: checksum });
+  });
+  it("still checks the proxy secret and admin rights before looking at the id", async () => {
+    const s = await setup(); vi.stubEnv("GALLERY_PROXY_SECRET", "server-secret");
+    await expect(s.t.query(api.gallery.getApprovedItem, { itemId: "not-a-real-id", proxySecret: "wrong" })).rejects.toThrow("FORBIDDEN");
+    for (const caller of [s.t, s.regular, s.revoked]) await expect(caller.query(api.gallery.getPreviewItem, { itemId: "not-a-real-id" })).rejects.toThrow();
+  });
+  it("publishes only the approved image version (not the Drive id) so URLs can be checksum-keyed", async () => {
+    const s = await setup(); await addPhoto(s, 1);
+    const [listed] = await s.t.query(api.gallery.listApproved, { editionId: s.editionId });
+    const [paged] = (await s.t.query(api.gallery.pageApproved, { editionId: s.editionId, paginationOpts: { numItems: 5, cursor: null } })).page;
+    for (const photo of [listed, paged]) { expect(photo.imageVersion).toBe(checksum); expect(JSON.stringify(photo)).not.toContain("drive_photo"); expect(Object.keys(photo).sort()).toEqual(["_id", "altText", "imageVersion"]); }
   });
   it("rejects stale approval after another reviewer hides the photo", async () => {
     const s = await setup(); const itemId = await s.admin.mutation(api.gallery.add, { editionId: s.editionId, driveFileId: fileId, altText: "Photo" });
@@ -256,7 +278,7 @@ describe("Drive-only gallery workflow", () => {
     await addPhoto(s, 8, { verifiedMd5Checksum: "" });
     const page = await s.t.query(api.gallery.pageApproved, { editionId: s.editionId, paginationOpts: { numItems: 12, cursor: null } });
     expect(page.page.map(photo => photo._id)).toEqual([valid]);
-    expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([{ _id: valid, altText: "Photo 0" }]);
+    expect(await s.t.query(api.gallery.listApproved, { editionId: s.editionId })).toEqual([{ _id: valid, altText: "Photo 0", imageVersion: checksum }]);
   });
 
   it("caps listApproved at 12 eligible photos", async () => {
