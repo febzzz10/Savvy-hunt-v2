@@ -13,7 +13,7 @@ describe("Sitemap", () => {
   it("lists only the static public pages when there is no current edition", async () => {
     mocks.query.mockResolvedValueOnce(null);
     expect((await sitemap()).map(page => page.url)).toEqual([
-      SITE, `${SITE}/schedule`, `${SITE}/results`, `${SITE}/scoreboard`, `${SITE}/snapshots`, `${SITE}/about`,
+      SITE, `${SITE}/schedule`, `${SITE}/results`, `${SITE}/scoreboard`, `${SITE}/snapshots`, `${SITE}/about`, `${SITE}/team`,
     ]);
   });
   it("adds public events and active category scoreboards without private or duplicate URLs", async () => {
