@@ -123,6 +123,49 @@ describe("event category and publication history", () => {
   });
 });
 
+describe("event title uniqueness per category", () => {
+  it("allows the same title in every category and keeps public slugs unambiguous", async () => {
+    const s = await setup();
+    const title = "Action song (ENG)";
+    const ids = [];
+    for (const category of s.categories.slice(0, 4)) ids.push(await s.admin.mutation(api.events.save, { editionId: s.editionId, categoryId: category._id, title }));
+    const events = (await s.t.query(api.events.listPublic, { editionId: s.editionId })).filter(event => event.title === title);
+    expect(events).toHaveLength(4);
+    expect(new Set(events.map(event => event.slug)).size).toBe(4);
+    expect(new Set(events.map(event => event._id))).toEqual(new Set(ids));
+    for (const event of events) {
+      expect(await s.t.query(api.events.getPublicBySlug, { editionId: s.editionId, slug: event.slug })).toMatchObject({ _id: event._id, title });
+    }
+  });
+
+  it("rejects the same normalized title inside the same category", async () => {
+    const s = await setup();
+    await expect(s.admin.mutation(api.events.save, { editionId: s.editionId, categoryId: s.input.categoryId, title: "  CATEGORY   test EVENT  " })).rejects.toThrow(/title already exists in this category/i);
+  });
+
+  it("allows different titles in the same category", async () => {
+    const s = await setup();
+    await expect(s.admin.mutation(api.events.save, { editionId: s.editionId, categoryId: s.input.categoryId, title: "Another category test event" })).resolves.toBeTruthy();
+  });
+
+  it("allows editing an event without changing its title or category and preserves its public slug", async () => {
+    const s = await setup();
+    const before = await s.event();
+    await s.admin.mutation(api.events.save, { ...s.input, id: s.eventId, venue: "Updated hall" });
+    expect(await s.event()).toMatchObject({ venue: "Updated hall", slug: before.slug });
+  });
+
+  it("rejects editing into an existing title/category pair but allows the same title in another category", async () => {
+    const s = await setup();
+    const otherId = await s.admin.mutation(api.events.save, { editionId: s.editionId, categoryId: s.categories[0]._id, title: "Second event" });
+    await expect(s.admin.mutation(api.events.save, { editionId: s.editionId, id: otherId, categoryId: s.categories[0]._id, title: s.input.title })).rejects.toThrow(/title already exists in this category/i);
+    await s.admin.mutation(api.events.save, { editionId: s.editionId, id: otherId, categoryId: s.categories[1]._id, title: s.input.title });
+    const events = await s.admin.query(api.events.listAdmin, { editionId: s.editionId });
+    expect(events.filter(event => event.title === s.input.title)).toHaveLength(2);
+    expect(new Set(events.map(event => event.slug)).size).toBe(events.length);
+  });
+});
+
 describe("event deletion", () => {
   it("deletes an unpublished event with its draft while keeping audit history and other events", async () => {
     const s = await setup();

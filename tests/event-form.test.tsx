@@ -13,7 +13,7 @@ const event: EventRecord = {
   status: "upcoming", resultStatus: "none", isFeatured: false, createdBy: "organizer", createdAt: 1, updatedAt: 1,
   hasPublicationHistory: false, hasDraftResults: false, publicationState: "unpublished", categoryName: "Category B",
 };
-const props = { editionId, categories, schools: [], onSaved: vi.fn(), onDirtyChange: vi.fn(), onBusyChange: vi.fn() };
+const props = { editionId, categories, schools: [], events: [], onSaved: vi.fn(), onDirtyChange: vi.fn(), onBusyChange: vi.fn() };
 function render(item?: EventRecord, latest = item, options = categories) {
   const html = renderToStaticMarkup(<EventForm {...props} categories={options} event={item} latest={latest} />);
   return { html, select: html.match(/<select\b[^>]*>[\s\S]*?<\/select>/)?.[0] ?? "" };

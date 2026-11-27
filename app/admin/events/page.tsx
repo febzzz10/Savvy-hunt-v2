@@ -68,7 +68,7 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
   return <div className="event-manager">
     {header(formBusy)}
     <div className="event-manager-grid">
-      <div className="event-create-panel" ref={formPanel}><EventForm key={`${editing?._id ?? "new"}:${formVersion}`} editionId={editionId} categories={categories} schools={schools} event={editing} latest={events.find(event => event._id === editing?._id)} onSaved={() => { success(editing ? "Event updated." : "Event created. It now appears in the event feed."); reset(); }} onCancel={editing ? reset : undefined} onDirtyChange={setDirty} onBusyChange={setFormBusy} /></div>
+      <div className="event-create-panel" ref={formPanel}><EventForm key={`${editing?._id ?? "new"}:${formVersion}`} editionId={editionId} categories={categories} schools={schools} events={events} event={editing} latest={events.find(event => event._id === editing?._id)} onSaved={() => { success(editing ? "Event updated." : "Event created. It now appears in the event feed."); reset(); }} onCancel={editing ? reset : undefined} onDirtyChange={setDirty} onBusyChange={setFormBusy} /></div>
       <section className="event-feed" aria-labelledby="event-feed-title">
         <header className="event-feed-heading"><h2 id="event-feed-title">Event feed</h2><span className="admin-count" aria-label={`${events.length} events`}>{events.length}</span></header>
         <div className="event-status-filter"><Segmented label="Filter by status" value={status} onChange={setStatus} options={[{ value: "", label: "All", count: events.length }, ...statuses.map(value => ({ value, label: statusLabel(value), count: events.filter(event => event.status === value).length })).filter(option => option.count || option.value === status)]} /></div>

@@ -6,6 +6,8 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin, requiredText, slugify } from "./lib/security";
 const eventStatus=v.union(v.literal("upcoming"),v.literal("live"),v.literal("completed"),v.literal("postponed"),v.literal("cancelled"));
 const publicEvent=(event:{_id:unknown;title:string;slug:string;description?:string;venue?:string;status:string;categoryId:unknown;activePublishedRevisionId?:unknown})=>({_id:event._id,title:event.title,slug:event.slug,description:event.description,venue:event.venue,status:event.status,categoryId:event.categoryId,hasPublishedResults:Boolean(event.activePublishedRevisionId)});
+// Titles are unique per category, compared case-insensitively after trimming and collapsing whitespace.
+const titleKey=(value:string)=>value.trim().toLowerCase().replace(/\s+/g," ");
 export const listPublic=query({args:{editionId:v.id("editions")},handler:async(ctx,{editionId})=>(await ctx.db.query("events").withIndex("by_edition_created",q=>q.eq("editionId",editionId)).collect()).map(publicEvent)});
 export const getPublicBySlug=query({args:{editionId:v.id("editions"),slug:v.string()},handler:async(ctx,args)=>{const event=await ctx.db.query("events").withIndex("by_edition_slug",q=>q.eq("editionId",args.editionId).eq("slug",args.slug)).unique();return event?publicEvent(event):null}});
 
@@ -58,7 +60,7 @@ export const save = mutation({
       // Keep the existing invariant for published, superseded AND revoked revisions.
       throw new ConvexError("Cannot change category after publication. Official results were previously published. Keep the original category or create a new event.");
     }
-    const title = requiredText(args.title, "Event title"), slug = slugify(title), now = Date.now();
+    const title = requiredText(args.title, "Event title"), now = Date.now();
     if (title.length > 160 || args.venue && args.venue.length > 200 || args.description && args.description.length > 4000) throw new Error("Event information is too long");
     const category = await ctx.db.get(args.categoryId);
     // An inactive original category may be retained when editing other details.
@@ -70,8 +72,17 @@ export const save = mutation({
         if (!school || school.editionId !== args.editionId) throw new Error("Invalid participating school");
       }
     }
-    const duplicate = await ctx.db.query("events").withIndex("by_edition_slug", q => q.eq("editionId", args.editionId).eq("slug", slug)).unique();
-    if (duplicate && duplicate._id !== args.id) throw new Error("Event title already exists");
+    const siblings = await ctx.db.query("events").withIndex("by_edition_created", q => q.eq("editionId", args.editionId)).collect();
+    const key = titleKey(title);
+    const duplicate = siblings.find(event => event._id !== args.id && event.categoryId === args.categoryId && titleKey(event.title) === key);
+    if (duplicate) throw new Error("Event title already exists in this category");
+    // Slugs stay unique per edition so public event URLs remain unambiguous.
+    const baseSlug = slugify(title);
+    let slug = old && old.title === title && old.categoryId === args.categoryId ? old.slug : baseSlug;
+    if (slug === baseSlug && siblings.some(event => event._id !== args.id && event.slug === slug)) {
+      slug = `${baseSlug}-${category.slug}`;
+      for (let suffix = 2; siblings.some(event => event._id !== args.id && event.slug === slug); suffix++) slug = `${baseSlug}-${category.slug}-${suffix}`;
+    }
     let id = args.id;
     if (id && old) {
       // An empty list means "open to all schools", matching results.saveDraft/publish.

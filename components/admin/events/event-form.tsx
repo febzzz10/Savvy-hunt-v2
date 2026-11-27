@@ -7,8 +7,10 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { friendlyResultsError } from "@/lib/results-editor";
 import { statuses, statusLabel, useUnsavedChanges, type EventRecord, type EventStatus } from "./shared";
 
-export function EventForm({ editionId, categories, schools, event, latest, onSaved, onCancel, onDirtyChange, onBusyChange }: {
-  editionId: Id<"editions">; categories: Doc<"categories">[]; schools: Doc<"schools">[];
+const titleKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
+
+export function EventForm({ editionId, categories, schools, events, event, latest, onSaved, onCancel, onDirtyChange, onBusyChange }: {
+  editionId: Id<"editions">; categories: Doc<"categories">[]; schools: Doc<"schools">[]; events: EventRecord[];
   event?: EventRecord; latest?: EventRecord; onSaved: () => void; onCancel?: () => void;
   onDirtyChange: (dirty: boolean) => void; onBusyChange: (busy: boolean) => void;
 }) {
@@ -30,6 +32,9 @@ export function EventForm({ editionId, categories, schools, event, latest, onSav
     e.preventDefault();
     if (lock.current || stale) return;
     if (!values.title.trim()) { setError("Enter an event title."); return; }
+    if (events.some(row => row._id !== event?._id && row.categoryId === categoryId && titleKey(row.title) === titleKey(values.title))) {
+      setError("An event with this title already exists in this category. Choose a different title or category."); return;
+    }
     if (event && event.status !== values.status && !confirm(`Change this event to ${statusLabel(values.status)}? The public schedule will update immediately.`)) return;
     lock.current = true; setBusy(true); setError("");
     try {
