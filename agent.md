@@ -75,6 +75,15 @@ Established presentation decisions (2026-11-24, uncommitted on `fix/notice-board
 - Admin photo thumbnails: a failed image shows a fixed 56px "Unavailable" square, never wrapped text (`components/admin/admin-shell.css`).
 - `<body>` has `suppressHydrationWarning` only to silence browser-extension (Grammarly) attribute injection; real hydration mismatches elsewhere still surface.
 
+Public Snapshots gallery (2026-11-28; owner-requested Pinterest-style masonry; lint/types/292 tests pass; checked in the browser pane at 1440/1024/768/375px with 4 photos; hover caption overlay, infinite scroll and an actual file save were not exercised; uncommitted):
+
+- `app/snapshots/page.tsx` splits photos round-robin into `.masonry-col` columns in JS (`useColumnCount`: >=1200px 4, >=768px 3, >=375px 2, else 1; keep it in step with these breakpoints). CSS `columns` was rejected because every "Load more" would rebalance and move photos between columns. Gaps are 16px, 10px at <=767px.
+- `GalleryPhoto` takes `layout="masonry"`: natural aspect ratio, `width/height` auto, no `fill`, no cropping, 180px placeholder until loaded. The default `layout="frame"` (4:3, cover) is unchanged and still used by the lightbox, home, about and admin. `.photo-frame.photo-masonry` needs the doubled selector because `.photo-frame` is declared later in `globals.css`.
+- Cards: 16px radius, hover darken plus 1.02 scale over 200ms, disabled for reduced motion. A card shows a caption only when `caption` is non-empty (gradient overlay on hover/focus, always on `hover:none`); never fall back to the filename or `altText` on cards. The lightbox caption still falls back to `altText`.
+- Each card has a download link (`.photo-download`, top-right, a sibling of the open button because a link cannot sit inside a button) and the lightbox toolbar has a "Download" button. Both use `galleryImageUrl` and `downloadName` from `components/gallery-photo.tsx`; the route is same-origin so the `download` attribute works with no route change.
+- An IntersectionObserver sentinel (600px margin) calls `loadMore(12)`; the "Load more photos" button remains as a fallback.
+- `galleryItems` stores no image width/height, so layout shifts once each image loads. Fix by storing dimensions on import (schema change, needs owner approval).
+
 Shared admin patterns (2026-11-26; lint/types/tests/build pass, not browser- or device-verified). Reuse these rather than adding per-page variants:
 
 - `components/admin/admin-ui.tsx`: `AdminPageHeader` (h1, one-line purpose, optional back link and actions; no eyebrow labels), `useFeedback` + `FeedbackToast` (fixed bottom toast; success auto-clears after 6 s, errors persist; live region always mounted), `ConfirmDialog` (built on `EventDialog`; errors render inside the dialog), `Segmented` (single-choice filter with optional counts), `photoStatus` and `adminTime` (Asia/Kolkata).

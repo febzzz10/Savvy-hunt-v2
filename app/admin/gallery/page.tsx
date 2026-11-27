@@ -26,6 +26,7 @@ const viewHelp: Record<View, string> = {
 
 function Manager({ editionId }: { editionId: Id<"editions"> }) {
   const [view, setView] = useState<View>("pending"), [syncBusy, setSyncBusy] = useState(false);
+  const [count, setCount] = useState<number>();
   const { feedback, success, error, clear } = useFeedback();
   const sync = useAction(api.gallerySync.syncNow);
   const state = useQuery(api.gallerySyncData.getState, { editionId });
@@ -46,20 +47,22 @@ function Manager({ editionId }: { editionId: Id<"editions"> }) {
       <button className="button secondary compact" disabled={syncBusy || state?.running} onClick={() => void syncNow()}>{state?.running ? "Syncing Drive…" : syncBusy ? "Starting sync…" : "Sync Now"}</button>
     </section>
     <div className="gallery-toolbar">
-      <Segmented label="Gallery views" value={view} onChange={setView} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }]} />
+      <Segmented label="Gallery views" value={view} onChange={setView} options={(["pending", "approved", "rejected"] as const).map(value => ({ value, label: value[0].toUpperCase() + value.slice(1), ...(value === view && count !== undefined ? { count } : {}) }))} />
       <p className="small">{viewHelp[view]}</p>
     </div>
-    <PhotoList key={view} editionId={editionId} view={view} report={success} fail={error} />
+    <PhotoList key={view} editionId={editionId} view={view} report={success} fail={error} onCount={setCount} />
     <FeedbackToast feedback={feedback} onDismiss={clear} />
   </>;
 }
 
-function PhotoList({ editionId, view, report, fail }: { editionId: Id<"editions">; view: View; report: (message: string) => void; fail: (message: string) => void }) {
+function PhotoList({ editionId, view, report, fail, onCount }: { editionId: Id<"editions">; view: View; report: (message: string) => void; fail: (message: string) => void; onCount: (count: number | undefined) => void }) {
   const { results, status, loadMore } = usePaginatedQuery(api.gallery.pageAdmin, { editionId, view }, { initialNumItems: 12 });
   useEffect(() => { if (status === "CanLoadMore" && results.length === 0) loadMore(12); }, [status, results.length, loadMore]);
-  const label = view[0].toUpperCase() + view.slice(1);
+  // Only an exhausted list has an exact count; other states show no tab count rather than a guess.
+  const exact = status === "Exhausted" ? results.length : undefined;
+  useEffect(() => { onCount(exact); return () => onCount(undefined); }, [exact, onCount]);
   return <section className="gallery-list" aria-labelledby="gallery-list-title">
-    <header className="gallery-list-head"><h2 id="gallery-list-title">{label} photos</h2><span className="admin-count" aria-label={`${results.length}${status === "CanLoadMore" ? " or more" : ""} photos shown`}>{results.length}{status === "CanLoadMore" ? "+" : ""}</span></header>
+    <h2 id="gallery-list-title" className="gallery-list-title">{view[0].toUpperCase() + view.slice(1)} photos</h2>
     {results.map(item => <PhotoEditor key={`${item._id}:${item.reviewVersion ?? 0}:${item.observedMd5Checksum ?? item.verifiedMd5Checksum ?? item.consentMd5Checksum ?? "unverified"}`} item={item} report={report} fail={fail} />)}
     {status === "LoadingFirstPage" && <Skeleton label="Loading gallery…" />}
     {status === "Exhausted" && !results.length && <div className="gallery-empty"><h3>No {view} photos</h3><p>{view === "pending" ? "Everything has been reviewed. New photos added to the Drive folder appear here after the next sync." : "Photos move here as you review them in Pending."}</p></div>}
@@ -95,7 +98,7 @@ function PhotoEditor({ item, report, fail }: { item: Doc<"galleryItems">; report
   }
   const name = item.filename ?? item.altText;
   return <article className="gallery-item" data-status={status}>
-    <div className="gallery-preview"><GalleryPhoto id={item._id} alt={item.altText} preview /></div>
+    <div className="gallery-preview"><GalleryPhoto id={item._id} alt={item.altText} preview layout="masonry" /></div>
     <div className="gallery-item-body">
       <header className="gallery-item-head">
         <div className="gallery-item-title"><span className="pill" data-status={status}>{label}</span><h3>{name}</h3></div>
