@@ -100,6 +100,7 @@ Shared admin patterns (2026-11-26; lint/types/tests/build pass, not browser- or 
 - Shared styles live in `components/admin/admin-shell.css`, which every admin page loads: page header, toast, `.button.danger` / `.button.secondary.danger` (error red `#9f342d`, never white on terracotta), `.button.compact`, `.admin-segmented`, `.admin-count`, and all `.event-dialog*` rules (bottom sheet at ≤600px). Do not put shared rules in a module stylesheet.
 - Destructive confirms use the danger button; public-facing actions (photo publish/hide/reject, announcement publish/republish) go through `ConfirmDialog`, not `window.confirm`. `useUnsavedChanges` keeps its synchronous `confirm()` because it must block navigation.
 - Editing state is shown with a full accent border plus tint and an "Editing" pill, not a one-sided bar.
+- Admin Gallery Manager (2026-11-28; types/lint/tests/build pass, not browser-verified): review-card previews use `GalleryPhoto layout="masonry"` inside `.gallery-preview` (natural ratio, `max-height` plus `object-fit:contain`, never cropped); `.gallery-list` keeps a `min-height` so tab switches do not jump; only the active tab shows a count, and only when its list is exhausted. Keep the visually hidden "<View> photos" h2, which `scripts/verify-gallery.mjs` selects.
 - Button names and headings that `scripts/verify-*.mjs` select on are kept exactly (for example "Sync Now", "Pending", "Verify and publish", "Create event", "Save draft", "Delete School?", "View details", `Delete <school>`).
 
 ## 6. Backend and database rules
