@@ -13,6 +13,7 @@
   "dependencies": {
     "@clerk/nextjs": "^7.9.22",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.1.1",
     "convex": "^1.0.0",
     "dynaura": "^0.2.2",
     "motion": "^14.9.0",
