@@ -59,6 +59,16 @@ flowchart LR
 - Bound new collection reads, use schema indexes, and paginate growing lists. Existing full-edition scans are not a scalability precedent. Avoid repeated hydration of records outside the displayed result set.
 - Preserve semantic headings, labels, live status announcements, skip links, visible focus, native dialog keyboard/focus behavior, image alt text and reduced-motion support. Check loading, error, empty, keyboard and narrow-screen states.
 
+### SEO rules (2026-11-28)
+
+- Per-route titles and descriptions live beside each route (`layout.tsx`/`page.tsx` `META`); shared builders (`eventMeta`, `categoryMeta`, `faqItems`, `clampDescription`) and all JSON-LD are in `lib/structured-data.ts`; site constants (name, school, `SCHOOL_URL`, `EVENT_START_DATE`) in `lib/site.ts`. Extend these; do not build a parallel setup.
+- Use `title: { absolute }` for the agreed formats (the root template would append a second suffix). Titles stay under about 60 characters, descriptions 140-160. Do not set per-route `openGraph` objects: they replace the root one; og:title/description derive from title/description and the image comes from `app/opengraph-image.tsx`.
+- Each public page has exactly one H1 containing its primary keyword, rendered in server HTML (not only inside the client `Load`). Never add hidden (sr-only) keyword text; the owner reverted it.
+- `/scoreboard/[slug]` is a category page, not a school. No event dates are stored: the Event JSON-LD and the date FAQ answer stay off until `EVENT_START_DATE` is set. Never invent dates, venues or counts.
+- The FAQ on `/results` and its FAQPage JSON-LD come from one `faqItems()` source and must stay identical.
+- `/admin` noindex comes from the server `app/admin/layout.tsx` (the gate is the client `admin-layout-client.tsx`). Sitemap `lastModified` uses stored event `updatedAt` only, never the clock.
+- Gallery alt text goes through `photoAlt` (`lib/gallery-alt.ts`) because Drive sync stores filenames as alt text. After SEO edits, verify from raw HTML of `npm run build` + `next start`, not from source.
+
 ## 5. UI/UX rules
 
 The current foundation is nature-inspired ivory/sage/green, with Fraunces display type and DM Sans body text. `app/globals.css` is authoritative: canvas `#fafaf6`, ink `#1f2a23`, accent `#32643b`, sage `#e5eddf`, terracotta `#d96b4e`, gold `#c59439`; card/control radii are 18px/12px. Feature styles refine this foundation.
