@@ -15,6 +15,12 @@ export type AchievementResult = {
   entries: AchievementEntry[];
 };
 
+/** Display order only: ascending official placement, then school, then student. Entries without a placement sort last. */
+export function orderByPlacement<T extends { schoolName: string; placement?: number; participantName?: string }>(entries: T[]) {
+  const place = (entry: { placement?: number }) => entry.placement ?? Number.MAX_SAFE_INTEGER;
+  return [...entries].sort((a, b) => place(a) - place(b) || a.schoolName.localeCompare(b.schoolName) || (a.participantName ?? "").localeCompare(b.participantName ?? ""));
+}
+
 /** Placements are explicit awards, never inferred from points or array order. */
 export function achievementWinners(entries: AchievementEntry[]) {
   return entries

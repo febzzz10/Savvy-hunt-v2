@@ -6,6 +6,7 @@ import { SiteNavigation } from "./site-navigation";
 import { EmptyState, Skeleton } from "./ui";
 import { useQuery } from "convex/react";
 import { ref, Load } from "./data";
+import { orderByPlacement } from "@/lib/achievement-results";
 
 type School = { id: string; name: string; points: number; rank: number };
 type Category = { _id: string; name: string; slug: string };
@@ -49,5 +50,5 @@ function EventDetailData({ editionId, slug }: { editionId: string; slug: string 
   const entries = useQuery(ref<{ eventId: string }, Array<{ schoolId: string; schoolName: string; points: number; placement?: number; participantName?: string }>>("results:getPublishedByEvent"), event ? { eventId: event._id } : "skip");
   if (event === undefined) return <Skeleton label="Loading event…" />;
   if (!event) return <EmptyState title="Event not found" href="/schedule" />;
-  return <><span className="pill">{event.status}</span><p>{event.venue ?? "Venue to be announced"}</p>{event.description && <p>{event.description}</p>}<h2>Official results</h2>{!entries?.length ? <p>Results pending.</p> : <div className="table-wrap event-results" tabIndex={0}><table><thead><tr><th scope="col">Student name</th><th scope="col">School</th><th scope="col">Placement</th><th scope="col">Points</th></tr></thead><tbody>{entries.map((row, index) => <tr key={index}><td>{row.participantName ?? "—"}</td><td>{row.schoolName}</td><td>{row.placement ?? "—"}</td><td>{row.points}</td></tr>)}</tbody></table></div>}</>;
+  return <><span className="pill">{event.status}</span><p>{event.venue ?? "Venue to be announced"}</p>{event.description && <p>{event.description}</p>}<h2>Official results</h2>{!entries?.length ? <p>Results pending.</p> : <div className="table-wrap event-results" tabIndex={0}><table><thead><tr><th scope="col">Student name</th><th scope="col">School</th><th scope="col">Placement</th><th scope="col">Points</th></tr></thead><tbody>{orderByPlacement(entries).map((row, index) => <tr key={index}><td>{row.participantName ?? "—"}</td><td>{row.schoolName}</td><td>{row.placement ?? "—"}</td><td>{row.points}</td></tr>)}</tbody></table></div>}</>;
 }
