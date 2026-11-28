@@ -1,5 +1,5 @@
 // Pure presentation helpers for the admin scoreboard inspector. Ranks come from the backend
-// (`convex/lib/scoring.ts`): equal points share a competition rank, names break display ties.
+// (`convex/lib/scoring.ts`): equal points share a dense rank, names break display ties.
 export type Standing = { id: string; name: string; points: number; rank: number; categoryPoints?: Record<string, number> };
 export type Contribution = { eventId: string; eventTitle: string; categoryId: string; points: number };
 export type Category = { _id: string; name: string };

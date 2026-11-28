@@ -22,5 +22,7 @@ export function deltas<K>(oldRows: ScoreRow<K>[], newRows: ScoreRow<K>[]) {
   return result;
 }
 export function rank<T extends {name:string;points:number}>(rows:T[]) {
-  return [...rows].sort((a,b)=>b.points-a.points || a.name.localeCompare(b.name)).map((row,index,array)=>({ ...row, rank: index && row.points === array[index-1].points ? array.findIndex(x=>x.points===row.points)+1 : index+1 }));
+  // Dense ranking: equal points share a rank, the next distinct score takes the next number.
+  let position=0;
+  return [...rows].sort((a,b)=>b.points-a.points || a.name.localeCompare(b.name)).map((row,index,array)=>({ ...row, rank: index && row.points === array[index-1].points ? position : ++position }));
 }

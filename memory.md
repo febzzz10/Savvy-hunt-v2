@@ -28,7 +28,7 @@ Unresolved externally: actual production deployment/domain, official event conte
 ## 4. Product decisions
 
 - Edition initialization creates Category I, II, III, IV, V and Common Category, with `Asia/Kolkata` timezone. One current edition is resolved via `isCurrent`; no full edition lifecycle UI is established by initialization alone (`convex/editions.ts`).
-- Schools earn manually entered nonnegative integer points; there is no encoded automatic placement-to-points schedule. Overall standings sum category totals including Common once. All schools are publicly ranked; equal totals share competition rank and names break display-order ties (`convex/lib/scoring.ts`, `convex/scoreboard.ts`).
+- Schools earn manually entered nonnegative integer points; there is no encoded automatic placement-to-points schedule. Overall standings sum category totals including Common once. All schools are publicly ranked; equal totals share a dense rank and names break display-order ties (`convex/lib/scoring.ts`, `convex/scoreboard.ts`).
 - Event status (upcoming/live/completed/postponed/cancelled) is organizer-controlled and distinct from result publication. Events carry no date/time fields; schedules order by creation time and public availability is not inferred from the clock.
 - Official results are versioned publications. Draft corrections coexist with the official revision. Corrections require reasons when replacing an active publication; revocation retains publication history.
 - Explicit placements drive achievement winners, including tied placements and zero-point placed entries. Entered participant names are automatically public; the current draft mutation accepts school/points/placement and participant name.

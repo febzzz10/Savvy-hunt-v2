@@ -127,7 +127,7 @@ Clerk's `convex` JWT template/audience connects to `convex/auth.config.ts` using
 
 ## 8. Feature invariants
 
-- Categories initialize as Category I–V and Common Category; current edition uses `Asia/Kolkata`. Overall sums category totals once, including Common. Equal points share competition rank (1, 1, 3), with names determining display order within ties.
+- Categories initialize as Category I–V and Common Category; current edition uses `Asia/Kolkata`. Overall sums category totals once, including Common. Equal points share a dense rank (1, 1, 2), with names determining display order within ties.
 - Result drafts do not contribute public points. Entries allow repeated schools, up to 200 per draft; points must be nonnegative safe integers and placements positive safe integers. Respect assigned participating schools and same-edition validation.
 - Preserve `expectedDraftVersion`, `expectedActiveRevisionId` and event stale-edit checks. Retry handling must not double count. Publication requires every receiving school to still be active in the edition. Publishing identical entries returns unchanged; correction of an active publication needs a reason. Revocation needs a reason, subtracts official contributions and retains history.
 - Once any published/superseded/revoked history exists, event category cannot change, even after revoke clears the active pointer. Other validated details remain editable. Do not remove a school from active official results through participation edits.

@@ -20,7 +20,7 @@ it("publishes tied winners with manual points and corrects their aggregate exact
   await admin.mutation(api.results.publish, publication);
   expect(await admin.mutation(api.results.publish, publication)).toEqual({ status: "already_published" });
   expect((await t.query(api.results.getPublishedByEvent, { eventId })).map(row => row.placement)).toEqual([1, 1, 2, 3]);
-  expect((await t.query(api.scoreboard.getOverall, { editionId })).map(row => [row.rank, row.points])).toEqual([[1, 13], [1, 13], [3, 8], [4, 4]]);
+  expect((await t.query(api.scoreboard.getOverall, { editionId })).map(row => [row.rank, row.points])).toEqual([[1, 13], [1, 13], [2, 8], [3, 4]]);
   const corrected = await admin.mutation(api.results.saveDraft, { eventId, reason: "Judge revised the tied award", entries: entries.map(row => ({ ...row, points: row.placement === 1 ? 12 : row.points })) });
   const correction = await admin.query(api.results.preview, { eventId, draftRevisionId: corrected });
   expect(correction.changes.filter(row => row.delta !== 0).map(row => row.delta)).toEqual([-1, -1]);
